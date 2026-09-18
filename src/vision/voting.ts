@@ -8,27 +8,38 @@
  * janji "zero false-positive". Skor 0,9 pada satu bingkai bisa muncul dari
  * kilatan cahaya, guncangan tangan, atau bayangan yang kebetulan menyerupai
  * pola uang. Kesalahan seperti itu tidak bertahan: bingkai berikutnya biasanya
- * memberi jawaban lain.
+ * memberi jawaban lain. Deteksi yang benar justru sebaliknya — ia stabil selama
+ * uangnya masih di depan kamera.
  *
- * Deteksi yang benar justru sebaliknya — ia stabil selama uangnya masih di
- * depan kamera. Jadi yang kita tuntut bukan keyakinan tinggi sesaat, melainkan
- * KESEPAKATAN antar bingkai. Inilah saringan yang sebenarnya mewujudkan janji
- * anti salah-sebut di proposal.
+ * KESEPAKATAN DIHITUNG PER TEMPAT, BUKAN PER KELAS. Lihat ADR-0012.
  *
- * KESEPAKATAN DIHITUNG PER OBJEK, BUKAN PER HIMPUNAN. Lihat ADR-0012. Versi
- * pertama menuntut seluruh isi bingkai sama persis di 3 dari 5 bingkai. Itu
- * bekerja untuk satu lembar dan gagal untuk beberapa lembar: lembar yang paling
- * jelas terbaca hampir setiap bingkai, sementara lembar kedua berkedip
- * melintasi ambang. Himpunan {A} muncul jauh lebih sering daripada himpunan
- * {A, B}, sehingga jawaban yang menang justru yang MENGHILANGKAN uang.
+ * Perjalanannya tiga langkah, dan dua yang pertama keliru:
  *
- * Sekarang setiap pecahan dinilai sendiri: ia ikut diumumkan kalau terlihat di
- * cukup banyak bingkai. Ambang keyakinannya tidak diturunkan sedikit pun —
- * setiap lembar tetap harus melewati gerbang yang sama, hanya saja bukti
- * temporalnya dihitung per lembar, bukan per himpunan.
+ *   1. Per HIMPUNAN — seluruh isi bingkai harus sama persis di 3 dari 5
+ *      bingkai. Bekerja untuk satu lembar; gagal untuk beberapa lembar, karena
+ *      lembar kedua berkedip melintasi ambang sehingga himpunan {A} menang atas
+ *      {A, B}. Jawaban yang menang justru MENGHILANGKAN uang pengguna.
+ *
+ *   2. Per KELAS — tiap pecahan dinilai sendiri. Multi-lembar membaik, tetapi
+ *      muncul kegagalan yang lebih buruk: satu lembar yang identitasnya
+ *      berkedip antara dua pecahan membuat KEDUA pecahan itu masing-masing
+ *      mengumpulkan 3 dari 5 bingkai. Satu lembar di tangan dilaporkan sebagai
+ *      dua lembar, dan totalnya menjadi LEBIH BESAR daripada uang yang
+ *      sebenarnya ada.
+ *
+ *   3. Per TEMPAT — yang dipakai sekarang. Deteksi dikelompokkan berdasarkan
+ *      letaknya di bingkai, bukan berdasarkan namanya. Satu tempat berarti satu
+ *      lembar uang, apa pun tebakan kelasnya. Sebuah tempat baru diumumkan
+ *      kalau ia terlihat di cukup banyak bingkai DAN kelasnya sepakat di cukup
+ *      banyak bingkai.
+ *
+ * Langkah ketiga inilah yang membuat dua kegagalan di atas mustahil sekaligus:
+ * lembar yang berkedip tetap terhitung satu tempat, dan tempat yang namanya
+ * masih berubah-ubah tidak pernah disebut — sistem memilih diam.
  */
 
 import { VOTING_BUTUH, VOTING_DARI, type Deteksi } from '@/contracts';
+import { iou } from './nms';
 
 export type StatusVoting = 'stabil' | 'belum-stabil' | 'tidak-ada-objek';
 
@@ -39,14 +50,22 @@ export interface HasilVoting {
 }
 
 /**
+ * Seberapa berimpit dua kotak agar dianggap lembar uang yang sama.
+ *
+ * Lebih longgar daripada ambang NMS (0,40), dan itu disengaja: NMS memutuskan
+ * "dua kotak ini objek yang sama DALAM SATU bingkai", sedangkan di sini kita
+ * memutuskan "kotak ini lembar yang sama dengan yang tadi, SATU BINGKAI LALU".
+ * Di antara dua bingkai ada jeda sekitar 0,7 detik, dan tangan yang memegang
+ * uang selalu bergeser dalam jeda itu. Menuntut keberimpitan yang ketat akan
+ * membuat satu lembar terus-menerus dianggap lembar baru.
+ */
+const AMBANG_TEMPAT = 0.3;
+
+/**
  * Sidik jari sebuah bingkai: multiset kode kelas, diurutkan.
  *
- * Sengaja MENGABAIKAN posisi kotak. Uang yang dipegang tangan selalu bergeser
- * sedikit antar bingkai; menuntut kotaknya berimpit akan membuat sistem tidak
- * pernah mencapai stabil.
- *
  * Tidak lagi dipakai untuk memutuskan kestabilan, tetapi tetap ada karena ia
- * cara paling ringkas untuk membandingkan isi dua bingkai.
+ * cara paling ringkas untuk membandingkan isi dua bingkai, dan dipakai di tes.
  */
 export function sidikJari(deteksi: readonly Deteksi[]): string {
   return deteksi
@@ -55,30 +74,61 @@ export function sidikJari(deteksi: readonly Deteksi[]): string {
     .join(',');
 }
 
-/**
- * Berapa banyak lembar pecahan `kodeKelas` yang benar-benar disepakati jendela.
- *
- * Mengembalikan angka terbesar `n` yang masih didukung sekurang-kurangnya
- * `butuh` bingkai. Menghitung seperti ini, bukan sekadar "ada atau tidak ada",
- * membuat dua lembar lima ribu tidak pernah menyusut menjadi satu hanya karena
- * salah satunya sempat tertutup jari.
- */
-function jumlahDisepakati(
-  jendela: readonly (readonly Deteksi[])[],
-  kodeKelas: number,
-  butuh: number,
-): number {
-  const cacah = jendela.map(
-    (b) => b.filter((d) => d.kodeKelas === kodeKelas).length,
-  );
-  const terbanyak = Math.max(0, ...cacah);
+/** Satu lembar uang yang diikuti melintasi beberapa bingkai. */
+interface Tempat {
+  /** Kotak dari kemunculan terbaru; dipakai mencocokkan bingkai berikutnya. */
+  acuan: Deteksi;
+  /** Deteksi yang pernah menempati tempat ini, berurutan menurut bingkai. */
+  anggota: Deteksi[];
+  /** Indeks bingkai tempat ini terlihat. Menghindari hitungan ganda. */
+  bingkai: Set<number>;
+}
 
-  let hasil = 0;
-  for (let n = 1; n <= terbanyak; n += 1) {
-    if (cacah.filter((c) => c >= n).length >= butuh) hasil = n;
-    else break;
-  }
-  return hasil;
+/**
+ * Mengelompokkan deteksi dari seluruh jendela menjadi tempat-tempat.
+ *
+ * Pencocokan dilakukan serakah dari yang paling berimpit, dan satu tempat hanya
+ * boleh menerima satu deteksi per bingkai — kalau tidak, dua lembar yang
+ * bersebelahan bisa runtuh menjadi satu tempat dan salah satunya lenyap dari
+ * hitungan.
+ */
+function kelompokkan(jendela: readonly (readonly Deteksi[])[]): Tempat[] {
+  const tempat: Tempat[] = [];
+
+  jendela.forEach((bingkai, i) => {
+    const terpakai = new Set<Tempat>();
+
+    // Deteksi berkeyakinan tinggi memilih tempatnya lebih dulu. Yang ragu-ragu
+    // tidak boleh merebut tempat milik yang jelas.
+    const urut = [...bingkai].sort((a, b) => b.skor - a.skor);
+
+    for (const d of urut) {
+      let terbaik: Tempat | null = null;
+      let terbaikIou = AMBANG_TEMPAT;
+
+      for (const t of tempat) {
+        if (terpakai.has(t)) continue;
+        const nilai = iou(t.acuan.kotak, d.kotak);
+        if (nilai >= terbaikIou) {
+          terbaik = t;
+          terbaikIou = nilai;
+        }
+      }
+
+      if (terbaik) {
+        terbaik.anggota.push(d);
+        terbaik.bingkai.add(i);
+        terbaik.acuan = d;
+        terpakai.add(terbaik);
+      } else {
+        const baru: Tempat = { acuan: d, anggota: [d], bingkai: new Set([i]) };
+        tempat.push(baru);
+        terpakai.add(baru);
+      }
+    }
+  });
+
+  return tempat;
 }
 
 /**
@@ -97,42 +147,63 @@ export function votingTemporal(
     return { status: 'tidak-ada-objek', deteksi: [] };
   }
 
-  const semuaKelas = new Set<number>();
-  for (const bingkai of terakhir) {
-    for (const d of bingkai) semuaKelas.add(d.kodeKelas);
-  }
+  const tempat = kelompokkan(terakhir);
+  const mapan = tempat.filter((t) => t.bingkai.size >= butuh);
 
-  const disepakati = new Map<number, number>();
-  for (const kelas of semuaKelas) {
-    const n = jumlahDisepakati(terakhir, kelas, butuh);
-    if (n > 0) disepakati.set(kelas, n);
-  }
-
-  if (disepakati.size === 0) {
-    // Tidak ada satu pun pecahan yang cukup sering terlihat. Bedakan "jendela
-    // sepakat tidak ada apa-apa" dari "jendela masih ragu": yang pertama berarti
-    // kamera memang belum diarahkan ke uang dan sistem boleh diam, yang kedua
-    // berarti ada sesuatu di sana dan pengguna berhak diberi tahu.
+  if (mapan.length === 0) {
+    // Bedakan "jendela sepakat tidak ada apa-apa" dari "jendela masih ragu".
+    // Yang pertama berarti kamera memang belum diarahkan ke uang dan sistem
+    // boleh diam; yang kedua berarti ada sesuatu di sana dan pengguna berhak
+    // diberi tahu lewat abstain.
     const kosong = terakhir.filter((b) => b.length === 0).length;
     return kosong >= butuh
       ? { status: 'tidak-ada-objek', deteksi: [] }
       : { status: 'belum-stabil', deteksi: [] };
   }
 
-  // Kotaknya diambil dari bingkai TERBARU yang benar-benar memuat sebanyak itu,
-  // bukan dari bingkai terlama: kotaknya paling dekat dengan apa yang sedang
-  // dilihat kamera saat ini.
   const deteksi: Deteksi[] = [];
-  for (const [kelas, n] of disepakati) {
-    for (let i = terakhir.length - 1; i >= 0; i -= 1) {
-      const cocok = (terakhir[i] ?? [])
-        .filter((d) => d.kodeKelas === kelas)
-        .sort((a, b) => b.skor - a.skor);
-      if (cocok.length >= n) {
-        deteksi.push(...cocok.slice(0, n));
-        break;
+
+  for (const t of mapan) {
+    // Kelas mana yang disepakati untuk tempat ini?
+    const suara = new Map<number, number>();
+    for (const d of t.anggota) {
+      suara.set(d.kodeKelas, (suara.get(d.kodeKelas) ?? 0) + 1);
+    }
+
+    let kelasMenang = -1;
+    let suaraMenang = 0;
+    for (const [kelas, n] of suara) {
+      if (n > suaraMenang) {
+        suaraMenang = n;
+        kelasMenang = kelas;
       }
     }
+
+    // INI PENJAGA TERPENTING DI SELURUH BERKAS.
+    //
+    // Tempat yang jelas ada tetapi identitasnya masih berubah-ubah TIDAK
+    // ditebak. Menebaknya berarti menyebut nominal yang salah dengan penuh
+    // keyakinan — satu-satunya mode kegagalan yang lolos dari kebijakan
+    // abstain, dan satu-satunya yang membuat pengguna kehilangan uang tanpa
+    // pernah tahu.
+    //
+    // Seluruh hasil dibatalkan, bukan hanya tempat ini. Mengumumkan sisanya
+    // berarti menyebut total yang lebih kecil daripada uang yang sebenarnya
+    // ada di tangan, dan itu sama menyesatkannya.
+    if (suaraMenang < butuh) {
+      return { status: 'belum-stabil', deteksi: [] };
+    }
+
+    // Wakilnya: kemunculan TERBARU dengan kelas yang menang, karena kotaknya
+    // paling dekat dengan apa yang sedang dilihat kamera saat ini.
+    const wakil = [...t.anggota]
+      .reverse()
+      .find((d) => d.kodeKelas === kelasMenang);
+    if (wakil) deteksi.push(wakil);
+  }
+
+  if (deteksi.length === 0) {
+    return { status: 'belum-stabil', deteksi: [] };
   }
 
   // Diurutkan dari nominal terbesar supaya kalimatnya terdengar wajar:

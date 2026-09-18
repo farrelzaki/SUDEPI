@@ -2,16 +2,37 @@ import { describe, expect, it } from 'vitest';
 import { VOTING_BUTUH, VOTING_DARI, type Deteksi } from '@/contracts';
 import { sidikJari, votingTemporal } from './voting';
 
-/** Bingkai berisi kelas-kelas tertentu, dengan kotak yang sedikit bergeser. */
+/**
+ * Bingkai berisi kelas-kelas tertentu.
+ *
+ * TEMPAT SETIAP LEMBAR DITENTUKAN KELASNYA, bukan urutannya dalam larik.
+ * Versi pertama memakai indeks larik, dan itu keliru sejak awal: menukar urutan
+ * deteksi lalu berarti MEMINDAHKAN uangnya. Selama voting hanya melihat nama
+ * kelas, kekeliruan itu tidak kelihatan; begitu voting mulai melihat tempat
+ * (ADR-0012), ia langsung membuat tes menguji hal yang mustahil terjadi.
+ *
+ * Lembar kedua bernominal sama digeser ke tempatnya sendiri, karena dua lembar
+ * memang tidak bisa menempati satu ruang.
+ */
 function bingkai(kelas: readonly number[], geser = 0): readonly Deteksi[] {
-  return kelas.map((kodeKelas, i) => ({
-    kodeKelas,
-    nominal: null,
-    koin: false,
-    skor: 0.95,
-    kotak: { x: 0.1 + geser, y: 0.1 + i * 0.2, w: 0.5, h: 0.15 },
-    iouMaks: 0,
-  }));
+  const sudahDipakai = new Map<number, number>();
+  return kelas.map((kodeKelas) => {
+    const ke = sudahDipakai.get(kodeKelas) ?? 0;
+    sudahDipakai.set(kodeKelas, ke + 1);
+    return {
+      kodeKelas,
+      nominal: null,
+      koin: false,
+      skor: 0.95,
+      kotak: {
+        x: 0.1 + geser,
+        y: 0.02 + ((kodeKelas * 2 + ke) % 9) * 0.105,
+        w: 0.5,
+        h: 0.08,
+      },
+      iouMaks: 0,
+    };
+  });
 }
 
 const KOSONG: readonly Deteksi[] = [];
@@ -124,6 +145,66 @@ describe('votingTemporal', () => {
       bingkai([6]),
     ]);
     expect(hasil.status).toBe('belum-stabil');
+  });
+
+  /** Satu lembar di satu tempat, dengan kelas dan pergeseran yang ditentukan. */
+  function satuTempat(kodeKelas: number, geserX = 0): readonly Deteksi[] {
+    return [
+      {
+        kodeKelas,
+        nominal: null,
+        koin: false,
+        skor: 0.95,
+        kotak: { x: 0.25 + geserX, y: 0.4, w: 0.5, h: 0.25 },
+        iouMaks: 0,
+      },
+    ];
+  }
+
+  it('satu lembar yang IDENTITASNYA berkedip tidak pernah disebut', () => {
+    // Kegagalan yang melahirkan voting per-tempat. Dengan voting per-kelas,
+    // satu lembar yang tebakannya berayun antara beberapa pecahan membuat
+    // masing-masing pecahan mengumpulkan suaranya sendiri — dan satu lembar di
+    // tangan dilaporkan sebagai beberapa lembar, dengan total LEBIH BESAR
+    // daripada uang yang sebenarnya ada.
+    const hasil = votingTemporal([
+      satuTempat(4),
+      satuTempat(5),
+      satuTempat(4),
+      satuTempat(5),
+      satuTempat(6),
+    ]);
+    expect(hasil.status).not.toBe('stabil');
+    expect(hasil.deteksi).toHaveLength(0);
+  });
+
+  it('satu lembar yang identitasnya MANTAP tetap disebut walau sesekali meleset', () => {
+    // Batas dari keputusan di atas: satu tebakan meleset di tengah tidak boleh
+    // melumpuhkan sistem, selama sisanya sepakat.
+    const hasil = votingTemporal([
+      satuTempat(4),
+      satuTempat(4),
+      satuTempat(5),
+      satuTempat(4),
+      satuTempat(4),
+    ]);
+    expect(hasil.status).toBe('stabil');
+    expect(hasil.deteksi.map((d) => d.kodeKelas)).toEqual([4]);
+  });
+
+  it('lembar yang bergeser di tangan tetap dihitung SATU, bukan beberapa', () => {
+    // Uang dipegang tangan dan selalu bergeser di antara bingkai. Kalau
+    // pergeseran itu membuatnya dianggap lembar baru, satu lembar akan
+    // dijumlahkan berkali-kali.
+    const hasil = votingTemporal([
+      satuTempat(4, 0),
+      satuTempat(4, 0.04),
+      satuTempat(4, 0.08),
+      satuTempat(4, 0.12),
+      satuTempat(4, 0.16),
+    ]);
+    expect(hasil.status).toBe('stabil');
+    expect(hasil.deteksi).toHaveLength(1);
   });
 
   it('lembar kedua yang BERKEDIP tetap ikut diumumkan', () => {

@@ -1,4 +1,4 @@
-# ADR-0012: Kesepakatan temporal dihitung per objek, bukan per himpunan
+# ADR-0012: Kesepakatan temporal dihitung per TEMPAT, bukan per kelas
 
 - **Status:** Diterima
 - **Tanggal:** 2026-09-18
@@ -40,17 +40,55 @@ menghitung kesepakatan.
 
 ## Keputusan
 
-Kesepakatan dihitung **per pecahan**, bukan per himpunan.
+Kesepakatan dihitung **per tempat di dalam bingkai**, bukan per kelas dan bukan
+per himpunan. Sampai ke sana lewat dua kekeliruan, dan keduanya dicatat karena
+yang kedua sempat terpasang di perangkat.
 
-Sebuah pecahan ikut diumumkan kalau ia terlihat di sekurang-kurangnya
-`VOTING_BUTUH` dari `VOTING_DARI` bingkai terakhir. Jumlah lembarnya pun
-disepakati dengan cara yang sama: diambil angka terbesar `n` yang masih
-didukung `VOTING_BUTUH` bingkai, sehingga dua lembar lima ribu tidak menyusut
-menjadi satu hanya karena salah satunya sempat tertutup jari.
+### Percobaan 1 — per himpunan (keadaan awal)
 
-**Ambang keyakinan tidak diturunkan sedikit pun.** Setiap lembar tetap harus
-melewati gerbang 0,70 yang sama. Yang berubah hanya cara bukti temporal
-dijumlahkan: per lembar, bukan per himpunan.
+Seluruh isi bingkai harus sama persis di 3 dari 5 bingkai. Bekerja untuk satu
+lembar; gagal untuk beberapa lembar, sebagaimana diukur di atas.
+
+### Percobaan 2 — per kelas (dicoba, DITARIK)
+
+Tiap pecahan dinilai sendiri. Multi-lembar memang membaik, tetapi muncul
+kegagalan yang lebih buruk, dan Farrel langsung merasakannya: **prediksi satu
+lembar menjadi kacau.**
+
+Sebabnya kini jelas. Satu lembar yang tebakannya berayun antara beberapa
+pecahan membuat masing-masing pecahan mengumpulkan suaranya sendiri. Dengan
+tebakan berayun `rp20000, rp50000, rp20000, rp50000, rp20000`, kelas rp20000
+memperoleh 3 suara dan rp50000 memperoleh 2 — dan pada ayunan yang sedikit
+berbeda, KEDUANYA bisa mencapai tiga. Satu lembar di tangan dilaporkan sebagai
+dua lembar, dengan total **lebih besar daripada uang yang sebenarnya ada**.
+
+Itu lebih berbahaya daripada masalah yang hendak diperbaiki. Kehilangan satu
+lembar membuat pengguna curiga lalu memindai ulang; mendapat lembar yang tidak
+ada membuatnya menyerahkan kembalian yang keliru dengan yakin.
+
+### Percobaan 3 — per tempat (dipakai)
+
+Deteksi dikelompokkan berdasarkan **letaknya di bingkai**, bukan namanya. Satu
+tempat berarti satu lembar uang, apa pun tebakan kelasnya. Pencocokan antar
+bingkai memakai IoU dengan ambang 0,30 — lebih longgar daripada ambang NMS,
+karena di antara dua bingkai ada jeda sekitar 0,7 detik dan tangan yang
+memegang uang selalu bergeser.
+
+Sebuah tempat diumumkan hanya kalau **dua syarat** terpenuhi:
+
+1. ia terlihat di sekurang-kurangnya 3 dari 5 bingkai, **dan**
+2. kelasnya disepakati di sekurang-kurangnya 3 dari 5 bingkai.
+
+**Tempat yang jelas ada tetapi identitasnya masih berubah-ubah tidak ditebak.**
+Seluruh hasil dibatalkan, bukan hanya tempat itu — mengumumkan sisanya berarti
+menyebut total yang lebih kecil daripada uang di tangan, dan itu sama
+menyesatkannya.
+
+Kedua kegagalan sebelumnya menjadi mustahil sekaligus: lembar yang berkedip
+tetap terhitung satu tempat, dan lembar yang namanya belum mantap tidak pernah
+disebut.
+
+**Ambang keyakinan tidak diturunkan sedikit pun** di sepanjang ketiga percobaan.
 
 ### Kenapa bukan menurunkan ambang
 
@@ -59,9 +97,29 @@ ambang harus turun ke sekitar 0,55. Pada tingkat itu kelas-kelas keliru yang
 muncul saat hanya ADA SATU lembar di depan kamera — terukur di 0,50–0,65 —
 ikut lolos, dan sistem mulai menyebut uang yang tidak ada.
 
-Menukar "kehilangan satu lembar" dengan "menyebut lembar yang tidak ada" adalah
-pertukaran yang merugikan. Yang pertama membuat pengguna curiga dan memindai
-ulang; yang kedua membuatnya kehilangan uang tanpa pernah tahu.
+### Kenapa bukan dua model
+
+Farrel mengusulkan memakai dua model: satu penentu "ini satu lembar atau
+beberapa", lalu model lama untuk satu lembar dan model baru untuk beberapa.
+Ditolak, dengan tiga alasan yang masing-masing sudah cukup.
+
+**Penentunya melingkar.** Untuk tahu ada berapa lembar, sesuatu harus lebih
+dulu menemukan lembar-lembar itu — yaitu persis pekerjaan yang sedang sulit.
+Penentu yang bisa menghitung lembar dengan andal berarti kita sudah tidak
+punya masalah.
+
+**Latensinya berlipat.** Inferensi sudah ~700 ms terhadap janji 250 ms
+(ADR-0009). Menjalankan penentu lalu detektor berarti dua kali lintasan pada
+anggaran yang sudah terlampaui hampir tiga kali lipat.
+
+**Ia menyembunyikan penyebabnya, bukan memperbaikinya.** Yang terukur bukan
+"model baru buruk untuk satu lembar", melainkan cara kesepakatan dihitung. Dua
+model tidak akan menyembuhkan tebakan yang berayun; ia hanya memindahkan
+ayunan itu ke dalam model yang dipilih penentu.
+
+Kalau setelah perbaikan ini satu lembar masih kalah tajam dibanding model lama,
+obatnya ada di sisi pelatihan — menyeimbangkan porsi citra satu-lembar terhadap
+multi-lembar — bukan di sisi inferensi.
 
 ## Konsekuensi
 
@@ -72,26 +130,24 @@ ulang; yang kedua membuatnya kehilangan uang tanpa pernah tahu.
   — tidak lagi menghapus satu lembar dari jawaban.
 - Jumlah lembar bernominal sama ikut terjaga.
 
-**Menjadi lebih buruk, dan seberapa besar**
+**Menjadi lebih ketat, bukan lebih longgar**
 
-Aturan barunya **sedikit lebih longgar** daripada yang lama, dan itu harus
-dinyatakan terang-terangan karena menyangkut janji anti salah-sebut.
+Berbeda dari percobaan kedua, aturan per-tempat justru **menambah** satu syarat
+yang sebelumnya tidak ada: identitas sebuah lembar harus mantap, bukan sekadar
+keberadaannya. Sistem kini bisa berkata "ada uang di sana, tapi aku belum yakin
+itu apa" — keadaan yang dulu mustahil diungkapkan dan diam-diam ditebak.
 
-Dengan aturan lama, sebuah pecahan keliru hanya bisa lolos bila SELURUH isi
-bingkai kebetulan sama persis di 3 dari 5 bingkai. Dengan aturan baru, ia
-cukup muncul sendiri di 3 dari 5 bingkai.
+**Yang dijaga tes**
 
-Yang membuatnya tetap dapat dipertanggungjawabkan: dalam ketiga kondisi itu ia
-masih harus melewati gerbang 0,70 **setiap kali**. Kekeliruan yang bertahan di
-atas 0,70 selama tiga bingkai berturut-turut bukan lagi kilatan cahaya atau
-guncangan tangan — dan pada data 254 bingkai di atas, kelas keliru tidak pernah
-sekali pun mencapainya.
+Enam tes mengunci batasnya: lembar yang berkedip 3 dari 5 bingkai ikut
+diumumkan; yang hanya muncul 2 dari 5 **tidak**; dua lembar bernominal sama
+tidak menyusut jadi satu; lembar yang identitasnya berayun **tidak pernah
+disebut**; satu tebakan meleset di tengah tidak melumpuhkan sistem; dan lembar
+yang bergeser di tangan tetap dihitung satu, bukan beberapa.
 
-**Yang tetap dijaga tes**
-
-Tiga tes baru mengunci batasnya: lembar yang berkedip 3 dari 5 bingkai ikut
-diumumkan, lembar yang hanya muncul 2 dari 5 **tidak**, dan dua lembar
-bernominal sama tidak menyusut jadi satu.
+Satu tes lama ikut diperbaiki. Pembantunya menempatkan uang menurut urutan
+larik, sehingga menukar urutan deteksi berarti memindahkan uangnya — keliru
+sejak awal, tetapi tidak terlihat selama voting hanya membaca nama kelas.
 
 ## Alternatif yang ditolak
 
