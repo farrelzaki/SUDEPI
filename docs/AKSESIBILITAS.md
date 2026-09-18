@@ -72,7 +72,7 @@ yang memakai pembaca layar tidak akan pernah bisa mencapainya. Selalu
 
 Label dibacakan lewat suara, sekali, tanpa bisa dilihat ulang. Ia harus
 menjawab dua hal sekaligus: **apa keadaannya sekarang** dan **apa yang terjadi
-kalau saya ketuk dua kali.**
+kalau elemen ini diaktifkan.**
 
 ```html
 <!-- Buruk: menyebut keadaan, tapi tidak memberi jalan -->
@@ -80,7 +80,7 @@ kalau saya ketuk dua kali.**
 
 <!-- Baik -->
 <button aria-label="Terdeteksi lima puluh ribu rupiah.
-                    Ketuk dua kali untuk lanjut ke kalkulator.">
+                    Lanjut ke kalkulator.">
 
 <!-- Buruk: tidak ada yang bisa dilakukan pengguna dengan informasi ini -->
 <button aria-label="Memindai">
