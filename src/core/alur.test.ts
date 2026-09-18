@@ -105,7 +105,10 @@ describe('satu transaksi utuh, didengar dari awal sampai akhir', () => {
       'Arahkan kamera ke uang',
       'Terdeteksi lima puluh ribu rupiah Total lima puluh ribu rupiah',
       'Uang dibayar lima puluh ribu rupiah Total belanja',
-      'Total belanja tiga puluh lima ribu rupiah',
+      // Hanya angkanya. Awalan "total belanja" sudah disebut sebaris di atas
+      // saat masuk fase kalkulator; mengulanginya tiap tekan membuat pengguna
+      // menunggu dua kata sebelum mendengar hal yang ia butuhkan.
+      'tiga puluh lima ribu rupiah',
       'Kembalian lima belas ribu rupiah',
       'Arahkan kamera ke uang',
       'Kembalian lima belas ribu rupiah',
@@ -456,5 +459,62 @@ describe('tidak mengumumkan ulang isi yang sama', () => {
     }
     const ucapan = efek.flatMap((e) => (e.jenis === 'UCAP' ? [keTeks(e.ucapan)] : []));
     expect(ucapan.filter((u) => u.includes('lima belas ribu'))).toHaveLength(1);
+  });
+});
+
+describe('umpan balik saat memasukkan nominal', () => {
+  // BUG DILAPORKAN DARI HP: menekan tombol pecahan tidak mengeluarkan suara
+  // apa pun. Pengguna yang tidak bisa melihat layar menekan "+50.000" dan
+  // tidak punya cara mengetahui apakah tercatat.
+
+  it('setiap perubahan nominal diucapkan dan bergetar', () => {
+    const { ucapan, getaran } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BELANJA', nilai: 50_000 },
+    );
+    expect(ucapan.at(-1)).toBe('lima puluh ribu rupiah');
+    expect(getaran.at(-1)).toBe('ringan');
+  });
+
+  it('penekanan beruntun mengucapkan TOTAL BERJALAN, bukan yang ditambahkan', () => {
+    // Yang dibutuhkan pengguna adalah "sekarang berapa", bukan "tadi menambah
+    // berapa" — ia sudah tahu tombol mana yang ditekan.
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [100_000]) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BELANJA', nilai: 50_000 },
+      { jenis: 'SET_BELANJA', nilai: 70_000 },
+      { jenis: 'SET_BELANJA', nilai: 75_000 },
+    );
+    expect(ucapan.slice(-3)).toEqual([
+      'lima puluh ribu rupiah',
+      'tujuh puluh ribu rupiah',
+      'tujuh puluh lima ribu rupiah',
+    ]);
+  });
+
+  it('tombol hapus juga terdengar', () => {
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BELANJA', nilai: 20_000 },
+      { jenis: 'SET_BELANJA', nilai: 0 },
+    );
+    expect(ucapan.at(-1)).toBe('nol rupiah');
+  });
+
+  it('TIDAK mengulang awalan "total belanja" tiap tekan', () => {
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BELANJA', nilai: 10_000 },
+      { jenis: 'SET_BELANJA', nilai: 20_000 },
+    );
+    expect(ucapan.slice(-2).filter((u) => u.includes('Total belanja'))).toHaveLength(0);
   });
 });

@@ -237,13 +237,19 @@ export function reduksi(
     case 'KALKULATOR': {
       switch (peristiwa.jenis) {
         case 'SET_BELANJA':
+          // Nominalnya diucapkan SETIAP kali berubah, dan hanya angkanya —
+          // tanpa awalan "total belanja". Konteksnya sudah disebut saat masuk
+          // fase ini, dan mengulanginya tiap tekan membuat pengguna menunggu
+          // dua kata sebelum mendengar hal yang ia butuhkan.
+          //
+          // Getaran ringan mendampinginya karena ia sampai SEKETIKA, sebelum
+          // suara sempat mulai. Di pasar yang bising, sering hanya itu yang
+          // benar-benar terasa.
           return {
             state: { ...state, totalBelanja: peristiwa.nilai },
             efek: [
-              {
-                jenis: 'UCAP',
-                ucapan: urutan(frasa('total_belanja'), rupiah(peristiwa.nilai)),
-              },
+              { jenis: 'GETAR', pola: 'ringan' },
+              { jenis: 'UCAP', ucapan: rupiah(peristiwa.nilai) },
             ],
           };
 
@@ -251,10 +257,8 @@ export function reduksi(
           return {
             state: { ...state, uangDibayar: peristiwa.nilai },
             efek: [
-              {
-                jenis: 'UCAP',
-                ucapan: urutan(frasa('uang_dibayar'), rupiah(peristiwa.nilai)),
-              },
+              { jenis: 'GETAR', pola: 'ringan' },
+              { jenis: 'UCAP', ucapan: rupiah(peristiwa.nilai) },
             ],
           };
 

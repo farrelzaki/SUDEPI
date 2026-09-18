@@ -98,13 +98,16 @@ export function Aplikasi() {
     repositori,
   });
 
-  const [nilaiKolom, setNilaiKolom] = useState(0);
-
-  // Saat masuk kalkulator, kolom dimulai dari nol: yang diminta adalah TOTAL
-  // BELANJA, sedangkan uang yang dibayar sudah terisi dari hasil pindai.
-  useEffect(() => {
-    if (state.fase === 'KALKULATOR') setNilaiKolom(0);
-  }, [state.fase]);
+  // Nilai kalkulator TIDAK disimpan di komponen, melainkan di state machine.
+  //
+  // Versi sebelumnya menyimpannya lokal, dan akibatnya menekan tombol pecahan
+  // hanya mengubah angka di layar tanpa mengirim apa pun ke mesin transaksi —
+  // sehingga tidak ada yang diucapkan. Pengguna yang tidak bisa melihat layar
+  // menekan "+50.000" dan tidak punya cara mengetahui apakah tercatat.
+  const nilaiKolom = state.totalBelanja ?? 0;
+  const ubahBelanja = (nilai: number): void => {
+    kirim({ jenis: 'SET_BELANJA', nilai });
+  };
 
   function tindakanUtama(): void {
     if (state.fase === 'SIAGA') {
@@ -119,11 +122,7 @@ export function Aplikasi() {
     // transaksi beres, pengguna sedang memasukkan uang ke dompet dan bicara
     // dengan pedagang, bukan bersiap memindai. Kamera yang menyala sendiri
     // memboroskan baterai tanpa ada yang menyadarinya.
-    if (state.fase === 'KALKULATOR') {
-      kirim({ jenis: 'SET_BELANJA', nilai: nilaiKolom });
-      kirim({ jenis: 'KONFIRMASI' });
-      return;
-    }
+
     kirim({ jenis: 'KONFIRMASI' });
   }
 
@@ -135,7 +134,7 @@ export function Aplikasi() {
       {state.fase === 'KALKULATOR' ? (
         <PanelKalkulator
           nilai={nilaiKolom}
-          onUbah={setNilaiKolom}
+          onUbah={ubahBelanja}
           onLanjut={tindakanUtama}
         />
       ) : (
