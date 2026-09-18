@@ -169,6 +169,26 @@ async function deteksi(
     );
 
     if (METRIK) {
+      // Jejak GEOMETRI, untuk menjawab satu pertanyaan yang tidak bisa dijawab
+      // skor: apakah lembar kedua hilang karena keyakinannya kurang, atau
+      // karena NMS menganggapnya salinan dari lembar pertama?
+      //
+      // Dicetak kotak yang lolos gerbang SEBELUM NMS, lalu yang tersisa
+      // SESUDAHNYA. Selisih keduanya persis "yang dibuang karena bertindihan".
+      const sebelum = gating(lolos, ambangKeyakinan);
+      if (sebelum.length > disaring.length) {
+        const gambar = (d: Deteksi): string =>
+          `${d.kodeKelas}:${d.skor.toFixed(2)}` +
+          `@${d.kotak.x.toFixed(2)},${d.kotak.y.toFixed(2)}` +
+          `,${d.kotak.w.toFixed(2)},${d.kotak.h.toFixed(2)}`;
+        console.log(
+          `[NMS] sebelum(${sebelum.length}) ${sebelum.map(gambar).join(' ')}`,
+          `| sesudah(${disaring.length}) ${disaring.map(gambar).join(' ')}`,
+        );
+      }
+    }
+
+    if (METRIK) {
       // Kalibrasi hanya bisa dilakukan dengan melihat SKOR YANG DITOLAK.
       // Jumlahnya saja tidak cukup: "tiga kotak dibuang" tidak memberi tahu
       // apakah mereka nyaris lolos di 0,69 atau memang sampah di 0,30 — dan

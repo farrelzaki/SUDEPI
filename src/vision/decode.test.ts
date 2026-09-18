@@ -169,6 +169,40 @@ describe('dekode', () => {
     expect(dekode(data, lbPersegi, ambang32).lolos).toHaveLength(1);
   });
 
+  it('kotak di LUAR gambar dibuang, bukan dilaporkan sebagai uang', () => {
+    // Bingkai kamera berbentuk potret sementara masukan model bujur sangkar,
+    // sehingga letterbox menambahkan palang abu-abu di kiri dan kanan. Palang
+    // itu tidak pernah ada di data latih, dan model MENGHALUSINASI UANG di
+    // atasnya — terukur di Galaxy M32 dengan keyakinan 0,73 sampai 0,86.
+    //
+    // Hantu itu lebih berbahaya daripada kelihatannya: ia muncul di tempat yang
+    // sama persis setiap bingkai, karena palangnya tidak bergerak. Jadi ia
+    // melewati voting temporal dengan sempurna — seluruh penyaringan kami
+    // dirancang membuang tebakan yang goyah, dan hantu ini justru yang paling
+    // mantap.
+    const data = buatTensor([
+      { cx: 345, cy: 160, w: 80, h: 300, kelas: 4, skor: 0.95 },
+    ]);
+    expect(dekode(data, lbPersegi, AMBANG_KEYAKINAN).lolos).toHaveLength(0);
+  });
+
+  it('uang yang terpotong tepi TETAP diterima, dan kotaknya dirapikan', () => {
+    // Batasnya. Uang yang dipegang di pinggir bingkai memang sering terpotong
+    // sebagian, dan membuangnya berarti menghukum cara orang memegang uang.
+    const data = buatTensor([
+      { cx: 300, cy: 160, w: 80, h: 200, kelas: 4, skor: 0.95 },
+    ]);
+    const { lolos } = dekode(data, lbPersegi, AMBANG_KEYAKINAN);
+    expect(lolos).toHaveLength(1);
+
+    const k = lolos[0]?.kotak;
+    expect(k).toBeDefined();
+    // Dipotong ke dalam bingkai, sehingga IoU dan pelacakan tempat di lapisan
+    // berikutnya menghitung bagian yang benar-benar terlihat.
+    expect((k?.x ?? 0) + (k?.w ?? 0)).toBeLessThanOrEqual(1.0001);
+    expect(k?.x ?? -1).toBeGreaterThanOrEqual(0);
+  });
+
   it('tensor kosong tidak menghasilkan error', () => {
     expect(dekode(new Float32Array(0), lbPersegi, AMBANG_KEYAKINAN)).toEqual({
       lolos: [],

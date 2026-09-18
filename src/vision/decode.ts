@@ -19,7 +19,12 @@
  * ternormalisasi terhadap bingkai asli, jadi keduanya dikonversi di sini.
  */
 
-import { JUMLAH_KELAS, denominasiDariKode, type Deteksi } from '@/contracts';
+import {
+  JUMLAH_KELAS,
+  denominasiDariKode,
+  type Deteksi,
+  type Kotak,
+} from '@/contracts';
 
 /** 4 koordinat kotak + skor tiap kelas. */
 export const JUMLAH_KANAL = 4 + JUMLAH_KELAS;
@@ -97,6 +102,52 @@ export interface HasilDekode {
  */
 export const AMBANG_LEMAH = 0.45;
 
+/**
+ * Berapa bagian sebuah kotak yang harus benar-benar berada di dalam gambar.
+ *
+ * Uang yang dipegang di tepi bingkai memang bisa terpotong sebagian, jadi
+ * angkanya tidak boleh terlalu ketat. Tetapi kotak yang sebagian besarnya
+ * berada di luar gambar bukan uang yang terpotong — ia halusinasi.
+ */
+const MINIMAL_TERLIHAT = 0.5;
+
+/**
+ * Memotong kotak ke dalam bingkai, atau membuangnya kalau nyaris tidak terlihat.
+ *
+ * KENAPA INI ADA, dan kenapa ia penting. Bingkai kamera berbentuk potret,
+ * sementara masukan model berbentuk bujur sangkar, sehingga letterbox
+ * menambahkan dua palang abu-abu di kiri dan kanan. Palang itu tidak pernah ada
+ * di data latih, dan model ternyata MENGHALUSINASI UANG DI ATASNYA — terukur di
+ * Galaxy M32 dengan keyakinan 0,73 sampai 0,86, cukup tinggi untuk melewati
+ * setiap gerbang yang kami punya.
+ *
+ * Halusinasi itu jauh lebih berbahaya daripada kelihatannya. Ia muncul di
+ * TEMPAT YANG SAMA PERSIS di setiap bingkai, karena palangnya memang tidak
+ * bergerak. Artinya ia lolos voting temporal dengan sempurna: stabil, konsisten,
+ * dan sama sekali tidak nyata. Seluruh lapisan penyaringan kami dirancang untuk
+ * membuang tebakan yang goyah, dan hantu ini justru yang paling mantap.
+ *
+ * Seperempat dari seluruh deteksi yang lolos ternyata adalah hantu semacam ini.
+ * Menyaringnya di sini, di titik paling awal, membuat setiap lapisan sesudahnya
+ * bekerja dengan bahan yang bersih.
+ */
+function potongKeBingkai(k: Kotak): Kotak | null {
+  const kiri = Math.max(0, k.x);
+  const atas = Math.max(0, k.y);
+  const kanan = Math.min(1, k.x + k.w);
+  const bawah = Math.min(1, k.y + k.h);
+
+  const lebar = kanan - kiri;
+  const tinggi = bawah - atas;
+  if (lebar <= 0 || tinggi <= 0) return null;
+
+  const luasAsli = k.w * k.h;
+  if (luasAsli <= 0) return null;
+  if ((lebar * tinggi) / luasAsli < MINIMAL_TERLIHAT) return null;
+
+  return { x: kiri, y: atas, w: lebar, h: tinggi };
+}
+
 export function dekode(
   data: Float32Array | readonly number[],
   lb: Letterbox,
@@ -139,12 +190,16 @@ export function dekode(
     const lebar = ambil(2, a);
     const tinggi = ambil(3, a);
 
+    const kotak = keKoordinatAsli(cx, cy, lebar, tinggi, lb);
+    const terpotong = potongKeBingkai(kotak);
+    if (!terpotong) continue;
+
     lolos.push({
       kodeKelas: kelasTerbaik,
       nominal: d.nominal,
       koin: d.koin,
       skor: skorTerbaik,
-      kotak: keKoordinatAsli(cx, cy, lebar, tinggi, lb),
+      kotak: terpotong,
       iouMaks: 0,
     });
   }
