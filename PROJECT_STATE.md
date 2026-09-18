@@ -45,7 +45,7 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
 
 | Pemeriksaan | Hasil |
 | --- | --- |
-| `pnpm test` | **204 lulus** di 13 berkas |
+| `pnpm test` | **210 lulus** di 13 berkas |
 | `npx tsc --noEmit` | Bersih, `strict` penuh |
 | `pnpm build` | Lolos, tepat satu berkas `.wasm` |
 | `./gradlew assembleDebug` | BUILD SUCCESSFUL, 14 detik (cache hangat) |
@@ -57,23 +57,30 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
 | `periksa_kelas.py` | Menangkap pertukaran 20.000↔50.000, exit 1 |
 | `periksa_onnx.py` | Menangkap imgsz 640 + 15 kelas, menebak imgsz asli |
 | `petakan_dataset.py` | Memetakan benar, menolak nama asing tanpa menyentuh berkas |
+| `uji_model.py` | Melaporkan salah sebut, pola tertukar, dan sebaran skor |
+| `augmentasi.py` | 4 varian per foto, diperiksa visual |
+| **Tanpa jaringan** | **Siklus penuh Fase 1–4 berjalan, nol akses jaringan** |
 
 ## Sudah Selesai
 
 - Seluruh `src/`: contracts, core, vision, audio, platform, ui, data.
 - Capacitor + rantai build Android, cache Gradle hangat.
 - 34 potongan audio Indonesia (WAV) dibundel ke APK.
-- Berkas bantu model: `data.yaml`, `periksa_kelas.py`, `petakan_dataset.py`,
-  `periksa_onnx.py`, `buat_model_uji.py`.
-- Dokumentasi: `CLAUDE.md`, 9 dokumen `docs/`, **8 ADR**.
+- Berkas bantu model (8 berkas): `data.yaml`, `periksa_kelas.py`,
+  `petakan_dataset.py`, `augmentasi.py`, `ekspor.py`, `periksa_onnx.py`,
+  `uji_model.py`, `buat_model_uji.py`.
+- Dokumentasi: `CLAUDE.md`, 10 dokumen `docs/`, **8 ADR**.
+- Uji luring lulus, dan seluruh 34 frasa suara terpakai.
 
 ## Langkah Berikutnya Yang Diusulkan
 
 1. **Fajar: `public/model/sudepi.onnx`.** Satu-satunya blocker nyata.
-2. `model/ekspor.py` — ekspor + kuantisasi INT8 + gerbang mutu mAP.
-3. Dokumentasi progres 24 jam untuk juri.
-4. Setelah model asli ada: kalibrasi ambang dengan uang lecek, uji mode
-   pesawat, gladi bersih `docs/DEMO.md`.
+2. Setelah model asli ada, berurutan:
+   `model/periksa_onnx.py` → `model/uji_model.py` dengan foto berlabel →
+   kalibrasi ambang memakai sebaran skor yang dilaporkannya → uji layar
+   tertutup telapak tangan → gladi bersih `docs/DEMO.md`.
+3. Hapus model tiruan dari `public/model/` dan dari HP.
+4. Buang overlay metrik dari pratinjau sebelum penjurian.
 
 ## Blocker Dan Hal Yang Belum Diketahui
 
@@ -103,6 +110,10 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
   dengan TalkBack.
 - **Tiga bug ditemukan lewat uji dengar**: aplikasi meredam dirinya sendiri,
   suara terlalu pelan, label mengulang nominal.
+- **Satu bug dari audit frasa**: layar Selesai berlabel "kembali ke mode siaga"
+  tetapi justru memulai transaksi baru. Audit itu juga menemukan dua FITUR yang
+  hilang: peringatan lembaran bertumpuk (mitigasi Lampiran 8 risiko 1) dan
+  pengumuman kembali ke Mode Siaga.
 - **Satu diagnosis salah dan sudah dikoreksi**: MP3 disangka ditolak Chrome,
   ternyata browser mengembalikan 204 untuk berkas media. Alasan yang salah
   sudah diperbaiki di kode dan ADR-0003.

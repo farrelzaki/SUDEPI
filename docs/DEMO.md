@@ -17,6 +17,10 @@ Status: **aktif** · Dipakai pada jam 19 sampai 24
 - [ ] Kedua HP: kecerahan layar maksimum, rotasi otomatis **mati**
 - [ ] Kedua HP: TalkBack dapat dinyalakan dengan pintasan, dan sudah dicoba
 - [ ] Lensa kamera dibersihkan
+- [ ] **Model TIRUAN sudah dihapus** dari `public/model/` dan dari HP
+      (`model/buat_model_uji.py` menghasilkannya; ia selalu menyebut Rp50.000
+      tanpa melihat apa pun)
+- [ ] Overlay metrik sudah dibuang dari pratinjau
 - [ ] Uang peraga siap: **kondisi bagus** dan **kondisi lecek**, keduanya
 - [ ] Beberapa keping koin siap
 - [ ] APK tersalin ke flashdisk sebagai cadangan terakhir
@@ -82,12 +86,14 @@ sedang mengulang sesuatu yang sudah terbukti.
 
 | Pertanyaan | Jawaban singkat |
 | --- | --- |
-| "Kenapa tidak sesuai proposal?" | Tunjuk `docs/PERUBAHAN.md`. Enam keputusan, lima memperkuat, satu mempersempit dan alasannya ada. |
+| "Kenapa tidak sesuai proposal?" | Tunjuk `docs/PERUBAHAN.md`. Delapan keputusan, tujuh memperkuat atau netral, satu mempersempit dan alasannya ada. |
 | "Kenapa perintah suaranya tidak ada?" | ADR-0005. Web Speech API mengirim audio ke server; kami memilih mempertahankan jaminan luring. Vosk adalah rencana setelah lomba. |
 | "Bagaimana kalau salah sebut nominal?" | Rantai empat saringan, lalu abstain. Tunjukkan demonya langsung. |
 | "Bedanya dengan Google Lookout?" | Multi-lembar, kalkulator kembalian, dan layar pedagang. Lookout tidak punya ketiganya. |
 | "Kenapa modelnya bukan 640?" | ADR-0001. Uang adalah objek besar; 640 terbuang percuma, dan 320 membuat target latensi tercapai tanpa multithread. |
 | "Datanya disimpan di mana?" | IndexedDB di perangkat. Tidak ada satu pun panggilan jaringan di seluruh kode. |
+| "Bagaimana membuktikan benar-benar luring?" | Sudah diuji: siklus penuh berjalan dengan jaringan dimatikan, nol akses jaringan di logcat. Tunjuk `docs/PROGRES.md`. |
+| "Kalau uangnya bertumpuk?" | Sistem menyebut nominalnya lalu meminta merenggangkan lembaran. Ia tidak menebak antara satu lembar terbaca dua kali atau dua lembar bertumpuk. |
 
 ## Uji akhir sebelum tidur (jam 22)
 
