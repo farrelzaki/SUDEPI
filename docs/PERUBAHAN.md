@@ -49,7 +49,7 @@ bisa dihapus bukan riwayat.
 | [0006](perubahan/0006-tombol-batal-permanen.md) | Tombol batal permanen mendampingi gestur tahan 2 detik | Diterima | Melengkapi Escape-Hatch Bab III Fase 3 |
 | [0007](perubahan/0007-delapan-kelas-tanpa-pisah-emisi.md) | Pakai 8 kelas, jangan pisahkan tahun emisi | Diterima | **Mengubah angka "15 kelas" di Bab II, Bab III, Lampiran 7** |
 | [0008](perubahan/0008-aktivasi-klik-semantik.md) | Pakai satu klik semantik, jangan deteksi ketuk ganda sendiri | Diterima | Cara "double tap" Bab III diwujudkan, bukan diubah |
-| [0009](perubahan/0009-latensi-inferensi-sebenarnya.md) | Latensi inferensi sebenarnya ~700 ms, bukan di bawah 250 ms | **Diusulkan** | **Mengubah angka latensi di Bab II** |
+| [0009](perubahan/0009-latensi-inferensi-sebenarnya.md) | Latensi inferensi sebenarnya ~700 ms, bukan di bawah 250 ms | **DITUNDA** | **Mengubah angka latensi di Bab II** |
 
 ## Ringkasan bagi juri
 

@@ -1,6 +1,6 @@
 # ADR-0009: Latensi inferensi sebenarnya ~700 ms, bukan di bawah 250 ms
 
-- **Status:** Diusulkan — menunggu keputusan
+- **Status:** DITUNDA — diangkat kembali setelah sistem selesai
 - **Tanggal:** 2026-09-18
 - **Rujukan exsum:** Bab II (SMART/Measurable), Bab III bagian 3.3
 
@@ -66,8 +66,20 @@ dengan aman — targetnya masih terlewat. Menurunkan resolusi bukan jalan keluar
 
 ## Keputusan
 
-*Belum diambil.* Dokumen ini disiapkan sebagai dasar keputusan, bukan sebagai
-keputusan itu sendiri. Tiga pilihan, dengan konsekuensi masing-masing:
+**Ditunda, 18 September 2026.** Sistem dipertahankan apa adanya untuk sekarang;
+perbaikan latensi diurus **di akhir, jika masih ada waktu**.
+
+Alasannya masuk akal pada titik ini: mengubah `imgsz` memaksa Fajar melatih
+ulang, dan menyentuh kode Java di jalur kritis berisiko merusak yang sudah
+terbukti berjalan. Sementara itu tidak ada satu pun klaim lain yang terpengaruh,
+dan target transaksi di bawah 15 detik tetap tercapai.
+
+**Yang harus dilakukan begitu sistem selesai:** angkat kembali tiga pilihan di
+bawah ini dan pilih satu. Jangan biarkan ia lewat begitu saja — angka di Bab II
+masih menyebut 250 ms, dan itu perlu diselesaikan sebelum penjurian, entah
+dengan memperbaikinya atau dengan memperbaiki angkanya.
+
+Tiga pilihan, dengan konsekuensi masing-masing:
 
 ### Pilihan A — Perbaiki angkanya di proposal, pertahankan sistemnya
 

@@ -82,6 +82,17 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
 3. Hapus model tiruan dari `public/model/` dan dari HP.
 4. Buang overlay metrik dari pratinjau sebelum penjurian.
 
+## ⚠ HUTANG YANG WAJIB DIANGKAT SEBELUM PENJURIAN
+
+**Latensi inferensi ~700 ms, sementara Bab II exsum menjanjikan di bawah
+250 ms.** Terukur di Galaxy M32 dengan YOLOv8n berbobot acak. Rinciannya dan
+tiga pilihan penanganannya ada di ADR-0009.
+
+Farrel memutuskan **menundanya sampai sistem selesai** (18 September 2026), dan
+secara khusus meminta diingatkan kembali pada saat itu. Ini bukan masalah yang
+hilang sendiri: entah latensinya diperbaiki, atau angkanya yang diperbaiki —
+salah satunya harus dikerjakan sebelum juri membacanya.
+
 ## Blocker Dan Hal Yang Belum Diketahui
 
 - **Model sungguhan belum ada.** Pipeline sudah terbukti memakai model tiruan,

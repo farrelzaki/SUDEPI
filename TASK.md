@@ -123,7 +123,30 @@ Catatan:
 
 ## Backlog
 
-Belum ada task di backlog.
+### [ ] Selesaikan hutang latensi — WAJIB sebelum penjurian
+
+- Prioritas: Tinggi
+- Pemicu: **begitu seluruh sistem selesai dan stabil**
+- Tujuan: Menyelesaikan selisih antara latensi terukur (~700 ms) dan angka yang
+  dijanjikan Bab II exsum (di bawah 250 ms).
+- Konteks: Terukur di Galaxy M32 dengan YOLOv8n berbobot acak. Penyebabnya ONNX
+  Runtime berjalan satu utas padahal perangkat punya delapan inti, karena WASM
+  multithread butuh cross-origin isolation yang tidak disediakan server lokal
+  Capacitor.
+- Sudah diuji dan gagal menutup jarak: INT8 (hanya 8% lebih cepat) dan
+  menurunkan `imgsz` (256 → ~480 ms, 192 → ~300 ms).
+- Tiga pilihan lengkap dengan konsekuensinya ada di ADR-0009.
+
+Kriteria selesai:
+
+- [ ] Satu dari tiga pilihan ADR-0009 dipilih Farrel
+- [ ] ADR-0009 diubah dari DITUNDA menjadi Diterima, dengan alasannya
+- [ ] Kalau pilihannya memperbaiki angka: seluruh dokumen yang menyebut 250 ms
+      ikut diperbarui, termasuk `docs/PROGRES.md` dan bahan presentasi
+
+Catatan: **jangan menyentuh latensi sebelum sistem selesai.** Mengubah `imgsz`
+memaksa Fajar melatih ulang, dan menyentuh kode Java di jalur kritis berisiko
+merusak yang sudah terbukti berjalan.
 
 <!-- Tambahkan task berikutnya di sini tanpa perlu membuat rencana panjang. Gunakan status [ ]. -->
 
