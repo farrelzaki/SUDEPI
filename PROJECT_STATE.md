@@ -6,13 +6,13 @@ Perbarui saat memulai sesi, melewati checkpoint, membuat keputusan penting, mene
 
 ## Metadata
 
-- Terakhir diperbarui: 2026-09-18 21:15 WIB
+- Terakhir diperbarui: 2026-09-18 23:11 WIB
 - Mode kerja: `competition`
 - Status sesi: Berjalan
-- Task aktif: Solusi kalibrasi ambang multi-uang & presensi koin
-- Fase aktif: Plan / Handoff
-- Checkpoint terakhir: Plan (solusi kalibrasi AMBANG_KEYAKINAN 0.70 siap dikomunikasikan ke Farrel)
-- Konfirmasi pengguna terakhir: Persetujuan solusi multi-uang (>2 uang) & koin sulit terdeteksi
+- Task aktif: Verifikasi model racikan sudepiv1 di perangkat fisik (Galaxy M32)
+- Fase aktif: Verification
+- Checkpoint terakhir: Verification (sudepiv1 dipasang di public/model/sudepi.onnx, lolos periksa_onnx, 222 tes lulus, sinkron dengan commit Farrel)
+- Konfirmasi pengguna terakhir: Persetujuan eksekusi deployment sudepiv1 ke public/model
 
 ## Scope Yang Disetujui
 

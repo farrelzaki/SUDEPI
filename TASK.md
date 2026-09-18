@@ -75,15 +75,10 @@ Checkpoint dan approval:
 
 Catatan:
 
-- Dataset gabungan 8 kelas (Delta v9 + Koin, 44.376 citra, 320x320) siap di `model/dataset_delta_sudepi.zip`.
-- Notebook training `model/latih.ipynb` siap dan dioptimalkan untuk NVIDIA A100 (Google Colab Pro).
-- ~~Model TIRUAN terpasang di HP dan di `public/model/`.~~ SELESAI — model asli
-  (INT8, 3,1 MB) sudah menggantikannya di repo dan di HP; penanda `MODEL_TIRUAN`
-  dihapus. Terverifikasi termuat dan berinferensi di Galaxy M32.
-- ~~Overlay metrik dibuang sebelum penjurian.~~ SELESAI — jadi mode build.
-  `pnpm cap:sync` menghasilkan APK tanpa overlay; `pnpm cap:kalibrasi`
-  menyalakannya untuk menyetel ambang. Terverifikasi hilang dari bundel
-  produksi, bukan sekadar tersembunyi.
+- Dataset racikan terpadu 8 kelas (Multi-lembar + Koin 416x416, 5.586 citra, 7.381 bbox, 199.7 MB) siap di `model/dataset_racikan_sudepi.zip`.
+- Model racikan terbaru (`sudepiv1.onnx`, 3.1 MB, INT8) aktif dipasang di `public/model/sudepi.onnx`.
+- Lolos `model/periksa_onnx.py` ([1, 3, 320, 320] -> [1, 12, 2100]).
+- Kode UI dan detak audio Farrel (commit `316f736`, `55f17e4`, `bc82621`) ditarik aman: 222 tes lulus, tsc bersih, build lolos.
 
 <!--
 Simpan hanya satu task yang sedang dikerjakan di bagian ini.
