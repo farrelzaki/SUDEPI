@@ -43,9 +43,18 @@ Satu-satunya folder yang dipegang berdua, jadi batasnya ditulis per berkas.
 | --- | --- | --- |
 | `data.yaml` | **Farrel** | Urutan kelasnya WAJIB cocok persis dengan `src/contracts/uang.ts`. Satu sumber kebenaran, satu pemilik. |
 | `petakan_dataset.py` | **Farrel** | Memetakan nama kelas dataset publik ke skema 8 kelas kita. |
+| `periksa_kelas.py` | **Farrel** | Penjaga urutan kelas. |
+| `ekspor.py` | **Farrel** | Ekspor ONNX + kuantisasi + gerbang mutu mAP. Parameternya terikat ke ADR-0001 dan ADR-0002. |
+| `periksa_onnx.py` | **Farrel** | Memastikan bentuk keluaran model cocok dengan yang dibaca `src/vision/decode.ts`. |
+| `buat_model_uji.py` | **Farrel** | Model tiruan untuk menguji pipeline sebelum model asli ada. |
 | `README.md` | **Farrel** | Rancangan pipeline. |
-| `latih.ipynb`, `runs/`, `*.pt`, `*.onnx` | **Fajar** | Pelaksanaan training dan seluruh hasilnya. |
-| Dataset mentah (`dataset/`) | **Fajar** | Unduhan dan kurasi. |
+| **Melatih model** (`latih.ipynb`, `runs/`, `*.pt`) | **Fajar** | Pelaksanaan training dan seluruh hasilnya. |
+| **Dataset** (`dataset/`) | **Fajar** | Unduhan, kurasi, dan pemotretan kelas yang kurang. |
+
+Pembagiannya begini karena satu pola: **Farrel memegang berkas yang harus cocok
+dengan kode aplikasi, Fajar memegang yang menghasilkan model.** Setiap berkas
+milik Farrel di atas ada untuk satu tujuan — membuat kesalahan yang tidak
+menghasilkan galat menjadi bisa dideteksi mesin.
 
 **Kenapa `data.yaml` dipegang Farrel.** Kalau urutan kelasnya bergeser satu
 saja, SUDEPI menyebut nominal yang salah dengan penuh keyakinan, dan tidak ada

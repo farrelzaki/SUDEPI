@@ -32,8 +32,8 @@ mengambil alih seluruh kode aplikasi.
 | `src/contracts/` | **Farrel** (beku — ubah hanya setelah sepakat) |
 | Seluruh `src/` lainnya | **Farrel** |
 | `package.json`, `tsconfig.json`, `vite.config.ts`, `capacitor.config.ts` | **Farrel** |
-| `model/data.yaml`, `model/petakan_dataset.py`, `model/README.md` | **Farrel** |
-| `model/` selebihnya (training, dataset, hasil) | **Fajar** |
+| `model/*.py`, `model/data.yaml`, `model/README.md` | **Farrel** |
+| `model/` selebihnya: training, dataset, bobot hasil | **Fajar** |
 | `docs/` | Siapa saja, umumkan lisan dulu |
 
 **Aturannya satu kalimat: jangan menyunting berkas di folder orang lain.**
