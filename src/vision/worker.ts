@@ -15,8 +15,16 @@
  */
 
 import * as ort from 'onnxruntime-web/wasm';
-import { AMBANG_IOU, AMBANG_KEYAKINAN, UKURAN_MASUKAN } from '@/contracts';
-import { dekode } from './decode';
+import {
+  AMBANG_IOU,
+  AMBANG_KEYAKINAN,
+  UKURAN_MASUKAN,
+  type Deteksi,
+} from '@/contracts';
+
+/** Jejak kalibrasi. Mati di build biasa; lihat `.env.kalibrasi`. */
+const METRIK = import.meta.env.DEV || import.meta.env.VITE_METRIK === '1';
+import { AMBANG_MINAT, dekode } from './decode';
 import { gating, nms } from './nms';
 import type { PesanDariWorker, PesanKeWorker } from './protokolWorker';
 
@@ -150,6 +158,25 @@ async function deteksi(
 
     const { lolos, ditolakGating } = dekode(mentah, p.lb, ambangKeyakinan);
     const disaring = nms(gating(lolos, ambangKeyakinan), ambangIoU);
+
+    if (METRIK) {
+      // Kalibrasi hanya bisa dilakukan dengan melihat SKOR YANG DITOLAK.
+      // Jumlahnya saja tidak cukup: "tiga kotak dibuang" tidak memberi tahu
+      // apakah mereka nyaris lolos di 0,69 atau memang sampah di 0,30 — dan
+      // dua keadaan itu menuntut tindakan yang berlawanan.
+      //
+      // Karena itu di sini dicetak seluruh kandidat di atas AMBANG_MINAT
+      // beserta kelasnya, sebelum dan sesudah penyaringan. Hanya hidup di
+      // build `pnpm cap:kalibrasi`.
+      const semua = dekode(mentah, p.lb, AMBANG_MINAT).lolos;
+      const ringkas = (d: readonly Deteksi[]): string =>
+        d.map((x) => `${x.kodeKelas}:${x.skor.toFixed(2)}`).join(' ') || '-';
+      console.log(
+        `[DET] kandidat(${semua.length}) ${ringkas(semua)}`,
+        `| lolos(${disaring.length}) ${ringkas(disaring)}`,
+        `| ditolakGating=${ditolakGating}`,
+      );
+    }
 
     kirim({
       jenis: 'hasil',

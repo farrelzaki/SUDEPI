@@ -280,6 +280,29 @@ langsung bekerja. Yang belum bisa diketahui sama sekali sebelum modelmu ada
 hanyalah **akurasi sesungguhnya** — dan itu memang hanya bisa diukur dengan
 uang sungguhan di depan kamera.
 
+### PENTING — dataset perlu citra MULTI-LEMBAR
+
+Diukur di perangkat 18 September 2026 dengan model hasil trainingmu, 223
+bingkai. Modelnya bagus untuk **satu lembar**: skor 0,70–0,85, urutan kelas
+terbukti benar dengan uang fisik, dan tidak pernah salah sebut saat diarahkan
+ke benda bukan-uang.
+
+Masalahnya muncul saat **dua lembar berada dalam satu bingkai**. Objek kedua
+tidak pernah mendekati ambang — ia bertengger di 0,25–0,55 sementara objek
+dominan di 0,70–0,85. Kelasnya pun sering meleset: menguji Rp10.000 bersama
+Rp5.000 memunculkan tebakan rp50000, rp1000, dan rp2000.
+
+Ini ciri khas model yang dilatih pada citra **satu objek per gambar**. Tidak
+ada penyetelan ambang yang bisa memperbaikinya — sudah dicoba dan didokumentasi
+di `docs/perubahan/0010-kalibrasi-ambang-keyakinan-070.md` bagian Amandemen.
+
+Yang dibutuhkan: citra latih berisi **beberapa lembar sekaligus**, direnggangkan
+maupun sedikit bertumpuk, dengan kotak label terpisah per lembar. Kalau waktu
+tidak cukup untuk memotret ulang, mozaik buatan dari citra yang sudah ada
+(menempelkan beberapa lembar ke satu kanvas lalu menggeser koordinat labelnya)
+jauh lebih baik daripada tidak ada sama sekali — augmentasi mosaic bawaan
+Ultralytics juga membantu bila diaktifkan.
+
 ### Jebakan yang sudah kami tabrak untukmu
 
 Seluruh rantai perkakas ini sudah diuji **berurutan dari ujung ke ujung**
