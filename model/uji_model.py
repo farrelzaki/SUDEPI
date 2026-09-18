@@ -37,6 +37,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+# Konsol Windows sering bukan UTF-8, dan tanda pisah panjang berubah jadi '?'.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 try:
     import numpy as np
     import onnxruntime as ort
@@ -214,11 +218,40 @@ def main() -> None:
         print("pengguna tidak bisa memeriksa ulang jawaban kita.")
         sys.exit(1)
 
+    # Model yang tidak pernah mendeteksi apa pun BUKAN model yang aman.
+    # Tanpa pemeriksaan ini, model rusak akan dilaporkan lolos hanya karena ia
+    # tidak pernah salah sebut — dan "tidak pernah salah" itu sepele dicapai
+    # dengan tidak pernah menjawab.
+    if benar == 0:
+        print("TIDAK ADA SATU PUN YANG TERDETEKSI.")
+        print()
+        print("Ini bukan abstain yang aman, ini model yang tidak bekerja.")
+        print("Aplikasi yang tidak pernah menyebut nominal tidak berguna sama")
+        print("sekali bagi orang yang tidak bisa melihat uangnya.")
+        print()
+        print("Periksa berurutan: apakah trainingnya benar-benar konvergen")
+        print("(lihat mAP di akhir training), apakah datanya cukup, dan apakah")
+        print("foto uji ini memang mewakili yang dilihat kamera.")
+        sys.exit(1)
+
+    rasio = benar / diuji
+    if rasio < 0.7:
+        print(f"HANYA {rasio * 100:.0f}% yang terbaca benar.")
+        print()
+        print("Tidak ada salah sebut, jadi tidak berbahaya — tetapi terlalu")
+        print("sering abstain membuat pengguna menyerah dan kembali bergantung")
+        print("pada orang lain, yang justru ingin kita hindari.")
+        print()
+        print("Lihat sebaran skor di atas: kalau banyak yang mendekati ambang,")
+        print("kalibrasi ambangnya. Kalau jauh di bawah, perkaya data latihnya.")
+        sys.exit(1)
+
     if tanpa_deteksi > 0:
-        print("Tidak ada salah sebut. Beberapa foto tidak terdeteksi, dan itu")
-        print("perilaku yang benar — sistem memilih abstain daripada menebak.")
-        print("Kalau terlalu sering, lihat sebaran skor di atas: mungkin")
-        print("ambangnya perlu disesuaikan, atau data latihnya perlu diperkaya.")
+        print(f"{rasio * 100:.0f}% terbaca benar, tanpa satu pun salah sebut.")
+        print()
+        print("Sisanya tidak terdeteksi, dan itu perilaku yang benar — sistem")
+        print("memilih abstain daripada menebak. Lihat sebaran skor di atas")
+        print("untuk memutuskan apakah ambangnya perlu disesuaikan.")
     else:
         print("Seluruh foto terbaca benar.")
 

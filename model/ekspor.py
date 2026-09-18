@@ -16,16 +16,16 @@ tidak satu pun menghasilkan galat yang jelas:
     dynamic=True  -> bentuk tensor jadi simbolik
     INT8 buruk    -> akurasi anjlok tanpa pesan apa pun
 
-Tiga yang pertama dicegah dengan mengunci parameternya di sini, sehingga tidak
-bisa salah ketik. Yang keempat dicegah gerbang mutu di bawah.
+Tiga yang pertama dicegah dengan mengunci parameternya sebagai tetapan di sini,
+sehingga tidak bisa salah ketik. Yang keempat dicegah gerbang mutu.
 
 GERBANG MUTU INT8. Kuantisasi menukar ukuran dengan akurasi, dan pertukaran itu
 tidak selalu menguntungkan. Skrip ini mengukur mAP@0.5 model INT8 terhadap
 model FP32 pada set validasi yang sama, lalu MENOLAK INT8 kalau turun lebih
 dari 3 poin.
 
-Model FP32 YOLOv8n berukuran sekitar 12 MB — masih sangat wajar dibundel dalam
-APK yang sudah 12 MB karena runtime WASM. Angka "~6 MB" di exsum adalah target,
+Model FP32 YOLOv8n berukuran sekitar 12 MB — masih wajar dibundel dalam APK
+yang sudah besar karena runtime WASM. Angka "~6 MB" di exsum adalah target,
 bukan janji yang boleh menggerus akurasi. Hemat 6 MB tidak sepadan dengan salah
 menyebut nominal uang orang.
 """
@@ -67,10 +67,89 @@ def jalankan_periksa_kelas() -> None:
         )
 
 
-def ukur_map(model, data: str) -> float:
-    """mAP@0.5 pada set validasi. Dipakai untuk membandingkan FP32 dan INT8."""
-    hasil = model.val(data=data, imgsz=UKURAN_MASUKAN, verbose=False)
-    return float(hasil.box.map50) * 100
+def ukur_map(model, data: str) -> float | None:
+    """
+    mAP@0.5 pada set validasi. Dipakai membandingkan FP32 dan INT8.
+
+    Mengembalikan None kalau datasetnya tidak terjangkau, BUKAN melempar.
+    Ekspor ONNX-nya sendiri sudah selesai pada titik ini; kehilangan gerbang
+    mutu INT8 tidak sepadan dengan memuntahkan traceback panjang ke orang yang
+    baru saja menunggu training berjam-jam.
+    """
+    try:
+        hasil = model.val(data=data, imgsz=UKURAN_MASUKAN, verbose=False)
+        return float(hasil.box.map50) * 100
+    except Exception as galat:  # noqa: BLE001
+        print(f"   Tidak bisa mengukur mAP: {str(galat)[:200]}")
+        return None
+
+
+def coba_int8(model, YOLO, ukuran_fp32: float) -> None:
+    """
+    Mengkuantisasi ke INT8, lalu MENERIMANYA hanya kalau akurasinya terjaga.
+
+    Seluruh jalur ini bersifat bonus. Ekspor FP32 sudah selesai sebelum fungsi
+    ini dipanggil, jadi kegagalan di sini tidak pernah membatalkan hasil — ia
+    hanya berarti kita mengirim berkas yang beberapa MB lebih besar.
+    """
+    if not DATA_YAML.exists():
+        print(f"\n== INT8 dilewati: {DATA_YAML} tidak ada ==")
+        return
+
+    try:
+        from onnxruntime.quantization import QuantType, quantize_dynamic
+    except ImportError:
+        print("\n== INT8 dilewati: onnxruntime.quantization tidak tersedia ==")
+        return
+
+    print("\n== Mengukur mAP model FP32 ==")
+    map_fp32 = ukur_map(model, str(DATA_YAML))
+    if map_fp32 is None:
+        print()
+        print("   INT8 DILEWATI: mAP tidak terukur, sehingga gerbang mutu tidak")
+        print("   bisa dijalankan. Memakai FP32.")
+        print()
+        print("   Penyebab paling sering: `path:` di model/data.yaml menunjuk")
+        print("   lokasi yang tidak ada. Ultralytics menyelesaikan path RELATIF")
+        print("   terhadap direktori datasets-nya sendiri, BUKAN terhadap berkas")
+        print("   yaml-nya — jadi tulislah path MUTLAK.")
+        print()
+        print("   Mengirim INT8 tanpa mengukur akurasinya lebih berbahaya")
+        print("   daripada mengirim FP32 yang beberapa MB lebih besar.")
+        return
+
+    print(f"   mAP@0.5 = {map_fp32:.2f}")
+
+    jalur_int8 = TUJUAN.with_name("sudepi-int8.onnx")
+    quantize_dynamic(str(TUJUAN), str(jalur_int8), weight_type=QuantType.QUInt8)
+    ukuran_int8 = jalur_int8.stat().st_size / 1024 / 1024
+
+    print("\n== Mengukur mAP model INT8 ==")
+    map_int8 = ukur_map(YOLO(str(jalur_int8)), str(DATA_YAML))
+    if map_int8 is None:
+        jalur_int8.unlink(missing_ok=True)
+        print("   INT8 ditolak: akurasinya tidak terukur. Memakai FP32.")
+        return
+
+    print(f"   mAP@0.5 = {map_int8:.2f}")
+
+    turun = map_fp32 - map_int8
+    print(f"\n   FP32 {ukuran_fp32:.1f} MB  mAP {map_fp32:.2f}")
+    print(f"   INT8 {ukuran_int8:.1f} MB  mAP {map_int8:.2f}   "
+          f"(turun {turun:.2f} poin)")
+
+    if turun > AMBANG_TURUN_MAP:
+        jalur_int8.unlink(missing_ok=True)
+        print(f"\n   INT8 DITOLAK: turun {turun:.2f} poin, melebihi ambang "
+              f"{AMBANG_TURUN_MAP}.")
+        print("   Memakai FP32. Hemat beberapa MB tidak sepadan dengan salah")
+        print("   menyebut nominal uang orang.")
+        return
+
+    shutil.copy2(jalur_int8, TUJUAN)
+    jalur_int8.unlink(missing_ok=True)
+    print(f"\n   INT8 DITERIMA: turun hanya {turun:.2f} poin.")
+    print(f"   Memakai INT8, hemat {ukuran_fp32 - ukuran_int8:.1f} MB.")
 
 
 def main() -> None:
@@ -107,6 +186,7 @@ def main() -> None:
             simplify=True,
             nms=PAKAI_NMS,
             dynamic=DINAMIS,
+            verbose=False,
         )
     )
 
@@ -115,50 +195,14 @@ def main() -> None:
     ukuran_fp32 = TUJUAN.stat().st_size / 1024 / 1024
     print(f"   -> {TUJUAN}  ({ukuran_fp32:.1f} MB)")
 
-    # --- kuantisasi INT8 dengan gerbang mutu ---
     if lewati_int8:
         print("\n== INT8 dilewati atas permintaan ==")
-    elif not DATA_YAML.exists():
-        print(f"\n== INT8 dilewati: {DATA_YAML} tidak ada, mAP tak bisa diukur ==")
     else:
-        try:
-            from onnxruntime.quantization import QuantType, quantize_dynamic
-        except ImportError:
-            print("\n== INT8 dilewati: onnxruntime.quantization tidak tersedia ==")
-        else:
-            print("\n== Mengukur mAP model FP32 ==")
-            map_fp32 = ukur_map(model, str(DATA_YAML))
-            print(f"   mAP@0.5 = {map_fp32:.2f}")
+        coba_int8(model, YOLO, ukuran_fp32)
 
-            jalur_int8 = TUJUAN.with_name("sudepi-int8.onnx")
-            quantize_dynamic(
-                str(TUJUAN), str(jalur_int8), weight_type=QuantType.QUInt8
-            )
-            ukuran_int8 = jalur_int8.stat().st_size / 1024 / 1024
-
-            print("\n== Mengukur mAP model INT8 ==")
-            map_int8 = ukur_map(YOLO(str(jalur_int8)), str(DATA_YAML))
-            print(f"   mAP@0.5 = {map_int8:.2f}")
-
-            turun = map_fp32 - map_int8
-            print(f"\n   FP32 {ukuran_fp32:.1f} MB  mAP {map_fp32:.2f}")
-            print(f"   INT8 {ukuran_int8:.1f} MB  mAP {map_int8:.2f}"
-                  f"   (turun {turun:.2f} poin)")
-
-            if turun > AMBANG_TURUN_MAP:
-                jalur_int8.unlink(missing_ok=True)
-                print(f"\n   INT8 DITOLAK: turun {turun:.2f} poin, "
-                      f"melebihi ambang {AMBANG_TURUN_MAP}.")
-                print("   Memakai FP32. Hemat beberapa MB tidak sepadan dengan")
-                print("   salah menyebut nominal uang orang.")
-            else:
-                shutil.copy2(jalur_int8, TUJUAN)
-                jalur_int8.unlink(missing_ok=True)
-                print(f"\n   INT8 DITERIMA: turun hanya {turun:.2f} poin.")
-                print(f"   Memakai INT8, hemat "
-                      f"{ukuran_fp32 - ukuran_int8:.1f} MB.")
-
-    # --- periksa bentuk keluaran ---
+    # Pemeriksaan bentuk dijalankan TERAKHIR dan SELALU, apa pun yang terjadi
+    # pada INT8. Inilah yang benar-benar menentukan apakah berkasnya bisa
+    # dipakai aplikasi.
     print("\n== Memeriksa bentuk keluaran ==")
     hasil = subprocess.run(
         [sys.executable, str(MODEL_DIR / "periksa_onnx.py"), str(TUJUAN)],

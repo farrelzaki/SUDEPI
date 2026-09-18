@@ -17,7 +17,17 @@
 #
 # ============================================================================
 
-# Sesuaikan dengan lokasi dataset hasil unduhan.
+# TULIS PATH MUTLAK, JANGAN RELATIF.
+#
+# Ultralytics menyelesaikan `path` relatif terhadap direktori datasets-nya
+# sendiri (biasanya `<proyek>/datasets/`), BUKAN terhadap berkas yaml ini.
+# Menulis `./dataset` membuatnya mencari di `<proyek>/datasets/dataset/` dan
+# gagal dengan pesan yang membingungkan. Terbukti saat menguji pipeline
+# ujung-ke-ujung.
+#
+# Contoh yang benar:
+#   path: C:/laragon/www/SUDEPI/dataset
+#   path: /content/dataset          (di Google Colab)
 path: ./dataset
 train: images/train
 val: images/val

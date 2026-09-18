@@ -280,6 +280,24 @@ langsung bekerja. Yang belum bisa diketahui sama sekali sebelum modelmu ada
 hanyalah **akurasi sesungguhnya** — dan itu memang hanya bisa diukur dengan
 uang sungguhan di depan kamera.
 
+### Jebakan yang sudah kami tabrak untukmu
+
+Seluruh rantai perkakas ini sudah diuji **berurutan dari ujung ke ujung**
+memakai dataset sintetis dan training sungguhan, bukan hanya diuji satu per
+satu. Tiga masalah ditemukan dan sudah diperbaiki, tetapi satu di antaranya
+tetap perlu kamu ketahui:
+
+**`path:` di `data.yaml` harus MUTLAK.** Ultralytics menyelesaikan path relatif
+terhadap direktori `datasets/` miliknya sendiri, bukan terhadap berkas yaml-nya.
+Menulis `./dataset` membuatnya mencari di `<proyek>/datasets/dataset/` lalu
+gagal dengan pesan yang membingungkan. Di Colab, tulis misalnya
+`path: /content/dataset`.
+
+Dua lainnya sudah ditangani otomatis: `ekspor.py` kini tidak lagi crash kalau
+dataset tak terjangkau (ia melewati gerbang INT8 dengan pesan yang jelas dan
+tetap menyelesaikan ekspor), dan `uji_model.py` kini MENOLAK model yang tidak
+mendeteksi apa pun alih-alih melaporkannya aman.
+
 ### Kenapa perlu augmentasi sendiri
 
 Ultralytics sudah menangani rotasi, perspektif, dan kecerahan lewat parameter
