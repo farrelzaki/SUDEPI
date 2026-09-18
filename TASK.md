@@ -70,13 +70,15 @@ Checkpoint dan approval:
 - Analysis: Selesai
 - Plan: Selesai
 - Approval sebelum implementasi: Disetujui
-- Verification: **Terhambat menunggu model**
+- Verification: Berjalan — model asli terpasang, tinggal verifikasi urutan kelas dengan uang fisik
 
 Catatan:
 
 - Dataset gabungan 8 kelas (Delta v9 + Koin, 44.376 citra, 320x320) siap di `model/dataset_delta_sudepi.zip`.
 - Notebook training `model/latih.ipynb` siap dan dioptimalkan untuk NVIDIA A100 (Google Colab Pro).
-- Model TIRUAN sedang terpasang di HP dan di `public/model/`. Hapus begitu model asli tiba.
+- ~~Model TIRUAN terpasang di HP dan di `public/model/`.~~ SELESAI — model asli
+  (INT8, 3,1 MB) sudah menggantikannya di repo dan di HP; penanda `MODEL_TIRUAN`
+  dihapus. Terverifikasi termuat dan berinferensi di Galaxy M32.
 - ~~Overlay metrik dibuang sebelum penjurian.~~ SELESAI — jadi mode build.
   `pnpm cap:sync` menghasilkan APK tanpa overlay; `pnpm cap:kalibrasi`
   menyalakannya untuk menyetel ambang. Terverifikasi hilang dari bundel

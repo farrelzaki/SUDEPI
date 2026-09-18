@@ -106,6 +106,24 @@ printf 'sdk.dir=%s\n' "$(cygpath -m "$LOCALAPPDATA/Android/Sdk")" > android/loca
 
 `android/` tidak masuk git, jadi setiap mesin akan menabrak ini sekali.
 
+**Kalau Gradle gagal dengan `invalid source release: 21`:** itu Gradle berjalan
+di atas JDK 17, sementara Capacitor 7 menargetkan JDK 21. JDK 21 hampir pasti
+sudah ada, dibundel bersama Android Studio. Arahkan `JAVA_HOME` ke sana:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+cd android; .\gradlew.bat assembleDebug
+```
+
+**Dan kalau `pnpm cap:run` gagal dengan `'gradlew' is not recognized`:** itu
+Capacitor memanggil `gradlew` dengan gaya `cmd` sementara perintahnya dijalankan
+dari Git Bash. Jalankan Gradle langsung lewat PowerShell seperti di atas, lalu
+pasang sendiri:
+
+```bash
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
 **Kalau `pnpm install` keluar dengan `ERR_PNPM_IGNORED_BUILDS`:** itu esbuild
 yang butuh izin menjalankan postinstall-nya. Keputusannya sudah ditulis di
 `pnpm-workspace.yaml`, tapi pnpm menyimpan status lama di

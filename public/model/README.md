@@ -1,5 +1,10 @@
 # Tempat bobot model
 
+> **Sudah terisi.** `sudepi.onnx` berisi bobot asli hasil pelatihan (YOLOv8n
+> 8 kelas, INT8, 3,1 MB), terpasang 18 September 2026. Model patokan berbobot
+> acak beserta penanda `MODEL_TIRUAN` sudah dibuang. Bagian di bawah ini tetap
+> disimpan sebagai rujukan bila model perlu dilatih ulang.
+
 Letakkan berkas hasil training di sini, dengan nama persis:
 
 ```

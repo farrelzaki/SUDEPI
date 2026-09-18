@@ -9,7 +9,7 @@ Perbarui saat memulai sesi, melewati checkpoint, membuat keputusan penting, mene
 - Terakhir diperbarui: 2026-09-18
 - Mode kerja: `competition`
 - Status sesi: Berjalan
-- Task aktif: Berkas bantu model untuk Fajar
+- Task aktif: Verifikasi lapangan dengan model asli
 - Fase aktif: Implementation
 - Checkpoint terakhir: Verification (pipeline utuh terbukti di perangkat)
 - Konfirmasi pengguna terakhir: Farrel kerjakan bagian Fajar, perbarui pembagian tiap kali
@@ -22,8 +22,10 @@ Pembagian per berkas ada di `docs/EKSEKUSI.md`.
 
 ## Tujuan Saat Ini
 
-Aplikasi sudah lengkap dan terbukti berjalan utuh di perangkat. Yang tersisa:
-model sungguhan dari Fajar, lalu kalibrasi dengan uang asli.
+Model asli sudah mendarat dan berjalan di perangkat (18 September 2026, 20.35).
+Penghambat terakhir hilang. Yang tersisa murni verifikasi lapangan:
+**urutan kelas terhadap uang fisik**, lalu kalibrasi ambang, lalu ulangi uji
+mode pesawat dengan model asli.
 
 ## Progress
 
@@ -74,12 +76,14 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
 
 ## Langkah Berikutnya Yang Diusulkan
 
-1. **Fajar: `public/model/sudepi.onnx`.** **SELESAI.** Model asli (3.1 MB) sudah mendarat di `public/model/sudepi.onnx` dan lolos `model/periksa_onnx.py`.
+1. **Fajar: `public/model/sudepi.onnx`.** **SELESAI.** Model asli (3,1 MB, INT8)
+   mendarat, lolos `model/periksa_onnx.py`, dan sudah terpasang di Galaxy M32 —
+   logcat memperlihatkannya termuat lalu berinferensi tiap bingkai.
 2. Setelah model asli ada, berurutan:
    Farrel deploy ke Galaxy M32 → `model/uji_model.py` dengan foto berlabel →
    kalibrasi ambang memakai sebaran skor yang dilaporkannya → uji layar
    tertutup telapak tangan → gladi bersih `docs/DEMO.md`.
-3. Hapus model tiruan dari HP (deploy ulang dengan `public/model/sudepi.onnx` asli).
+3. ~~Hapus model tiruan dari HP.~~ SELESAI — APK dengan model asli sudah terpasang.
 4. ~~Buang overlay metrik dari pratinjau sebelum penjurian.~~ Tidak perlu lagi:
    overlay kini mati secara default dan hanya menyala di `pnpm cap:kalibrasi`.
 

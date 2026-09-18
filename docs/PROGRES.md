@@ -9,14 +9,21 @@ Tim **PenungguTokenReset** · IFEST 2026 · Disusun untuk dewan juri
 Aplikasi SUDEPI **sudah lengkap dan terbukti berjalan utuh di perangkat
 Android sungguhan**, dari Mode Siaga sampai layar Transaksi Selesai.
 
-Yang tersisa hanya bobot model hasil pelatihan. Seluruh rantai di sekelilingnya
-— kamera, inferensi, penyaringan, suara, layar pedagang, dan penyimpanan
-riwayat — sudah divalidasi memakai model tiruan bertenaga tetap, sehingga
-begitu bobot asli masuk, ia langsung bekerja.
+**Bobot model hasil pelatihan sudah terpasang** (18 September 2026, 20.35):
+YOLOv8n 8 kelas terkuantisasi INT8, 3,1 MB. Ia lolos pemeriksaan bentuk
+`[1, 12, 2100]`, termuat di Galaxy M32, dan menjalankan inferensi sungguhan —
+terlihat di logcat sebagai `Handling local request:
+https://localhost/model/sudepi.onnx` diikuti keputusan per bingkai.
+
+Rantai di sekelilingnya — kamera, inferensi, penyaringan, suara, layar
+pedagang, dan penyimpanan riwayat — sudah lebih dulu divalidasi memakai model
+tiruan, dan pergantian ke bobot asli tidak menuntut satu baris perubahan kode
+pun. Yang belum selesai sekarang adalah **kalibrasi dengan uang sungguhan**,
+bukan integrasi.
 
 | Ukuran | Angka |
 | --- | --- |
-| Tes otomatis | **210 lulus** |
+| Tes otomatis | **219 lulus** |
 | Berkas TypeScript | `strict` penuh, `tsc --noEmit` bersih |
 | Keputusan terdokumentasi (ADR) | **8** |
 | Potongan suara Indonesia | 34, dibundel dalam APK |
@@ -65,9 +72,11 @@ jaringan di aplikasi ini, sehingga secara struktural tidak ada tempat untuk
 pergi. Konsekuensinya juga menjawab risiko nomor 7 Lampiran 8 — riwayat
 transaksi tidak mungkin bocor ke pihak ketiga, karena tidak ada pihak ketiga.
 
-Catatan kejujuran: pengujian ini memakai model tiruan, karena bobot hasil
-pelatihan belum tersedia. Yang dibuktikan adalah **kemandirian dari jaringan**,
-bukan akurasi deteksi.
+Catatan kejujuran: pengujian luring ini dijalankan saat bobot asli belum
+tersedia, sehingga memakai model tiruan. Yang dibuktikan adalah **kemandirian
+dari jaringan**, bukan akurasi deteksi. Kemandirian itu tidak berubah oleh
+pergantian model — berkas ONNX dibaca dari dalam APK, bukan diunduh — tetapi
+pengujian mode pesawat tetap akan diulang dengan model asli.
 
 ## Sembilan kesalahan yang hanya ditemukan dengan menjalankan
 
@@ -189,12 +198,20 @@ Ditulis apa adanya.
 
 | Hal | Keadaan |
 | --- | --- |
-| Bobot model hasil pelatihan | **Belum ada.** Satu-satunya penghambat. |
-| Akurasi sesungguhnya | Belum bisa diketahui sebelum model ada |
-| Uji mode pesawat menyeluruh | Menunggu model |
-| Uji menyelesaikan transaksi dengan layar tertutup telapak tangan | Menunggu model |
-| Kalibrasi ambang dengan uang lecek | Menunggu model |
-| Perintah suara (STT) | Opsional, sesuai ADR-0005 |
+| Bobot model hasil pelatihan | **Sudah terpasang** dan berjalan di perangkat |
+| Akurasi sesungguhnya | **Belum diukur.** Butuh uang sungguhan di depan kamera |
+| Urutan kelas terhadap uang asli | **Belum diverifikasi.** Lihat catatan di bawah |
+| Uji mode pesawat dengan model asli | Belum diulang |
+| Uji transaksi dengan layar tertutup telapak tangan | Belum |
+| Kalibrasi ambang dengan uang lecek | Belum |
+| Perintah suara (STT) | **Tidak diimplementasikan.** Sengaja, sesuai ADR-0005 |
+
+**Urutan kelas adalah satu-satunya hal yang tersisa dan berbahaya.** Pemeriksaan
+bentuk memastikan keluaran model berukuran benar, tetapi tidak bisa tahu apakah
+indeks ke-5 memang berarti Rp50.000. Kalau urutannya tertukar, SUDEPI menyebut
+nominal yang salah **dengan penuh keyakinan** — satu-satunya mode kegagalan
+yang tidak tertangkap kebijakan abstain. Karena itu ia diperiksa dengan uang
+fisik, satu per satu ketujuh pecahan, bukan dengan skrip.
 
 Pipeline sudah divalidasi memakai model tiruan, sehingga risiko integrasi
 tinggal kecil. Yang tidak bisa dijamin sebelum model asli ada adalah akurasi —
