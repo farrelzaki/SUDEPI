@@ -20,29 +20,49 @@ tutup layar dengan telapak tangan, lalu selesaikan transaksinya.
 Satu-satunya pengecualian adalah Merchant Display di Fase 3, yang memang
 ditujukan untuk mata pedagang, bukan mata pengguna.
 
-## Pola layar: dua tombol, tidak pernah lebih
+## Pola layar: satu langkah per layar, seperti Android
 
-Setiap fase punya bentuk yang sama persis:
+> Bagian ini diganti oleh **ADR-0011**. Sebelumnya kami memakai pola kaku
+> "tindakan utama 75% layar, Batalkan 25%, tidak pernah lebih dari dua tombol".
+> Pola itu konsisten — tetapi konsisten dengan dirinya sendiri saja.
+
+Setiap fase adalah satu layar dengan bentuk yang sama:
 
 ```
 ┌─────────────────────────────┐
+│ ‹   01 / 04                 │  kembali + penghitung langkah
+│ Judul langkah               │
+│ Keterangan singkat          │
+│ ▓▓▓▓▓░░░░░░░░░░░░░░░░       │  batang kemajuan
+├─────────────────────────────┤
 │                             │
-│   TINDAKAN UTAMA            │  <button>, 75% tinggi layar
-│   (pratinjau kamera         │  aria-label menjelaskan
-│    atau isi fase)           │  keadaan DAN akibat menekannya
+│   isi fase                  │  kamera, papan angka, atau
+│   (seluruhnya juga          │  layar pedagang
+│    sasaran ketuk)           │
 │                             │
 ├─────────────────────────────┤
-│   BATALKAN                  │  <button>, 25% tinggi layar
-└─────────────────────────────┘  posisi tetap di semua fase
+│   TINDAKAN UTAMA            │  selalu tombol pertama di bawah
+│   Batal dan kembali         │  selalu tepat di bawahnya
+└─────────────────────────────┘
 ```
 
-Kenapa bentuknya seragam: pengguna tunanetra menavigasi lewat **ingatan otot
-dan posisi tetap**, bukan dengan memindai layar. Tata letak yang berubah-ubah
-antar fase memaksa penjelajahan ulang setiap kali, dan itu persis beban yang
-ingin kita hapus.
+Kenapa bentuknya begini: pengguna kami memakai Android setiap hari dengan
+TalkBack. Mereka sudah hafal tombol kembali di pojok kiri atas, satu langkah
+per layar, dan tindakan di bawah. **Aksesibilitas sering kali bukan berarti
+membuat sesuatu yang berbeda, melainkan sesuatu yang sudah dikenal.**
 
-**Dilarang** menambah tombol ketiga ke sebuah fase. Kalau terasa butuh, yang
-sebenarnya kamu butuhkan adalah fase baru.
+Yang tetap dipertahankan dari pola lama:
+
+- **Seluruh layar tetap menjadi sasaran tindakan utama** (`LapisanKetuk`).
+  Lapisan itu `aria-hidden`, supaya TalkBack tidak menemukan dua kendali yang
+  mengerjakan satu hal.
+- **Urutan tetap.** Tindakan utama selalu tombol pertama di area aksi, batal
+  selalu tepat di bawahnya, di setiap fase.
+
+Satu pengecualian yang harus diingat: **layar papan angka tidak punya lapisan
+ketuk.** Layar itu penuh tombol, dan sasaran sebesar layar di belakangnya akan
+menelan setiap ketukan yang meleset sedikit lalu mengunci nominal yang belum
+selesai diketik.
 
 ## Gestur dan TalkBack
 
@@ -170,7 +190,7 @@ Bukan seluruh standar, hanya yang benar-benar menyentuh SUDEPI.
 | 2.1.1 Papan ketik | Semua aksi lewat `<button>`, jadi otomatis terpenuhi. |
 | 2.4.7 Fokus terlihat | Cincin fokus tebal, tidak pernah `outline: none`. |
 | 2.5.5 Ukuran target | Seluruh target jauh melebihi 44x44 px. Kita memakai seperempat layar. |
-| 2.5.7 Gerakan seret | Tidak ada gestur seret sama sekali. Roda taktil juga bisa dioperasikan dengan ketukan. |
+| 2.5.7 Gerakan seret | Tidak ada gestur seret sama sekali. Seluruh nominal dimasukkan lewat ketukan pada papan angka. |
 | 2.5.8 Ukuran target minimum | Terpenuhi dengan sangat lapang. |
 | 3.2.2 Saat input | Mengubah nilai tidak pernah langsung memicu perpindahan fase. Selalu butuh konfirmasi. |
 | 3.3.1 Identifikasi galat | Abstain dan uang kurang diumumkan lewat suara, bukan hanya teks. |

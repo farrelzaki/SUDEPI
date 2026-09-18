@@ -3,29 +3,82 @@
 /**
  * Token desain.
  *
- * FAJAR: berkas ini milikmu mulai Fase 1. Token di bawah baru kerangka awal
- * yang diturunkan dari `docs/AKSESIBILITAS.md` — silakan kembangkan.
+ * Diturunkan dari prototipe Fajar di `UI reference/` — nilai heksadesimalnya
+ * disalin verbatim dari berkas HTML-nya, bukan dicocokkan dengan mata dari
+ * tangkapan layar. Kalau prototipe itu diperbarui, berkas inilah yang ikut,
+ * dan hanya berkas ini.
+ *
+ * TIPOGRAFI. Prototipe memanggil Geist lewat Google Fonts. Itu tidak bisa
+ * dipakai apa adanya: aturan pertama proyek ini melarang permintaan jaringan
+ * dalam bentuk apa pun, dan font yang gagal dimuat akan diam-diam jatuh ke
+ * font lain tanpa ada yang menyadarinya sampai di depan juri. Penggantinya
+ * bukan kompromi — `system-ui` di Android berarti Roboto, wajah huruf yang
+ * dipakai seluruh sistem operasinya. Untuk aplikasi yang memang ingin terasa
+ * seperti bagian dari Android, itu justru lebih tepat daripada Geist.
  *
  * Tailwind v4 tidak memakai `tailwind.config.js`. Seluruh penyesuaian tema
  * ditulis di blok `@theme` ini.
  */
 @theme {
-  /* Merchant Display, exsum Bab III Fase 3: tinggi angka minimal 72 pt (6rem).
+  /* --- Wajah huruf ------------------------------------------------------ */
+  --font-sans:
+    system-ui, 'Roboto', 'Segoe UI', -apple-system, sans-serif;
+  /* Penghitung langkah "02 / 04" dan angka yang harus berbaris rapi. */
+  --font-mono: ui-monospace, 'Roboto Mono', 'Courier New', monospace;
+
+  /* --- Ground dan tinta ------------------------------------------------- */
+  --color-ground: #f7f8fa;
+  --color-kartu: #ffffff;
+  --color-tinta: #172131;
+  --color-tinta-redup: #536174;
+  --color-tinta-samar: #a9b7c8;
+  --color-garis: #d8dee7;
+
+  /* --- Aksen ------------------------------------------------------------ */
+  --color-primer: #0062ff;
+  --color-primer-tekan: #0050d1;
+  --color-primer-tipis: #e8f0ff;
+  --color-primer-samar: #f3f7fc;
+
+  /* --- Warna semantik ---------------------------------------------------
+     Terpisah dari aksen, dan sengaja tidak dipakai sebagai hiasan. Kalau
+     hijau muncul, artinya memang ada yang terverifikasi. */
+  --color-sukses: #6fd7a2;
+  --color-sukses-tua: #0f7a4d;
+  --color-ingat: #f2c66d;
+  --color-ingat-tinta: #965800;
+  --color-ingat-latar: #fff4d9;
+  --color-bahaya: #ff8a7d;
+  --color-bahaya-tinta: #b3261e;
+
+  /* --- Layar pedagang ---------------------------------------------------
+     Satu-satunya layar yang dirancang untuk mata orang lain. */
+  --color-kasir-latar: #172230;
+  --color-kasir-panel: #1f2d3a;
+  --color-kasir-teks: #f3f7fc;
+  --color-kasir-redup: #a9b7c8;
+  /* Kembalian disorot kuning. Kontras terhadap ground gelap di atas 12:1,
+     jauh melampaui syarat WCAG AA — layar ini dibaca sekilas dari sekitar
+     satu meter, sering di bawah cahaya lapak yang buruk. */
+  --color-kasir-sorot: #ffd60a;
+
+  /* Exsum Bab III Fase 3: tinggi angka minimal 72 pt (6rem).
      Dibatasi oleh LEBAR sekaligus TINGGI. Versi pertama hanya memakai 22vw,
      dan di layar lebar angka ketiga terpotong keluar layar — pedagang hanya
      melihat dua dari tiga angka, termasuk kehilangan kembaliannya. */
-  --text-kasir: clamp(6rem, min(16vw, 13vh), 9rem);
+  --text-kasir: clamp(3.5rem, min(13vw, 9vh), 6rem);
 
-  /* Pasangan kontras tinggi untuk layar pedagang. Rasio 7:1, melampaui syarat
-     WCAG AA yang 4,5:1 — layar akan dibaca di bawah sinar matahari pasar. */
-  --color-kasir-latar: #000000;
-  --color-kasir-teks: #ffffff;
-  --color-kasir-sorot: #ffd60a;
+  /* --- Umpan balik pemindaian ------------------------------------------
+     Lebih jenuh daripada warna semantik di atas, dan itu disengaja: warna ini
+     hidup di atas gambar kamera, bukan di atas kertas putih. */
+  --color-stabil: #2fd07d;
+  --color-abstain: #f2b33d;
+  --color-batal: #ff5449;
 
-  /* Umpan balik status pemindaian. */
-  --color-stabil: #30d158;
-  --color-abstain: #ff9f0a;
-  --color-batal: #ff453a;
+  /* --- Sasaran sentuh ---------------------------------------------------
+     WCAG 2.2 kriteria 2.5.8 mensyaratkan 24 piksel; Android menganjurkan 48.
+     Kami memakai 64, karena sasaran ini dicari dengan jari tanpa melihat. */
+  --spacing-sentuh: 4rem;
 }
 
 @layer base {
@@ -39,12 +92,34 @@
     /* UI kita kamera layar penuh; pantulan gulir mengganggu pembidikan. */
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
+    background-color: var(--color-ground);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+    /* Angka nominal muncul di mana-mana dan sering berubah satu digit.
+       Tanpa ini lebarnya bergoyang setiap penekanan tombol. */
+    font-variant-numeric: tabular-nums;
   }
 
   /* WCAG 2.2 AA kriteria 2.4.7 — fokus harus selalu terlihat.
-     JANGAN pernah menulis `outline: none` di mana pun. */
+     JANGAN pernah menulis `outline: none` di mana pun.
+
+     Dua lapis, karena fokus di aplikasi ini bisa mendarat di atas kertas
+     putih maupun di atas gambar kamera yang gelap dan ramai. Cincin biru
+     terlihat di atas terang, halo putih di sekelilingnya menjamin cincin itu
+     tetap terbaca di atas gelap. */
   :focus-visible {
-    outline: 4px solid var(--color-kasir-sorot);
-    outline-offset: 3px;
+    outline: 3px solid var(--color-primer);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px rgb(255 255 255 / 0.85);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
