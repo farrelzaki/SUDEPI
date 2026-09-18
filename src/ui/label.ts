@@ -1,5 +1,4 @@
 import type { Fase, HasilPindai, StateTransaksi } from '@/contracts';
-import { rupiahKeTeks } from '@/audio/angka';
 
 /**
  * Label tombol utama: keadaan sekarang DAN akibat mengaktifkannya.
@@ -21,9 +20,14 @@ export function labelUtama(
 
     case 'PINDAI_BAYAR':
       if (hasil?.status === 'stabil') {
-        return `Terdeteksi ${rupiahKeTeks(hasil.totalKertas)}${
-          hasil.adaKoin ? ', ditambah koin' : ''
-        }. Lanjut ke kalkulator.`;
+        // Nominalnya SENGAJA tidak diulang di sini. Audio kita sudah
+        // menyebutkannya begitu hasil menjadi stabil; mengulangnya di label
+        // membuat pengguna TalkBack mendengar angka yang sama dua kali, dari
+        // dua suara berbeda, seringkali bertumpuk. Terbukti di Galaxy M32.
+        //
+        // Pembagiannya: TalkBack mengurus NAVIGASI (ini tombol apa), audio
+        // kita mengurus HASIL (berapa nominalnya).
+        return 'Uang terdeteksi. Lanjut ke kalkulator.';
       }
       if (hasil?.status === 'abstain') {
         return 'Belum yakin. Dekatkan uang atau cari tempat lebih terang, lalu tunggu.';
@@ -47,11 +51,8 @@ export function labelUtama(
             'Periksa apakah ada uang yang belum terbaca, lalu pindai lagi.'
           );
         }
-        const koin =
-          state.nominalKoin > 0
-            ? `, ditambah koin ${rupiahKeTeks(state.nominalKoin)}`
-            : '';
-        return `Kembalian ${rupiahKeTeks(hasil.totalKertas)}${koin}. Selesaikan transaksi.`;
+        // Sama seperti Fase 1: nominal kembalian sudah diucapkan audio kita.
+        return 'Kembalian cocok. Selesaikan transaksi.';
       }
       if (hasil?.status === 'abstain') {
         return 'Belum yakin dengan kembaliannya. Coba pindai lagi.';

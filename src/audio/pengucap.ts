@@ -60,6 +60,15 @@ export interface OpsiPengucap {
 }
 
 /**
+ * Penguatan keluaran audio.
+ *
+ * Disetel dari satu tempat supaya mudah dikalibrasi di lapangan. Kalau suara
+ * terdengar pecah, turunkan; kalau tenggelam oleh kebisingan pasar, naikkan.
+ * Pembatas di `ambilKonteks` menjaga agar kenaikan tidak berujung distorsi.
+ */
+const PENGUATAN = 3.5;
+
+/**
  * Potongan disimpan sebagai berkas terpisah, BUKAN satu sprite dengan offset.
  *
  * Alasan sprite pada umumnya adalah menghemat permintaan jaringan. Di sini
@@ -89,6 +98,7 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
 
   let konteks: AudioContext | null = null;
   let penguat: GainNode | null = null;
+  let pembatas: DynamicsCompressorNode | null = null;
   let sumberAktif: AudioBufferSourceNode | null = null;
   let dibatalkan = false;
   const buffer = new Map<string, AudioBuffer>();
@@ -105,22 +115,58 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
 
     // Dimuat paralel. Semuanya aset lokal, jadi yang memakan waktu adalah
     // decode, bukan pengambilan berkas.
+    let gagal = 0;
+    let pesanGagal = '';
     await Promise.all(
       m.potongan.map(async (nama) => {
-        const r = await fetch(`${dasar}${nama}.mp3`);
-        if (!r.ok) return;
-        buffer.set(nama, await ctx.decodeAudioData(await r.arrayBuffer()));
+        try {
+          const r = await fetch(`${dasar}${nama}.mp3`);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          buffer.set(nama, await ctx.decodeAudioData(await r.arrayBuffer()));
+        } catch (e) {
+          gagal += 1;
+          if (!pesanGagal) pesanGagal = `${nama}: ${String(e)}`;
+        }
       }),
+    );
+    console.log(
+      `[AUDIO] termuat=${buffer.size} gagal=${gagal} konteks=${ctx.state}` +
+        (pesanGagal ? ` contoh=${pesanGagal}` : ''),
     );
 
     if (buffer.size === 0) throw new Error('Tidak ada potongan audio yang termuat');
   }
 
+  /**
+   * Rantai audio: sumber -> penguat -> pembatas -> keluaran.
+   *
+   * Penguatannya jauh di atas satu, dan itu perlu. Suara neural hasil render
+   * berada di level yang cukup rendah, sementara aplikasi ini dipakai di pasar
+   * tradisional yang bising, oleh orang yang tidak punya cara lain mengetahui
+   * nominal uangnya. Pada volume media HP yang wajar (sekitar 40%), tanpa
+   * penguatan ini suaranya nyaris tidak terdengar — terbukti langsung di
+   * Galaxy M32.
+   *
+   * Pembatas di belakangnya mencegah puncak sinyal pecah akibat penguatan itu.
+   * Menaikkan gain tanpa pembatas akan menghasilkan distorsi yang justru
+   * membuat angka lebih sulit ditangkap, bukan lebih mudah.
+   */
   function ambilKonteks(): AudioContext {
     if (!konteks) {
       konteks = new AudioContext();
+
       penguat = konteks.createGain();
-      penguat.connect(konteks.destination);
+      penguat.gain.value = PENGUATAN;
+
+      pembatas = konteks.createDynamicsCompressor();
+      pembatas.threshold.value = -6;
+      pembatas.knee.value = 0;
+      pembatas.ratio.value = 20;
+      pembatas.attack.value = 0.003;
+      pembatas.release.value = 0.1;
+
+      penguat.connect(pembatas);
+      pembatas.connect(konteks.destination);
     }
     return konteks;
   }
@@ -145,6 +191,10 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
         selesai();
       };
       sumberAktif = sumber;
+      console.log(
+        `[AUDIO] putar ${nama} dur=${buf.duration.toFixed(2)}s ` +
+          `ctx=${ctx.state} gain=${tujuan.gain.value.toFixed(2)}`,
+      );
       sumber.start();
     });
   }
@@ -203,12 +253,18 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
       if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
     },
 
-    redam(aktif: boolean) {
-      // Audio ducking. Karena kita mengendalikan grafik audionya sendiri, ini
-      // cukup satu nilai penguatan — jauh lebih tepat daripada mencoba meredam
-      // mesin TTS sistem, yang memang tidak menyediakan caranya.
-      if (!penguat || !konteks) return;
-      penguat.gain.setTargetAtTime(aktif ? 0.25 : 1, konteks.currentTime, 0.08);
+    redam(_aktif: boolean) {
+      // TIDAK melakukan apa-apa, dan itu disengaja.
+      //
+      // Versi pertama menurunkan gain menjadi 0,25 saat `aktif`. Itu keliru:
+      // GainNode ini mengontrol suara KITA SENDIRI, sehingga yang terjadi
+      // adalah aplikasi meredam dirinya sendiri tepat ketika ia sedang
+      // berbicara — persis kebalikan dari yang dimaksud.
+      //
+      // Audio ducking yang sebenarnya berarti menurunkan suara APLIKASI LAIN,
+      // dan itu hanya bisa dilakukan lewat audio focus Android di sisi native,
+      // bukan dari Web Audio. Dibiarkan kosong sampai ada plugin untuk itu,
+      // daripada memasang sesuatu yang namanya benar tapi kerjanya terbalik.
     },
   };
 }

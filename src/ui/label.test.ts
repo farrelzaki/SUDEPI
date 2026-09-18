@@ -91,23 +91,6 @@ describe('label TIDAK menjanjikan yang akan ditolak', () => {
     expect(teks).toMatch(/selesaikan transaksi/i);
   });
 
-  it('Fase 4: menyebutkan nilai koin kalau ada', () => {
-    const teks = labelUtama(
-      'PINDAI_KEMBALIAN',
-      pindai('stabil', 15_000),
-      state({ kembalianWajib: 15_500, nominalKoin: 500 }),
-    );
-    expect(teks).toMatch(/ditambah koin lima ratus rupiah/i);
-  });
-
-  it('Fase 4: tidak menyebut koin kalau nominalnya nol', () => {
-    const teks = labelUtama(
-      'PINDAI_KEMBALIAN',
-      pindai('stabil', 15_000),
-      state({ kembalianWajib: 15_000, nominalKoin: 0 }),
-    );
-    expect(teks).not.toMatch(/koin/i);
-  });
 });
 
 describe('label tidak bertabrakan dengan petunjuk TalkBack', () => {
@@ -129,13 +112,40 @@ describe('label tidak bertabrakan dengan petunjuk TalkBack', () => {
   });
 });
 
-describe('nominal diucapkan sebagai kata, bukan angka', () => {
-  it('memakai penyusun bilangan Indonesia', () => {
-    // Pembaca layar akan melafalkan "125000" sebagai deret digit atau dengan
-    // intonasi yang salah. Kata-katanya harus sudah jadi sejak di label.
+describe('label tidak mengulang nominal yang sudah diucapkan audio', () => {
+  it('Fase 1 menyebut keadaan, bukan angkanya', () => {
+    // Audio kita sudah mengucapkan nominalnya begitu hasil stabil. Mengulang
+    // di label membuat pengguna TalkBack mendengar angka yang sama dua kali,
+    // dari dua suara berbeda, seringkali bertumpuk.
     const teks = labelUtama('PINDAI_BAYAR', pindai('stabil', 125_000), state());
-    expect(teks).toContain('seratus dua puluh lima ribu rupiah');
-    expect(teks).not.toContain('125000');
+    expect(teks).toMatch(/terdeteksi/i);
+    expect(teks).not.toContain('seratus dua puluh lima ribu');
     expect(teks).not.toContain('125.000');
+  });
+
+  it('Fase 4 juga tidak mengulang nominal kembalian', () => {
+    const teks = labelUtama(
+      'PINDAI_KEMBALIAN',
+      pindai('stabil', 15_000),
+      state({ kembalianWajib: 15_500, nominalKoin: 500 }),
+    );
+    expect(teks).toMatch(/selesaikan transaksi/i);
+    expect(teks).not.toContain('lima belas ribu');
+  });
+
+  it('angka tidak pernah muncul sebagai digit di label mana pun', () => {
+    // Pembaca layar melafalkan "125000" sebagai deret digit atau dengan
+    // intonasi yang salah.
+    const semua = [
+      labelUtama('SIAGA', null, state()),
+      labelUtama('PINDAI_BAYAR', pindai('stabil', 125_000), state()),
+      labelUtama('KALKULATOR', null, state()),
+      labelUtama('LAYAR_KASIR', null, state()),
+      labelUtama('PINDAI_KEMBALIAN', pindai('stabil', 5000), state({ nominalKoin: 0 })),
+      labelUtama('SELESAI', null, state()),
+    ];
+    for (const teks of semua) {
+      expect(teks).not.toMatch(/[0-9]/);
+    }
   });
 });
