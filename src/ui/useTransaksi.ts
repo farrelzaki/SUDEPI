@@ -23,6 +23,7 @@ import {
 } from '@/contracts';
 import { reduksi } from '@/core/mesin';
 import { keTeks } from '@/audio/pengucap';
+import { buatDetak } from '@/audio/detak';
 import { buatPenyangga } from '@/data/penyangga';
 import type { Repositori } from '@/data/repositori';
 
@@ -60,6 +61,15 @@ export function useTransaksi({
   // menit di utas yang sama dengan UI, dan pratinjau kamera akan tersendat
   // tanpa satu pun petunjuk penyebabnya. Lihat data/penyangga.ts.
   const penyangga = useRef(buatPenyangga());
+
+  /**
+   * Detak kerja. Bukan hiasan — ia yang membedakan "sistem sedang berusaha"
+   * dari "sistem mati" bagi orang yang tidak bisa melihat layar. Lihat
+   * audio/detak.ts.
+   */
+  const detak = useMemo(() => buatDetak(), []);
+  /** Menandai masa antara kamera dinyalakan dan bingkai pertama selesai. */
+  const menyiapkan = useRef(false);
   const idTransaksi = useRef<string | null>(null);
   const fasePindai = useRef<1 | 4 | null>(null);
   const mulaiPindaiMs = useRef(0);
@@ -84,7 +94,13 @@ export function useTransaksi({
           // tanpa perlu menebak.
           console.log('[UCAP]', keTeks(e.ucapan));
           pengucap.redam(true);
-          void pengucap.ucap(e.ucapan).finally(() => pengucap.redam(false));
+          // Detak ikut disenyapkan selagi bicara. Kalimat yang menyampaikan
+          // nominal uang tidak boleh ditumpangi bunyi apa pun.
+          detak.senyapkan(true);
+          void pengucap.ucap(e.ucapan).finally(() => {
+            pengucap.redam(false);
+            detak.senyapkan(false);
+          });
           break;
 
         case 'GETAR':
@@ -98,6 +114,11 @@ export function useTransaksi({
           // Id dibuat di awal transaksi, bukan saat menyimpan, supaya sesi
           // pemindaian Fase 1 dan Fase 4 bisa menunjuk induk yang sama.
           if (e.fase === 1) idTransaksi.current = `trx_${Date.now().toString(36)}`;
+          // Memuat model dan menyalakan kamera memakan beberapa detik. Tanpa
+          // penanda apa pun, detik-detik itu terdengar sama persis seperti
+          // aplikasi yang gagal dijalankan.
+          menyiapkan.current = true;
+          detak.mulaiMenyiapkan();
           void pemindai.mulai(e.fase);
           break;
 
@@ -114,6 +135,8 @@ export function useTransaksi({
             );
           }
           fasePindai.current = null;
+          menyiapkan.current = false;
+          detak.hentikanMenyiapkan();
           pemindai.berhenti();
           // Ucapan yang sedang berjalan ikut dihentikan. Membiarkannya
           // menyelesaikan kalimat tentang fase yang sudah ditinggalkan hanya
@@ -163,6 +186,19 @@ export function useTransaksi({
   // Hasil pindai mengalir masuk terus-menerus selama kamera hidup.
   useEffect(() => {
     const lepas = pemindai.langgan((hasil) => {
+      // Satu detak per bingkai yang benar-benar selesai diproses, sehingga
+      // iramanya jujur: kalau perangkat melambat, detaknya ikut melambat.
+      //
+      // Hasil 'stabil' TIDAK ditandai detak — pada saat itu sistem sudah
+      // menyebut nominalnya, dan menambahkan bunyi di atas kalimat itu hanya
+      // mengaburkan satu-satunya informasi yang benar-benar dibutuhkan.
+      if (menyiapkan.current) {
+        menyiapkan.current = false;
+        detak.hentikanMenyiapkan();
+      }
+      if (hasil.status === 'tidak-ada-objek') detak.tik('cari');
+      else if (hasil.status !== 'stabil') detak.tik('dekat');
+
       setHasilPindai(hasil);
       penyangga.current.tambah(hasil);
       kirim({ jenis: 'HASIL_PINDAI', muatan: hasil });
@@ -170,7 +206,7 @@ export function useTransaksi({
     return () => {
       lepas();
     };
-  }, [pemindai, kirim]);
+  }, [pemindai, kirim, detak]);
 
   // Pembersihan saat komponen dilepas. Tanpa ini kamera tetap menyala setelah
   // aplikasi ditutup, dan lampu kamera yang menyala terus tidak akan disadari
@@ -179,8 +215,9 @@ export function useTransaksi({
     return () => {
       pemindai.berhenti();
       pengucap.hentikan();
+      detak.tutup();
     };
-  }, [pemindai, pengucap]);
+  }, [pemindai, pengucap, detak]);
 
   return useMemo(
     () => ({ state, hasilPindai, kirim, mulai }),

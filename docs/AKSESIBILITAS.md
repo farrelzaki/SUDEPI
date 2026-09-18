@@ -64,6 +64,40 @@ ketuk.** Layar itu penuh tombol, dan sasaran sebesar layar di belakangnya akan
 menelan setiap ketukan yang meleset sedikit lalu mengunci nominal yang belum
 selesai diketik.
 
+## Detak kerja: keheningan tidak boleh berarti dua hal
+
+Inferensi memakan sekitar 0,7 detik per bingkai, dan selama tidak ada yang
+cukup diyakini, sistem tidak mengatakan apa pun. Bagi pengguna yang tidak bisa
+melihat layar, keheningan itu **tidak bisa dibedakan dari kerusakan** — ia tidak
+tahu apakah sistem sedang berusaha, kameranya tertutup jari, atau aplikasinya
+memang mati. Yang terjadi kemudian: ia berhenti mencoba dan kembali bergantung
+pada orang lain, yaitu hal yang justru ingin kita hapus.
+
+Karena itu ada **detak**: bunyi pendek 45 milidetik, satu per bingkai yang
+selesai diproses.
+
+| Keadaan | Bunyi | Artinya bagi pengguna |
+| --- | --- | --- |
+| Menyiapkan kamera dan model | denyut dalam tiap 0,9 detik | "tunggu, belum mulai melihat" |
+| Tidak ada objek | satu nada rendah | "aku hidup, belum melihat apa-apa" |
+| Ada objek, belum diyakini | dua nada naik | "ada sesuatu, sedang kupastikan" |
+| Stabil | **tidak ada detak** | nominalnya diucapkan, itu sudah cukup |
+
+Tiga aturan yang mengikat bagian ini:
+
+1. **Detak berhenti selagi sistem bicara.** Kalimat yang menyampaikan nominal
+   uang tidak boleh ditumpangi bunyi apa pun.
+2. **Satu detak sama dengan satu bingkai sungguhan**, bukan timer hiasan.
+   Kalau perangkat melambat karena panas, detaknya ikut melambat — pengguna
+   mendengar keadaan yang sebenarnya.
+3. **Bukan kalimat.** "Sedang mencari" yang diulang tiap bingkai akan menyumbat
+   satu-satunya saluran keluaran yang kita punya; itu persis kesalahan nomor 10
+   di `PROGRES.md`. Arah nada yang naik dipilih karena ia satu-satunya isyarat
+   yang bisa ditangkap tanpa harus mengingat nada sebelumnya.
+
+Bunyinya dibangkitkan osilator Web Audio, bukan berkas rekaman: tetap luring,
+dan menambah nol byte ke APK.
+
 ## Gestur dan TalkBack
 
 TalkBack menyisipkan dirinya di antara jari pengguna dan halaman. Sentuhan
