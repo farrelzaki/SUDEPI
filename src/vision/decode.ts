@@ -88,6 +88,15 @@ export interface HasilDekode {
 /**
  * Mengubah tensor mentah menjadi daftar deteksi pada koordinat bingkai asli.
  */
+/**
+ * Ambang tingkat KEDUA, jauh di bawah ambang keputusan.
+ *
+ * Kotak di antara ambang ini dan `AMBANG_KEYAKINAN` tidak pernah boleh
+ * MELAHIRKAN sebuah jawaban — ia hanya boleh MENERUSKAN jawaban yang sudah
+ * lahir dari bukti kuat. Lihat catatan dua tingkat di `voting.ts`.
+ */
+export const AMBANG_LEMAH = 0.45;
+
 export function dekode(
   data: Float32Array | readonly number[],
   lb: Letterbox,

@@ -1,4 +1,4 @@
-# ADR-0012: Kesepakatan temporal dihitung per TEMPAT, bukan per kelas
+# ADR-0012: Kesepakatan per TEMPAT, dengan dua tingkat keyakinan
 
 - **Status:** Diterima
 - **Tanggal:** 2026-09-18
@@ -88,7 +88,40 @@ Kedua kegagalan sebelumnya menjadi mustahil sekaligus: lembar yang berkedip
 tetap terhitung satu tempat, dan lembar yang namanya belum mantap tidak pernah
 disebut.
 
-**Ambang keyakinan tidak diturunkan sedikit pun** di sepanjang ketiga percobaan.
+### Penyempurnaan — dua tingkat keyakinan
+
+Setelah percobaan ketiga terpasang, satu lembar kembali mantap tetapi beberapa
+lembar masih goyah: total gabungan sempat terbaca, lalu dalam beberapa detik
+menyusut lagi menjadi satu lembar. Sebabnya langsung terbaca dari angka di
+atas — lembar kedua hanya melewati ambang keputusan di sekitar seperlima
+bingkai, sehingga tempatnya jatuh-bangun melintasi syarat 3 dari 5.
+
+Perbaikannya memisahkan dua pertanyaan yang selama ini dijawab satu ambang:
+
+| Pertanyaan | Bukti yang dibutuhkan |
+| --- | --- |
+| **Melahirkan** jawaban baru | kuat — di atas `AMBANG_KEYAKINAN` (0,70) |
+| **Meneruskan** jawaban lama | lemah — di atas `AMBANG_LEMAH` (0,45) |
+
+Alasannya bukan kelonggaran sembarangan: kotak berkeyakinan sedang di **tempat
+yang sudah terbukti berisi uang** bukanlah klaim baru, melainkan kesinambungan
+dari klaim yang sudah dibuktikan bukti kuat. Yang berbahaya adalah *memulai*
+klaim dari bukti lemah, bukan *mempertahankannya*.
+
+Tiga batas menjaganya:
+
+1. Sebuah tempat harus punya **sekurang-kurangnya dua pengamatan kuat** untuk
+   lahir. Satu pengamatan kuat adalah persis definisi kilatan sesaat yang
+   seluruh lapisan ini ada untuk menyaring.
+2. **Kelas ditentukan hanya oleh pengamatan kuat.** Kotak lemah boleh berkata
+   "masih ada sesuatu di sini", tidak pernah "namanya begini".
+3. NMS dijalankan atas **gabungan** kuat dan lemah, sehingga kotak lemah yang
+   sebenarnya hanya salinan dari kotak kuat ikut tersingkir dan tidak menjelma
+   menjadi lembar kedua yang tidak ada.
+
+**Ambang keputusan tidak diturunkan sedikit pun** di sepanjang seluruh
+perjalanan ini. Yang ditambahkan adalah tingkat kedua yang wewenangnya
+dibatasi, bukan pelonggaran tingkat pertama.
 
 ### Kenapa bukan menurunkan ambang
 
@@ -139,11 +172,14 @@ itu apa" — keadaan yang dulu mustahil diungkapkan dan diam-diam ditebak.
 
 **Yang dijaga tes**
 
-Enam tes mengunci batasnya: lembar yang berkedip 3 dari 5 bingkai ikut
+Sembilan tes mengunci batasnya: lembar yang berkedip 3 dari 5 bingkai ikut
 diumumkan; yang hanya muncul 2 dari 5 **tidak**; dua lembar bernominal sama
 tidak menyusut jadi satu; lembar yang identitasnya berayun **tidak pernah
 disebut**; satu tebakan meleset di tengah tidak melumpuhkan sistem; dan lembar
-yang bergeser di tangan tetap dihitung satu, bukan beberapa.
+yang bergeser di tangan tetap dihitung satu, bukan beberapa. Tiga lagi menjaga
+tingkat kedua: bukti lemah meneruskan lembar yang sudah lahir, bukti lemah saja
+**tidak pernah** melahirkan lembar baru, dan bukti lemah tidak boleh mengubah
+nama lembar yang sudah jelas.
 
 Satu tes lama ikut diperbaiki. Pembantunya menempatkan uang menurut urutan
 larik, sehingga menukar urutan deteksi berarti memindahkan uangnya — keliru

@@ -31,6 +31,12 @@ export type PesanDariWorker =
       readonly jenis: 'hasil';
       readonly id: number;
       readonly deteksi: readonly Deteksi[];
+      /**
+       * Kotak yang lolos ambang tingkat kedua tetapi TIDAK lolos ambang
+       * keputusan. Hanya dipakai meneruskan objek yang sudah diyakini, tidak
+       * pernah untuk memulai jawaban baru.
+       */
+      readonly lemah: readonly Deteksi[];
       /** Objek yang terlihat namun gagal lolos ambang. Memicu Abstain. */
       readonly ditolakGating: number;
       readonly latensiMs: number;

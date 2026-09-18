@@ -207,6 +207,76 @@ describe('votingTemporal', () => {
     expect(hasil.deteksi).toHaveLength(1);
   });
 
+  it('bukti LEMAH meneruskan lembar yang sudah lahir dari bukti kuat', () => {
+    // Gejalanya: total gabungan sempat terbaca lalu menyusut lagi jadi satu
+    // lembar dalam beberapa detik. Lembar kedua hanya melewati ambang
+    // keputusan sesekali, sehingga tempatnya jatuh-bangun melintasi 3 dari 5.
+    const kuat = [
+      bingkai([4, 2]),
+      bingkai([4]),
+      bingkai([4, 2]),
+      bingkai([4]),
+      bingkai([4]),
+    ];
+    // Di tiga bingkai yang kuatnya meleset, lembar kedua tetap terlihat —
+    // hanya dengan keyakinan sedang, di tempat yang sama.
+    const lemah = [
+      [],
+      bingkai([2]),
+      [],
+      bingkai([2]),
+      bingkai([2]),
+    ];
+
+    const tanpa = votingTemporal(kuat);
+    expect(tanpa.deteksi.map((d) => d.kodeKelas)).toEqual([4]);
+
+    const dengan = votingTemporal(kuat, undefined, undefined, lemah);
+    expect(dengan.status).toBe('stabil');
+    expect(dengan.deteksi.map((d) => d.kodeKelas).sort()).toEqual([2, 4]);
+  });
+
+  it('bukti LEMAH saja tidak pernah melahirkan lembar baru', () => {
+    // Inilah batas yang membuat dua tingkat keyakinan tetap aman. Tempat yang
+    // hanya pernah terlihat dengan keyakinan sedang bukan uang yang diyakini,
+    // ia dugaan — dan dugaan tidak boleh diucapkan sebagai nominal.
+    const kuat = [
+      bingkai([4]),
+      bingkai([4]),
+      bingkai([4]),
+      bingkai([4]),
+      bingkai([4]),
+    ];
+    const lemah = [
+      bingkai([2]),
+      bingkai([2]),
+      bingkai([2]),
+      bingkai([2]),
+      bingkai([2]),
+    ];
+
+    const hasil = votingTemporal(kuat, undefined, undefined, lemah);
+    expect(hasil.status).toBe('stabil');
+    expect(hasil.deteksi.map((d) => d.kodeKelas)).toEqual([4]);
+  });
+
+  it('bukti lemah tidak boleh MENGUBAH nama lembar yang sudah jelas', () => {
+    // Kotak lemah hanya boleh berkata "masih ada sesuatu di sini", tidak
+    // pernah "namanya begini".
+    const kuat = [
+      satuTempat(4),
+      satuTempat(4),
+      satuTempat(4),
+      [],
+      [],
+    ];
+    const lemah = [[], [], [], satuTempat(6), satuTempat(6)];
+
+    const hasil = votingTemporal(kuat, undefined, undefined, lemah);
+    expect(hasil.status).toBe('stabil');
+    expect(hasil.deteksi.map((d) => d.kodeKelas)).toEqual([4]);
+  });
+
   it('lembar kedua yang BERKEDIP tetap ikut diumumkan', () => {
     // Inilah kasus yang melahirkan ADR-0012. Lembar yang paling jelas terbaca
     // muncul di setiap bingkai; lembar kedua berkedip melintasi ambang. Dengan

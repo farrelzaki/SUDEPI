@@ -36,6 +36,25 @@
  * Langkah ketiga inilah yang membuat dua kegagalan di atas mustahil sekaligus:
  * lembar yang berkedip tetap terhitung satu tempat, dan tempat yang namanya
  * masih berubah-ubah tidak pernah disebut — sistem memilih diam.
+ *
+ * DUA TINGKAT KEYAKINAN. Setelah langkah ketiga terpasang, satu lembar kembali
+ * mantap tetapi beberapa lembar masih goyah: total gabungan sempat terbaca,
+ * lalu dalam beberapa detik menyusut lagi menjadi satu lembar. Sebabnya lembar
+ * kedua hanya melewati ambang keputusan di sekitar seperlima bingkai, sehingga
+ * tempatnya jatuh-bangun melintasi syarat 3 dari 5.
+ *
+ * Perbaikannya memisahkan dua pertanyaan yang selama ini dijawab satu ambang:
+ *
+ *   MELAHIRKAN jawaban baru  -> butuh bukti KUAT (di atas AMBANG_KEYAKINAN)
+ *   MENERUSKAN jawaban lama  -> cukup bukti LEMAH (di atas AMBANG_LEMAH)
+ *
+ * Alasannya masuk akal dan bukan kelonggaran sembarangan: kotak berkeyakinan
+ * sedang di TEMPAT YANG SUDAH TERBUKTI berisi uang bukanlah klaim baru, ia
+ * kesinambungan dari klaim yang sudah dibuktikan bukti kuat. Yang berbahaya
+ * adalah memulai klaim dari bukti lemah, bukan mempertahankannya.
+ *
+ * Kelas tetap ditentukan HANYA oleh pengamatan kuat. Kotak lemah boleh berkata
+ * "masih ada sesuatu di sini", tidak pernah "namanya begini".
  */
 
 import { VOTING_BUTUH, VOTING_DARI, type Deteksi } from '@/contracts';
@@ -60,6 +79,21 @@ export interface HasilVoting {
  * membuat satu lembar terus-menerus dianggap lembar baru.
  */
 const AMBANG_TEMPAT = 0.3;
+
+/**
+ * Berapa banyak pengamatan KUAT yang dibutuhkan sebuah tempat untuk lahir.
+ *
+ * Lebih kecil daripada `VOTING_BUTUH`, dan itulah yang membuat beberapa lembar
+ * akhirnya bekerja: lembar kedua hanya melewati ambang keputusan di sekitar
+ * seperlima bingkai, sehingga menuntut tiga kali akan membuatnya tidak pernah
+ * lahir. Sisa syaratnya tetap dijaga bukti lemah — sebuah tempat masih harus
+ * TERLIHAT di `VOTING_BUTUH` bingkai, hanya saja kehadirannya boleh dibuktikan
+ * kotak berkeyakinan sedang.
+ *
+ * Batas bawahnya dua, bukan satu. Satu pengamatan kuat adalah persis definisi
+ * kilatan sesaat yang seluruh lapisan ini ada untuk menyaring.
+ */
+const MINIMAL_KUAT = 2;
 
 /**
  * Sidik jari sebuah bingkai: multiset kode kelas, diurutkan.
@@ -141,14 +175,30 @@ export function votingTemporal(
   jendela: readonly (readonly Deteksi[])[],
   butuh: number = VOTING_BUTUH,
   dari: number = VOTING_DARI,
+  /** Kotak tingkat kedua per bingkai, sejajar dengan `jendela`. */
+  jendelaLemah: readonly (readonly Deteksi[])[] = [],
 ): HasilVoting {
   const terakhir = jendela.slice(-dari);
   if (terakhir.length === 0) {
     return { status: 'tidak-ada-objek', deteksi: [] };
   }
 
-  const tempat = kelompokkan(terakhir);
-  const mapan = tempat.filter((t) => t.bingkai.size >= butuh);
+  const lemahTerakhir = jendelaLemah.slice(-dari);
+  const gabungan = terakhir.map((kuat, i) => [
+    ...kuat,
+    ...(lemahTerakhir[i] ?? []),
+  ]);
+
+  const tempat = kelompokkan(gabungan);
+  const kuatDi = new Set(terakhir.flat());
+
+  const mapan = tempat.filter((t) => {
+    // HADIR: terlihat di cukup banyak bingkai, bukti kuat maupun lemah.
+    if (t.bingkai.size < butuh) return false;
+    // LAHIR: sebuah tempat tidak pernah boleh muncul dari bukti lemah saja.
+    const kuat = t.anggota.filter((d) => kuatDi.has(d));
+    return kuat.length >= MINIMAL_KUAT;
+  });
 
   if (mapan.length === 0) {
     // Bedakan "jendela sepakat tidak ada apa-apa" dari "jendela masih ragu".
@@ -164,18 +214,24 @@ export function votingTemporal(
   const deteksi: Deteksi[] = [];
 
   for (const t of mapan) {
-    // Kelas mana yang disepakati untuk tempat ini?
+    // Kelas ditentukan HANYA oleh pengamatan kuat. Kotak lemah boleh berkata
+    // "masih ada sesuatu di sini", tidak pernah "namanya begini".
     const suara = new Map<number, number>();
     for (const d of t.anggota) {
+      if (!kuatDi.has(d)) continue;
       suara.set(d.kodeKelas, (suara.get(d.kodeKelas) ?? 0) + 1);
     }
 
     let kelasMenang = -1;
     let suaraMenang = 0;
+    let suaraKedua = 0;
     for (const [kelas, n] of suara) {
       if (n > suaraMenang) {
+        suaraKedua = suaraMenang;
         suaraMenang = n;
         kelasMenang = kelas;
+      } else if (n > suaraKedua) {
+        suaraKedua = n;
       }
     }
 
@@ -190,7 +246,10 @@ export function votingTemporal(
     // Seluruh hasil dibatalkan, bukan hanya tempat ini. Mengumumkan sisanya
     // berarti menyebut total yang lebih kecil daripada uang yang sebenarnya
     // ada di tangan, dan itu sama menyesatkannya.
-    if (suaraMenang < butuh) {
+    // Dua syarat, dan keduanya harus lulus. Jumlahnya cukup, DAN tidak ada
+    // pecahan lain yang sama kuatnya. Seri berarti sistem belum memutuskan —
+    // dan sistem yang belum memutuskan tidak boleh berbicara.
+    if (suaraMenang < MINIMAL_KUAT || suaraMenang <= suaraKedua) {
       return { status: 'belum-stabil', deteksi: [] };
     }
 
@@ -198,7 +257,7 @@ export function votingTemporal(
     // paling dekat dengan apa yang sedang dilihat kamera saat ini.
     const wakil = [...t.anggota]
       .reverse()
-      .find((d) => d.kodeKelas === kelasMenang);
+      .find((d) => kuatDi.has(d) && d.kodeKelas === kelasMenang);
     if (wakil) deteksi.push(wakil);
   }
 

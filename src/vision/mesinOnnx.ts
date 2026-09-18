@@ -19,6 +19,8 @@ export interface OpsiMesinOnnx {
 
 export interface HasilDeteksiMentah {
   readonly deteksi: readonly Deteksi[];
+  /** Kotak tingkat kedua. Lihat catatan dua tingkat di `voting.ts`. */
+  readonly lemah: readonly Deteksi[];
   readonly ditolakGating: number;
   readonly latensiMs: number;
 }
@@ -98,6 +100,7 @@ export function buatMesinOnnx(opsi: OpsiMesinOnnx = {}): MesinOnnx {
         menunggu.delete(pesan.id);
         penunggu.selesai({
           deteksi: pesan.deteksi,
+          lemah: pesan.lemah,
           ditolakGating: pesan.ditolakGating,
           latensiMs: pesan.latensiMs,
         });

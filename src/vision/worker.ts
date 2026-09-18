@@ -24,7 +24,7 @@ import {
 
 /** Jejak kalibrasi. Mati di build biasa; lihat `.env.kalibrasi`. */
 const METRIK = import.meta.env.DEV || import.meta.env.VITE_METRIK === '1';
-import { AMBANG_MINAT, dekode } from './decode';
+import { AMBANG_LEMAH, AMBANG_MINAT, dekode } from './decode';
 import { gating, nms } from './nms';
 import type { PesanDariWorker, PesanKeWorker } from './protokolWorker';
 
@@ -159,6 +159,15 @@ async function deteksi(
     const { lolos, ditolakGating } = dekode(mentah, p.lb, ambangKeyakinan);
     const disaring = nms(gating(lolos, ambangKeyakinan), ambangIoU);
 
+    // Tingkat kedua. NMS dijalankan atas GABUNGAN kuat dan lemah, bukan atas
+    // yang lemah saja — dengan begitu kotak lemah yang sebenarnya cuma salinan
+    // dari kotak kuat ikut tersingkir, dan tidak menjelma menjadi lembar kedua
+    // yang tidak ada.
+    const semua = dekode(mentah, p.lb, AMBANG_LEMAH).lolos;
+    const lemah = nms(gating(semua, AMBANG_LEMAH), ambangIoU).filter(
+      (d) => d.skor < ambangKeyakinan,
+    );
+
     if (METRIK) {
       // Kalibrasi hanya bisa dilakukan dengan melihat SKOR YANG DITOLAK.
       // Jumlahnya saja tidak cukup: "tiga kotak dibuang" tidak memberi tahu
@@ -182,6 +191,7 @@ async function deteksi(
       jenis: 'hasil',
       id: p.id,
       deteksi: disaring,
+      lemah,
       ditolakGating,
       latensiMs: performance.now() - mulai,
     });

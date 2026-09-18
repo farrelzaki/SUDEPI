@@ -75,6 +75,11 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
 
   /** Jendela bingkai untuk voting temporal. */
   let jendela: (readonly Deteksi[])[] = [];
+  /**
+   * Jendela sejajar berisi kotak tingkat kedua. Dipakai HANYA untuk meneruskan
+   * lembar yang sudah lahir dari bukti kuat, tidak pernah untuk melahirkannya.
+   */
+  let jendelaLemah: (readonly Deteksi[])[] = [];
   /** Berapa bingkai terakhir yang melihat objek tapi gagal lolos ambang. */
   let beruntunRagu = 0;
   let waktuBingkaiTerakhir = 0;
@@ -155,12 +160,16 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
       waktuBingkaiTerakhir = kini;
 
       jendela.push(hasil.deteksi);
-      if (jendela.length > VOTING_DARI) jendela = jendela.slice(-VOTING_DARI);
+      jendelaLemah.push(hasil.lemah);
+      if (jendela.length > VOTING_DARI) {
+        jendela = jendela.slice(-VOTING_DARI);
+        jendelaLemah = jendelaLemah.slice(-VOTING_DARI);
+      }
 
       beruntunRagu =
         hasil.deteksi.length === 0 && hasil.ditolakGating > 0 ? beruntunRagu + 1 : 0;
 
-      const voting = votingTemporal(jendela);
+      const voting = votingTemporal(jendela, undefined, undefined, jendelaLemah);
 
       // Abstain menang atas 'tidak-ada-objek'. Kalau beberapa bingkai
       // berturut-turut melihat sesuatu tapi tidak pernah yakin, pengguna perlu
@@ -250,6 +259,7 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
   async function mulaiInternal(): Promise<void> {
     hentikan();
     jendela = [];
+    jendelaLemah = [];
     beruntunRagu = 0;
     waktuBingkaiTerakhir = 0;
 
