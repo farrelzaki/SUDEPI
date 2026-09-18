@@ -55,7 +55,7 @@ video ──► createImageBitmap(resize 320)
       ┌─ WORKER ────────────────────────────────┐
       │  normalisasi ke float32 [1,3,320,320]   │
       │  ort.InferenceSession.run()             │
-      │  keluaran mentah [1, 19, 2100]          │
+      │  keluaran mentah [1, 12, 2100]          │
       │  decode kotak + skor                    │
       │  saring skor < 0.85                     │
       │  NMS class-agnostic, IoU > 0.40         │
@@ -68,9 +68,9 @@ video ──► createImageBitmap(resize 320)
                 HasilPindai  ──► core/ reducer ──► Efek[] ──► audio, haptik, dll
 ```
 
-### Kenapa keluaran modelnya `[1, 19, 2100]`
+### Kenapa keluaran modelnya `[1, 12, 2100]`
 
-15 kelas + 4 koordinat kotak = 19 kanal. Jumlah jangkar pada `imgsz=320`:
+8 kelas + 4 koordinat kotak = 12 kanal. Jumlah jangkar pada `imgsz=320`:
 40x40 + 20x20 + 10x10 = 1.600 + 400 + 100 = 2.100. Kalau bentuk keluaran
 yang kamu terima berbeda dari ini, berarti ekspornya salah — periksa `imgsz`
 dan jumlah kelas sebelum menulis kode decode.
@@ -84,6 +84,10 @@ yolo export model=best.pt format=onnx imgsz=320 opset=12 simplify=True nms=False
 
 Lalu kuantisasi ke INT8 dengan kalibrasi statis (bukan dinamis) memakai sekitar
 200 citra dari set validasi.
+
+Model memakai **8 kelas**: 7 pecahan kertas ditambah 1 kelas koin. Tahun emisi
+tidak dipisahkan — uang TE 2016 dan TE 2022 masuk ke kelas nominal yang sama,
+karena tahun emisi tidak pernah diucapkan kepada pengguna. Lihat ADR-0007.
 
 **Gerbang mutu yang wajib dipatuhi:** ukur mAP@0.5 model INT8 terhadap model
 FP32 pada set validasi yang sama. **Kalau turun lebih dari 3 poin, buang INT8

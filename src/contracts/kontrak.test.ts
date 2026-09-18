@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import {
   denominasiDariKode,
   JUMLAH_KELAS,
+  kodeDariNominal,
   KODE_KELAS_KOIN,
   NOMINAL_URUT,
   TABEL_DENOMINASI,
@@ -22,7 +23,7 @@ import {
 import { AMBANG_IOU, AMBANG_KEYAKINAN, VOTING_BUTUH, VOTING_DARI } from './vision';
 
 describe('tabel denominasi', () => {
-  it('berisi tepat 15 kelas', () => {
+  it('berisi tepat 8 kelas', () => {
     expect(TABEL_DENOMINASI).toHaveLength(JUMLAH_KELAS);
   });
 
@@ -32,32 +33,38 @@ describe('tabel denominasi', () => {
     });
   });
 
-  it('terdiri atas 14 uang kertas dan 1 koin', () => {
+  it('terdiri atas 7 uang kertas dan 1 koin', () => {
     const kertas = TABEL_DENOMINASI.filter((d) => !d.koin);
     const koin = TABEL_DENOMINASI.filter((d) => d.koin);
-    expect(kertas).toHaveLength(14);
+    expect(kertas).toHaveLength(7);
     expect(koin).toHaveLength(1);
   });
 
-  it('setiap nominal muncul tepat dua kali, satu per tahun emisi', () => {
+  it('setiap nominal muncul TEPAT SEKALI — emisi tidak dipisahkan', () => {
+    // Lihat ADR-0007. Tahun emisi tidak pernah diucapkan ke pengguna, jadi
+    // memisahkannya hanya membelah data latih tanpa menambah kemampuan.
     for (const nominal of NOMINAL_URUT) {
-      const cocok = TABEL_DENOMINASI.filter((d) => d.nominal === nominal);
-      expect(cocok).toHaveLength(2);
-      expect(cocok.map((d) => d.emisi).sort()).toEqual([2016, 2022]);
+      expect(TABEL_DENOMINASI.filter((d) => d.nominal === nominal)).toHaveLength(1);
     }
   });
 
-  it('kelas koin tidak punya nominal maupun emisi', () => {
+  it('kelas koin tidak punya nominal', () => {
     const koin = denominasiDariKode(KODE_KELAS_KOIN);
     expect(koin?.koin).toBe(true);
     expect(koin?.nominal).toBeNull();
-    expect(koin?.emisi).toBeNull();
   });
 
-  it('uang kertas selalu punya nominal dan emisi', () => {
+  it('uang kertas selalu punya nominal', () => {
     for (const d of TABEL_DENOMINASI.filter((x) => !x.koin)) {
       expect(d.nominal).not.toBeNull();
-      expect(d.emisi).not.toBeNull();
+    }
+  });
+
+  it('kodeDariNominal adalah kebalikan dari tabel', () => {
+    for (const nominal of NOMINAL_URUT) {
+      const kode = kodeDariNominal(nominal);
+      expect(kode).not.toBeNull();
+      expect(denominasiDariKode(kode ?? -1)?.nominal).toBe(nominal);
     }
   });
 

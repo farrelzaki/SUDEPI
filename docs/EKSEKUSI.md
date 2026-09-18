@@ -165,7 +165,7 @@ Target: **AI mendeteksi uang sungguhan, dan kalkulator kembalian lulus tes.**
 `src/vision/`
 - Pemindai kamera: `getUserMedia`, laju adaptif 5–10 fps, hitung `luma`
 - Web Worker + sesi ONNX Runtime Web (WASM)
-- Decode keluaran `[1, 19, 2100]`, balikkan letterbox ke koordinat asli
+- Decode keluaran `[1, 12, 2100]`, balikkan letterbox ke koordinat asli
 - `nms.ts` — NMS class-agnostic IoU 0,40 + gating 0,85, **fungsi murni**
 - Voting temporal 3 dari 5 bingkai
 - Tampilkan latensi & fps di layar sementara, supaya terukur

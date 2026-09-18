@@ -47,16 +47,23 @@ bisa dihapus bukan riwayat.
 | [0004](perubahan/0004-kunci-capacitor-7.md) | Capacitor dikunci di versi 7, bukan 8 | Diterima + amandemen | Tidak mengubah klaim exsum |
 | [0005](perubahan/0005-input-taktil-utama.md) | Input taktil jadi jalur utama, perintah suara jadi opsional | Diterima | **Mengubah klaim "voice command" Bab III Fase 2** |
 | [0006](perubahan/0006-tombol-batal-permanen.md) | Tombol batal permanen mendampingi gestur tahan 2 detik | Diterima | Melengkapi Escape-Hatch Bab III Fase 3 |
+| [0007](perubahan/0007-delapan-kelas-tanpa-pisah-emisi.md) | Pakai 8 kelas, jangan pisahkan tahun emisi | Diterima | **Mengubah angka "15 kelas" di Bab II, Bab III, Lampiran 7** |
 
 ## Ringkasan bagi juri
 
-Dari enam keputusan di atas, **hanya ADR-0005 yang mengurangi cakupan** yang
+Dari tujuh keputusan di atas, **hanya ADR-0005 yang mengurangi cakupan** yang
 dijanjikan proposal, dan pengurangan itu berasal dari keterbatasan platform
 yang tidak bisa disiasati: Web Speech API di Android WebView mengirim audio ke
 server Google untuk diproses, sehingga mustahil berjalan dalam janji
 "100% luring" yang justru menjadi nilai jual utama SUDEPI. Kami memilih
 mempertahankan jaminan luring dan menurunkan perintah suara menjadi fitur
 opsional, bukan sebaliknya.
+
+ADR-0007 mengubah angka "15 kelas" menjadi 8, tetapi **tidak** mengurangi uang
+yang dikenali: TE 2016 dan TE 2022 tetap sama-sama terdeteksi, hanya tidak
+diberi label terpisah. Karena tahun emisi tidak pernah diucapkan kepada
+pengguna, menggabungkannya justru menggandakan sampel per kelas dan menaikkan
+akurasi — terutama pada uang lecek, kasus yang justru kami klaim kuat.
 
 Lima keputusan lainnya **memperkuat** klaim proposal: ADR-0001 dan 0002 membuat
 target latensi di bawah 250 ms benar-benar tercapai alih-alih sekadar

@@ -29,7 +29,7 @@ function pindai(
     status === 'stabil' && totalKertas > 0
       ? [
           {
-            kodeKelas: 12,
+            kodeKelas: 5,
             nominal: totalKertas as never,
             koin: false,
             skor: 0.95,

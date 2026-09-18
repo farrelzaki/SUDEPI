@@ -40,18 +40,18 @@ export interface AdeganPindai {
  */
 export const ADEGAN_BAWAAN: readonly AdeganPindai[] = [
   { status: 'tidak-ada-objek', kelas: [], durasiMs: 1200 },
-  { status: 'belum-stabil', kelas: [12], durasiMs: 800 },
+  { status: 'belum-stabil', kelas: [5], durasiMs: 800 },
   // Kondisi temaram: uang terlihat tapi tidak pernah lolos ambang.
-  { status: 'abstain', kelas: [12], durasiMs: 1500, luma: 0.15 },
-  { status: 'belum-stabil', kelas: [13, 11], durasiMs: 600 },
-  { status: 'stabil', kelas: [13, 11, 9], durasiMs: 3000 },
+  { status: 'abstain', kelas: [5], durasiMs: 1500, luma: 0.15 },
+  { status: 'belum-stabil', kelas: [6, 4], durasiMs: 600 },
+  { status: 'stabil', kelas: [6, 4, 2], durasiMs: 3000 },
 ];
 
 /** Naskah Fase 4: uang kembalian berupa kertas plus koin. */
 export const ADEGAN_KEMBALIAN: readonly AdeganPindai[] = [
   { status: 'tidak-ada-objek', kelas: [], durasiMs: 800 },
-  { status: 'belum-stabil', kelas: [9], durasiMs: 700 },
-  { status: 'stabil', kelas: [9, KODE_KELAS_KOIN], durasiMs: 3000 },
+  { status: 'belum-stabil', kelas: [2], durasiMs: 700 },
+  { status: 'stabil', kelas: [2, KODE_KELAS_KOIN], durasiMs: 3000 },
 ];
 
 export interface OpsiMockPemindai {

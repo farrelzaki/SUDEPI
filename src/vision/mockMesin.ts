@@ -49,12 +49,12 @@ export function buatDeteksi(
 export const NASKAH_BAWAAN: readonly (readonly KodeKelas[])[] = [
   // Tidak ada objek — kamera menghadap meja kosong.
   [],
-  // Selembar 50.000 TE 2022.
-  [12],
-  // Tiga lembar sekaligus: 100.000 + 20.000 + 5.000, campur emisi.
-  [13, 11, 9],
+  // Selembar 50.000.
+  [5],
+  // Tiga lembar sekaligus: 100.000 + 20.000 + 5.000.
+  [6, 4, 2],
   // Uang kertas plus koin.
-  [10, KODE_KELAS_KOIN],
+  [3, KODE_KELAS_KOIN],
   // Hanya koin, tanpa uang kertas.
   [KODE_KELAS_KOIN],
 ];
@@ -89,9 +89,7 @@ export function buatMockMesin(opsi: OpsiMockMesin = {}): MesinInferensi {
 }
 
 /** Semua pecahan sekaligus. Berguna untuk menguji tata letak yang padat. */
-export const SEMUA_PECAHAN_TE2022: readonly KodeKelas[] = NOMINAL_URUT.map(
-  (_, i) => i + NOMINAL_URUT.length,
-);
+export const SEMUA_PECAHAN: readonly KodeKelas[] = NOMINAL_URUT.map((_, i) => i);
 
 function tidur(ms: number): Promise<void> {
   return new Promise((selesai) => setTimeout(selesai, ms));

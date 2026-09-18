@@ -53,21 +53,23 @@ besar yang kamu butuhkan adalah tipe baru di `contracts/`, bukan impor baru.
 
 ## 1. Domain uang — `contracts/uang.ts`
 
-Model mengenali **15 kelas**: 7 nominal kali 2 tahun emisi, ditambah 1 kelas
-koin. Koin hanya dideteksi *keberadaannya*, tidak pernah nilainya.
+Model mengenali **8 kelas**: 7 pecahan kertas ditambah 1 kelas koin.
+
+Tahun emisi **tidak** dipisahkan menjadi kelas berbeda. Uang TE 2016 dan
+TE 2022 sama-sama masuk ke kelas nominal yang sama, karena sistem tidak pernah
+mengucapkan tahun emisi kepada pengguna. Lihat ADR-0007. Koin hanya dideteksi
+*keberadaannya*, tidak pernah nilainya.
 
 ```ts
 export type Nominal = 1000 | 2000 | 5000 | 10000 | 20000 | 50000 | 100000;
-export type Emisi = 2016 | 2022;
 
-/** Indeks keluaran model, 0..14. Dipetakan lewat tabel `denominasi`. */
+/** Indeks keluaran model, 0..7. Dipetakan lewat tabel `denominasi`. */
 export type KodeKelas = number;
 
 export interface Denominasi {
   kodeKelas: KodeKelas;
   /** null hanya untuk kelas koin. */
   nominal: Nominal | null;
-  emisi: Emisi | null;
   koin: boolean;
 }
 ```
