@@ -29,7 +29,7 @@ import type {
 import { bacaUang, PEMBACA_AWAL } from '@/core/pembaca';
 import { keTeks } from '@/audio/pengucap';
 import type { Detak } from '@/audio/detak';
-import { Kerangka } from './Kerangka';
+import { Kerangka, Tombol } from './Kerangka';
 import { Pratinjau } from './Pratinjau';
 
 export interface LayarBacaProps {
@@ -40,6 +40,14 @@ export interface LayarBacaProps {
   readonly videoRef: React.RefObject<HTMLVideoElement | null>;
   /** Tombol di bawah. Ditentukan pemanggil karena layar ini juga beranda. */
   readonly aksi: React.ReactNode;
+  /**
+   * Rencana B: meminta jawaban lewat internet untuk satu bingkai.
+   *
+   * Hanya diisi saat mode daring menyala. Hasilnya dialirkan lewat jalur yang
+   * SAMA PERSIS dengan bingkai kamera biasa, sehingga penyusunan kalimat dan
+   * penahan pengulangan tidak perlu tahu dari mana angkanya datang.
+   */
+  readonly onDaring?: (() => Promise<HasilPindai | null>) | undefined;
 }
 
 export function LayarBaca({
@@ -49,9 +57,55 @@ export function LayarBaca({
   detak,
   videoRef,
   aksi,
+  onDaring,
 }: LayarBacaProps) {
   const [hasil, setHasil] = useState<HasilPindai | null>(null);
+  const [bertanya, setBertanya] = useState(false);
   const statePembaca = useRef(PEMBACA_AWAL);
+
+  /**
+   * Menanggapi satu hasil pindai, dari mana pun asalnya.
+   *
+   * Sengaja satu jalur untuk kamera dan untuk jawaban internet. Dua jalur
+   * terpisah akan berarti dua tempat yang harus sama-sama ingat untuk tidak
+   * mengulang kalimat, dan salah satunya pasti tertinggal saat diperbaiki.
+   */
+  function tanggapi(bingkai: HasilPindai): void {
+    setHasil(bingkai);
+
+    const { state, efek } = bacaUang(statePembaca.current, bingkai);
+    statePembaca.current = state;
+
+    for (const e of efek) {
+      if (e.jenis === 'UCAP') {
+        console.log('[UCAP]', keTeks(e.ucapan));
+        pengucap.redam(true);
+        detak.senyapkan(true);
+        void pengucap.ucap(e.ucapan).finally(() => {
+          pengucap.redam(false);
+          detak.senyapkan(false);
+        });
+      } else if (e.jenis === 'GETAR') {
+        void platform.getar(e.pola);
+      }
+    }
+  }
+
+  async function tanyaInternet(): Promise<void> {
+    if (!onDaring || bertanya) return;
+    setBertanya(true);
+    // Menunggu jaringan bisa memakan dua detik. Tanpa penanda, keheningan itu
+    // tidak bisa dibedakan dari kerusakan — persoalan yang sama yang sudah
+    // kami pecahkan untuk inferensi luring.
+    detak.mulaiMenyiapkan();
+    try {
+      const jawaban = await onDaring();
+      if (jawaban) tanggapi(jawaban);
+    } finally {
+      detak.hentikanMenyiapkan();
+      setBertanya(false);
+    }
+  }
 
   useEffect(() => {
     // Kamera dinyalakan sendiri di sini, bukan lewat mesin transaksi — alat ini
@@ -60,30 +114,13 @@ export function LayarBaca({
     detak.mulaiMenyiapkan();
 
     const lepas = pemindai.langgan((bingkai) => {
-      setHasil(bingkai);
-
-      const { state, efek } = bacaUang(statePembaca.current, bingkai);
-      statePembaca.current = state;
-
       // Detak kerja: satu bunyi per bingkai yang selesai diproses, supaya
       // keheningan tidak bisa disalahartikan sebagai kerusakan.
       detak.hentikanMenyiapkan();
       if (bingkai.status === 'tidak-ada-objek') detak.tik('cari');
       else if (bingkai.status !== 'stabil') detak.tik('dekat');
 
-      for (const e of efek) {
-        if (e.jenis === 'UCAP') {
-          console.log('[UCAP]', keTeks(e.ucapan));
-          pengucap.redam(true);
-          detak.senyapkan(true);
-          void pengucap.ucap(e.ucapan).finally(() => {
-            pengucap.redam(false);
-            detak.senyapkan(false);
-          });
-        } else if (e.jenis === 'GETAR') {
-          void platform.getar(e.pola);
-        }
-      }
+      tanggapi(bingkai);
     });
 
     return () => {
@@ -101,7 +138,27 @@ export function LayarBaca({
       judul="SUDEPI"
       subjudul="Arahkan kamera ke uang. Ganti lembarnya kapan saja."
       isiPenuh
-      aksi={aksi}
+      aksi={
+        onDaring ? (
+          <>
+            <Tombol
+              label={
+                bertanya
+                  ? 'Sedang bertanya lewat internet'
+                  : 'Baca uang lewat internet'
+              }
+              ragam="sekunder"
+              nonaktif={bertanya}
+              onAktif={() => void tanyaInternet()}
+            >
+              {bertanya ? 'Bertanya…' : 'Baca lewat internet'}
+            </Tombol>
+            {aksi}
+          </>
+        ) : (
+          aksi
+        )
+      }
     >
       <Pratinjau
         videoRef={videoRef}

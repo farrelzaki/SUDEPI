@@ -24,6 +24,10 @@ import { registerPlugin } from '@capacitor/core';
 export type GalatDengar =
   | 'IZIN_DITOLAK'
   | 'MIKROFON_BERMASALAH'
+  | 'TIDAK_TERTANGKAP'
+  | 'TIDAK_ADA_SUARA'
+  | 'SEDANG_SIBUK'
+  | 'JARINGAN_GAGAL'
   /** Gagal yang tidak dikenali. Dianggap SEMENTARA — fitur tetap ditawarkan. */
   | 'GAGAL_LAIN';
 
@@ -37,6 +41,14 @@ export interface PengenalSuara {
   /** Meminta izin mikrofon. Selesai segera bila izinnya sudah ada. */
   mintaIzin(): Promise<boolean>;
   rekam(durasiMs: number): Promise<RekamanMentah>;
+  /**
+   * Pengenalan ucapan lewat mesin Android, mode DARING — Rencana B.
+   *
+   * Mengembalikan beberapa kemungkinan teks, diurut dari yang paling diyakini.
+   * HANYA boleh dipanggil saat pengguna sendiri menyalakan mode daring:
+   * yang dikirim ke server adalah suara orangnya.
+   */
+  dengarDaring(): Promise<readonly string[]>;
 }
 
 /* ----------------------------------------------------------- sisi natif */
@@ -48,6 +60,7 @@ interface PluginNatif {
     laju: number;
     jumlah: number;
   }>;
+  dengarDaring(): Promise<{ teks: string[] }>;
 }
 
 const natif = registerPlugin<PluginNatif>('PengenalSuara');
@@ -67,6 +80,11 @@ function buatNatif(): PengenalSuara {
       const r = await natif.rekam({ durasiMs });
       return { contoh: dariBase64Pcm16(r.pcm), laju: r.laju };
     },
+
+    async dengarDaring() {
+      const r = await natif.dengarDaring();
+      return r.teks ?? [];
+    },
   };
 }
 
@@ -83,6 +101,7 @@ export function buatMockPengenalSuara(): PengenalSuara {
   return {
     mintaIzin: () => Promise.resolve(false),
     rekam: () => Promise.reject(new Error('MIKROFON_BERMASALAH')),
+    dengarDaring: () => Promise.reject(new Error('MIKROFON_BERMASALAH')),
   };
 }
 
@@ -127,6 +146,10 @@ export function kodeGalat(e: unknown): GalatDengar {
   const dikenal: readonly GalatDengar[] = [
     'IZIN_DITOLAK',
     'MIKROFON_BERMASALAH',
+    'TIDAK_TERTANGKAP',
+    'TIDAK_ADA_SUARA',
+    'SEDANG_SIBUK',
+    'JARINGAN_GAGAL',
     'GAGAL_LAIN',
   ];
   return dikenal.find((k) => pesan.includes(k)) ?? 'GAGAL_LAIN';

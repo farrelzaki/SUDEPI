@@ -41,3 +41,11 @@ model/*.onnx
 __pycache__/
 *.pyc
 
+# Rahasia. TIDAK PERNAH masuk git.
+#
+# Kunci API yang dipakai dari sisi aplikasi memang ikut terbundel ke dalam APK
+# dan bisa dibaca siapa pun yang membongkarnya — itu batasan arsitektur aplikasi
+# klien, bukan kelalaian. Yang bisa kami jaga adalah ia tidak ikut tersebar
+# lewat riwayat git, tempat ia akan hidup selamanya.
+.env.local
+.env*.local

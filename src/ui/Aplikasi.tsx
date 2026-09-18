@@ -17,7 +17,12 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { frasa, type PemindaiKamera, type Platform } from '@/contracts';
+import {
+  frasa,
+  type HasilPindai,
+  type PemindaiKamera,
+  type Platform,
+} from '@/contracts';
 import { buatPengucap } from '@/audio/pengucap';
 import { buatMockPlatform, pilihPlatform } from '@/platform/mock';
 import {
@@ -25,9 +30,16 @@ import {
   kodeGalat,
   type PengenalSuara,
 } from '@/platform/pengenalSuara';
-import { NOMINAL_MAKS } from '@/audio/urai';
+import { NOMINAL_MAKS, uraiNominalWajar } from '@/audio/urai';
 import { dengarNominal, type Contoh } from '@/audio/dengar/pengenal';
 import { bacaContoh, tulisContoh } from '@/audio/dengar/templat';
+import {
+  bacaMode,
+  bolehDaring,
+  tulisMode,
+  type ModeSistem,
+} from '@/platform/mode';
+import { ambilBingkai, bacaUangDaring } from '@/vision/daring';
 import { LatihSuara } from './LatihSuara';
 import { LayarBaca } from './LayarBaca';
 import { DbSudepi, siapkanDb } from '@/data/db';
@@ -134,6 +146,54 @@ export function Aplikasi() {
 
   /** Kolom mana yang sedang diisi di kalkulator. */
   const [kolom, setKolom] = useState<'bayar' | 'belanja'>('bayar');
+
+  /**
+   * Rencana A atau Rencana B. Baku luring, dan hanya berganti kalau pengguna
+   * sendiri menekan tombolnya. Lihat `platform/mode.ts`.
+   */
+  const [modeSistem, setModeSistem] = useState<ModeSistem>('luring');
+  useEffect(() => {
+    setModeSistem(bacaMode());
+  }, []);
+
+  const daringAktif = bolehDaring(modeSistem);
+
+  function gantiMode(): void {
+    const baru: ModeSistem = modeSistem === 'luring' ? 'daring' : 'luring';
+    setModeSistem(baru);
+    tulisMode(baru);
+    void platform.getar('ringan');
+    detak.tik(baru === 'daring' ? 'dengar' : 'tolak');
+  }
+
+  /**
+   * Rencana B untuk membaca uang: satu bingkai dikirim ke internet.
+   *
+   * Mengembalikan `null` bila gagal — dan kegagalannya TERDENGAR, bukan
+   * didiamkan. Pengguna yang tidak bisa melihat layar tidak punya cara lain
+   * mengetahui bahwa permintaannya tidak sampai.
+   */
+  async function bacaLewatInternet(): Promise<HasilPindai | null> {
+    const video = videoRef.current;
+    if (!video) return null;
+
+    const gambar = ambilBingkai(video);
+    if (!gambar) {
+      detak.tik('tolak');
+      return null;
+    }
+
+    try {
+      const hasil = await bacaUangDaring(gambar);
+      console.log(`[DARING] status=${hasil.status} total=${hasil.totalKertas}`);
+      return hasil;
+    } catch (galat) {
+      console.log('[DARING] gagal:', String(galat));
+      detak.tik('tolak');
+      void platform.getar('gagal');
+      return null;
+    }
+  }
   /**
    * Contoh suara pengguna. Kosong berarti fitur suara belum dilatih, dan
    * tombolnya tidak ditawarkan sama sekali.
@@ -144,7 +204,9 @@ export function Aplikasi() {
     setPustaka(bacaContoh());
   }, []);
 
-  const suaraTersedia = pustaka.length > 0;
+  // Di mode daring fitur suara tidak menuntut pelatihan sama sekali — mesin
+  // Android yang mengenalinya. Di mode luring ia baru ada setelah dilatih.
+  const suaraTersedia = pustaka.length > 0 || modeSistem === 'daring';
 
   const { state, hasilPindai, kirim, mulai, detak } = useTransaksi({
     pemindai,
@@ -233,6 +295,31 @@ export function Aplikasi() {
     await new Promise((lanjut) => setTimeout(lanjut, JEDA_SEBELUM_REKAM_MS));
 
     try {
+      if (modeSistem === 'daring') {
+        // Rencana B: mesin Android mengerjakan pengenalannya, dan pengurai
+        // bilangan kami yang menentukan benar-salahnya nominal — persis sama
+        // seperti di jalur luring.
+        const kemungkinan = await pengenal.dengarDaring();
+        detak.tik('usai');
+        console.log('[SUARA] daring:', kemungkinan.join(' | '));
+
+        const nilaiDaring = kemungkinan
+          .map((t) => uraiNominalWajar(t))
+          .find((n): n is number => n !== null);
+
+        if (nilaiDaring === undefined) {
+          detak.tik('tolak');
+          void platform.getar('gagal');
+          return;
+        }
+        kirim(
+          kolom === 'bayar'
+            ? { jenis: 'SET_BAYAR', nilai: nilaiDaring }
+            : { jenis: 'SET_BELANJA', nilai: nilaiDaring },
+        );
+        return;
+      }
+
       const rekaman = await pengenal.rekam(REKAM_UCAPAN_MS);
       detak.tik('usai');
 
@@ -349,6 +436,7 @@ export function Aplikasi() {
             platform={platform}
             detak={detak}
             videoRef={videoRef}
+            onDaring={daringAktif ? bacaLewatInternet : undefined}
             aksi={
               <>
                 <Tombol
@@ -366,7 +454,33 @@ export function Aplikasi() {
                   ragam="hantu"
                   onAktif={() => setMelatih(true)}
                 >
-                  {suaraTersedia ? 'Latih ulang suara' : 'Latih suara'}
+                  {modeSistem === 'daring'
+                    ? 'Latih suara untuk mode luring'
+                    : suaraTersedia
+                      ? 'Latih ulang suara'
+                      : 'Latih suara'}
+                </Tombol>
+
+                {/*
+                  Saklar Rencana A / Rencana B, sengaja TERLIHAT.
+
+                  Mode daring mengirim gambar uang dan suara penggunanya ke
+                  internet, dan itu tidak pernah boleh terjadi tanpa ia tahu.
+                  Menyembunyikannya di menu pengaturan akan membuat sebagian
+                  pengguna memakainya tanpa pernah sadar.
+                */}
+                <Tombol
+                  label={
+                    modeSistem === 'luring'
+                      ? 'Mode luring aktif. Ganti ke mode daring yang memakai internet'
+                      : 'Mode daring aktif, memakai internet. Ganti kembali ke mode luring'
+                  }
+                  ragam="hantu"
+                  onAktif={gantiMode}
+                >
+                  {modeSistem === 'luring'
+                    ? 'Mode: luring'
+                    : 'Mode: daring (internet)'}
                 </Tombol>
               </>
             }
@@ -467,6 +581,19 @@ export function Aplikasi() {
             petunjuk="Ketuk di mana saja untuk menyelesaikan transaksi"
             aksi={
               <>
+                {daringAktif && (
+                  <Tombol
+                    label="Baca kembalian lewat internet"
+                    ragam="sekunder"
+                    onAktif={() => {
+                      void bacaLewatInternet().then((h) => {
+                        if (h) kirim({ jenis: 'HASIL_PINDAI', muatan: h });
+                      });
+                    }}
+                  >
+                    Baca lewat internet
+                  </Tombol>
+                )}
                 <Tombol label={label} onAktif={tindakanUtama}>
                   Selesaikan transaksi
                 </Tombol>
