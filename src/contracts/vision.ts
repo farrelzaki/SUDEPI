@@ -92,6 +92,23 @@ export const AMBANG_IOU = 0.4;
 export const VOTING_BUTUH = 3;
 export const VOTING_DARI = 5;
 
+/**
+ * Di atas nilai IoU ini, lembaran dianggap terlalu berdempetan dan pengguna
+ * diminta merenggangkannya. Mitigasi risiko nomor 2 pada Lampiran 8.
+ *
+ * Sengaja LEBIH RENDAH dari AMBANG_IOU. Pada rentang antara keduanya, kedua
+ * kotak masih lolos NMS — jadi jumlahnya kemungkinan benar, tetapi sudah
+ * mendekati ambang penyaringan dan satu gerakan tangan bisa membuat salah
+ * satunya hilang. Di atas AMBANG_IOU, salah satu kotak memang sudah disaring,
+ * dan muncul pertanyaan yang tidak bisa dijawab dari satu bingkai: tadi itu
+ * satu lembar yang terbaca dua kali, atau dua lembar yang bertumpuk?
+ *
+ * Sistem tidak bisa menjawabnya, dan tidak boleh menebak. Tapi pengguna bisa
+ * menyelesaikannya dalam satu detik — cukup renggangkan lembarannya. Karena
+ * itu peringatan ini berguna pada KEDUA keadaan.
+ */
+export const AMBANG_BERDEMPETAN = 0.25;
+
 /** Sisi masukan model. Lihat ADR-0001 soal kenapa 320, bukan 640. */
 export const UKURAN_MASUKAN = 320;
 
