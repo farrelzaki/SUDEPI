@@ -61,11 +61,11 @@ src/
   contracts/   Tipe & antarmuka lintas-modul. BEKU — lihat aturan di bawah.
   vision/      Kamera, worker ONNX, decode, NMS, confidence gating, voting.
   core/        State machine transaksi, kalkulator kembalian, presensi koin.
-  audio/       Pemutar audio sprite, ducking, penyusun angka Indonesia.
-  data/        Skema Dexie (IndexedDB) + repository.
+  audio/       Pemutar potongan suara, penyusun angka Indonesia.
+  data/        Skema Dexie (IndexedDB), penyangga pemindaian, repositori.
   ui/          Komponen React, gestur, Merchant Display.
   platform/    Pembungkus Capacitor (haptik, senter, preferensi).
-model/         Bobot ONNX + skrip ekspor/kuantisasi.
+model/         data.yaml, skrip ekspor, dan penjaga urutan kelas.
 docs/          Dokumentasi (lihat tabel di atas).
 ```
 

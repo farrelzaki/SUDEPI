@@ -28,37 +28,39 @@ Gunakan file ini untuk mencatat pekerjaan proyek. Satu task harus memiliki tujua
 
 ## Task Aktif
 
-### [~] Menunggu bobot model, lalu verifikasi di HP fisik
+### [~] Menunggu bobot model dari Fajar
 
-- Status: [~] Sedang dikerjakan
+- Status: [~] Terhambat menunggu dependensi
 - Fase: Verification
 - Mode: competition
 - Prioritas: Tinggi
-- Tujuan: Menyambungkan model sungguhan ke jalur deteksi yang sudah utuh, lalu membuktikan seluruh alur berjalan di perangkat nyata dalam mode pesawat.
-- Konteks dan bukti awal: Seluruh lapisan aplikasi selesai dan lulus 155 tes. APK terbentuk. Dua hal belum pernah ada sejak awal: bobot model dan HP fisik.
-- Scope termasuk: Memasang `public/model/sudepi.onnx` begitu Fajar menyerahkannya; `npx cap run android`; verifikasi TalkBack, haptik, senter, kamera; kalibrasi ambang dengan uang lecek.
-- Non-goals: Menambah fitur baru. Cakupan dibekukan sampai model terbukti jalan.
-- Dependensi: **`public/model/sudepi.onnx` dari Fajar** dan HP Android dengan USB debugging.
+- Tujuan: Menyambungkan model sungguhan, lalu mengkalibrasi ambang dengan uang asli dan membuktikan seluruh alur berjalan dalam mode pesawat.
+- Konteks dan bukti awal: Seluruh aplikasi selesai dan TERBUKTI berjalan utuh Fase 1 sampai 4 di Galaxy M32 memakai model tiruan. 204 tes lulus. Riwayat tersimpan di IndexedDB perangkat. Rinciannya di PROJECT_STATE.md dan docs/PROGRES.md.
+- Scope termasuk: Memasang `public/model/sudepi.onnx`; menjalankan `model/periksa_onnx.py`; uji tiap pecahan dengan uang sungguhan; kalibrasi ambang pada uang lecek; uji mode pesawat; uji layar tertutup telapak tangan.
+- Non-goals: Menambah fitur baru. Cakupan dibekukan.
+- Dependensi: **`public/model/sudepi.onnx` dari Fajar.**
 
 Kriteria selesai:
 
-- [ ] Model termuat tanpa galat, keluaran berbentuk `[1, 12, 2100]`
-- [ ] Latensi inferensi terukur di bawah 250 ms di HP sungguhan
-- [ ] Satu transaksi utuh Fase 1 sampai 4 berhasil dengan uang sungguhan
-- [ ] Seluruh alur berjalan dengan TalkBack menyala
+- [ ] `python model/periksa_onnx.py public/model/sudepi.onnx` lolos
+- [ ] Ketujuh pecahan dikenali benar satu per satu dengan uang sungguhan
+- [ ] Latensi inferensi terukur di bawah 250 ms di Galaxy M32
+- [ ] Satu transaksi utuh berhasil dengan uang sungguhan
 - [ ] Seluruh alur berjalan dalam mode pesawat
+- [ ] Satu transaksi diselesaikan dengan layar tertutup telapak tangan
+- [ ] Model tiruan DIHAPUS dari perangkat dan dari `public/model/`
 
 Risiko dan asumsi:
 
-- Risiko: Urutan kelas di `data.yaml` tidak cocok dengan `TABEL_DENOMINASI`. Akibatnya sistem menyebut nominal yang salah dengan penuh keyakinan, dan tidak ada tes yang bisa menangkapnya. Periksa manual dengan tiap pecahan.
-- Risiko: Latensi melewati 250 ms di HP kelas bawah. Mitigasi tersedia — turunkan `targetFps`, atau `imgsz` 320 ke 256.
-- Asumsi: Model diekspor `nms=False` pada `imgsz=320` dengan 8 kelas. Belum terverifikasi.
+- Risiko tertinggi: urutan kelas di `data.yaml` tidak cocok dengan `TABEL_DENOMINASI`. Kini bisa dideteksi mesin lewat `model/periksa_kelas.py`, tetapi kecocokan bentuk tidak menjamin kecocokan urutan — hanya uang sungguhan yang bisa membuktikannya.
+- Risiko: model tiruan tertinggal dan terpakai saat demo. Ia selalu menyebut Rp50.000 tanpa melihat apa pun. Penanda `public/model/MODEL_TIRUAN` ada untuk ini.
+- Asumsi: bobot diekspor lewat `model/ekspor.py`, sehingga parameter ADR-0001 dan ADR-0002 otomatis benar.
 
 Rencana verifikasi:
 
-- `pnpm cap:run` lalu jalankan skenario `docs/DEMO.md`
+- `model/periksa_onnx.py`, lalu `pnpm cap:run`
+- Skenario `docs/DEMO.md` tiga kali berturut-turut tanpa gagal
 - Mode pesawat menyala sepanjang pengujian
-- TalkBack menyala sepanjang pengujian UI
 
 Checkpoint dan approval:
 
@@ -67,12 +69,12 @@ Checkpoint dan approval:
 - Analysis: Selesai
 - Plan: Selesai
 - Approval sebelum implementasi: Disetujui
-- Verification: **Terhambat menunggu model dan HP**
+- Verification: **Terhambat menunggu model**
 
 Catatan:
 
-- Efek `SIMPAN_TRANSAKSI` masih kosong sampai `src/data/` ditulis. Transaksi berjalan normal, hanya tanpa riwayat.
-- Potongan audio belum dirender; jalur aktif adalah cadangan `speechSynthesis`.
+- Model TIRUAN sedang terpasang di HP dan di `public/model/`. Hapus begitu model asli tiba.
+- Overlay metrik (latensi, fps, luma) masih tampil di pratinjau. Berguna untuk kalibrasi, dibuang sebelum penjurian sesuai `docs/DEMO.md`.
 
 <!--
 Simpan hanya satu task yang sedang dikerjakan di bagian ini.
@@ -134,5 +136,10 @@ Belum ada task di backlog.
 - [x] **Rantai build Android** — Capacitor 7.6.9, izin kamera, APK terbentuk. Diverifikasi: BUILD SUCCESSFUL, cache Gradle hangat (14 detik setelah yang pertama). (`45754cf`)
 - [x] **Audio dan platform** — penyusun bilangan Indonesia, pengucap, pembungkus Capacitor. Diverifikasi: 39 tes bilangan termasuk seluruh kaidah "se-". (`522e1e4`)
 - [x] **Antarmuka Fase 1–4** — pola dua tombol, roda taktil, Merchant Display. Diverifikasi: 155 tes termasuk integrasi urutan ucapan. (`75e9857`)
+- [x] **Lima bug antarmuka** — ketukan ditolak setelah nominal diucapkan, tombol bersarang, label menjanjikan yang ditolak, path model salah di worker, label bertabrakan TalkBack. Semuanya gagal dalam diam dan tidak tertangkap tes. (`d9438e3`, `7976c1f`, `ae4267f`)
+- [x] **Lapisan data** — 8 object store Dexie, penyangga pemindaian, riwayat transaksi. Diverifikasi: 28 tes dengan IndexedDB sungguhan, plus `selesai` ×16 tercatat di perangkat.
+- [x] **Audio Indonesia** — 34 potongan WAV dibundel, tiga bug suara diperbaiki lewat uji dengar. (`fa167e9`, `c6b56e1`, `ca94d8f`)
+- [x] **Berkas bantu model** — `data.yaml`, `periksa_kelas.py`, `petakan_dataset.py`, `periksa_onnx.py`, `buat_model_uji.py`, `ekspor.py`. Semuanya diuji menangkap kesalahan yang disengaja.
+- [x] **Validasi pipeline utuh di perangkat** — Fase 1 sampai 4 sampai layar Transaksi Selesai memakai model tiruan, di Galaxy M32.
 
 <!-- Pindahkan task selesai ke sini jika riwayatnya masih berguna. Sertakan hasil dan verifikasi terakhir. -->
