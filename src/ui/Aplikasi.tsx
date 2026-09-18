@@ -132,16 +132,6 @@ export function Aplikasi() {
   const [mendengar, setMendengar] = useState(false);
   const [melatih, setMelatih] = useState(false);
 
-  /**
-   * Layar mana yang sedang dibuka di luar alur transaksi.
-   *
-   * Membaca uang dan melatih suara bukan fase transaksi, jadi keduanya tidak
-   * hidup di state machine. Menaruhnya di sana akan memaksa `src/contracts/`
-   * yang beku ikut berubah demi dua layar yang tidak ada hubungannya dengan
-   * perhitungan kembalian.
-   */
-  const [mode, setMode] = useState<'beranda' | 'baca'>('beranda');
-
   /** Kolom mana yang sedang diisi di kalkulator. */
   const [kolom, setKolom] = useState<'bayar' | 'belanja'>('bayar');
   /**
@@ -331,19 +321,6 @@ export function Aplikasi() {
     );
   }
 
-  if (mode === 'baca') {
-    return (
-      <LayarBaca
-        pemindai={pemindai}
-        pengucap={pengucap}
-        platform={platform}
-        detak={detak}
-        videoRef={videoRef}
-        onKeluar={() => setMode('beranda')}
-      />
-    );
-  }
-
   return (
     <>
       {isiLayar()}
@@ -362,22 +339,20 @@ export function Aplikasi() {
   function isiLayar() {
     switch (state.fase) {
       case 'SIAGA':
+        // Layar baca uang ADALAH berandanya. Tidak ada halaman pembuka: yang
+        // paling sering dibutuhkan pantas berada di tempat yang tidak perlu
+        // dicari, dan membuka aplikasi berarti kamera sudah siap menjawab.
         return (
-          <Kerangka
-            langkah={null}
-            judul="SUDEPI"
-            subjudul="Suara Deteksi Rupiah"
+          <LayarBaca
+            pemindai={pemindai}
+            pengucap={pengucap}
+            platform={platform}
+            detak={detak}
+            videoRef={videoRef}
             aksi={
               <>
                 <Tombol
-                  label="Baca uang dengan kamera"
-                  onAktif={() => setMode('baca')}
-                >
-                  Baca uang
-                </Tombol>
-                <Tombol
                   label="Mulai transaksi dan hitung kembalian"
-                  ragam="sekunder"
                   onAktif={mulaiTransaksi}
                 >
                   Mulai transaksi
@@ -395,35 +370,7 @@ export function Aplikasi() {
                 </Tombol>
               </>
             }
-          >
-            {/*
-              Tidak ada LapisanKetuk di layar ini.
-
-              Dulu seluruh layar adalah satu tombol "mulai", karena hanya ada
-              satu hal yang bisa dilakukan. Sekarang ada dua jalan yang berbeda
-              — membaca uang dan bertransaksi — dan sasaran sebesar layar akan
-              memilih salah satunya tanpa pengguna tahu yang mana.
-            */}
-            <div className="pointer-events-none flex h-full flex-col justify-center gap-5">
-              <p className="max-w-[30ch] text-[1.0625rem] leading-relaxed text-[var(--color-tinta-redup)]">
-                Kenali nominal uang kapan saja, atau hitung kembalian untuk satu
-                transaksi.
-              </p>
-
-              {/*
-                Dulu di sini ada dua kartu penjelas, satu untuk tiap tombol.
-                Keduanya dibuang: isinya mengulang persis nama tombol yang ada
-                tepat di bawahnya, dan bagi pengguna TalkBack itu berarti
-                mendengar hal yang sama dua kali sebelum sampai ke tombolnya.
-              */}
-              <div className="flex items-center gap-2.5 text-[var(--color-tinta-samar)]">
-                <IkonLuring />
-                <span className="text-[0.8125rem] font-semibold">
-                  Bekerja sepenuhnya tanpa internet
-                </span>
-              </div>
-            </div>
-          </Kerangka>
+          />
         );
 
       case 'KALKULATOR': {
@@ -615,25 +562,6 @@ export function Aplikasi() {
         return null;
     }
   }
-}
-
-function IkonLuring() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
-      <path
-        d="M2 8.5a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16.5a5 5 0 0 1 6 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M3 3l18 18"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
 }
 
 function LencanaCentang() {

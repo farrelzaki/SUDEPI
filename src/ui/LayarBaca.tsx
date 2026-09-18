@@ -1,15 +1,19 @@
 /**
- * Layar baca uang — alat, bukan transaksi.
+ * Layar baca uang — sekaligus BERANDA aplikasi.
  *
  * Pengguna mengarahkan kamera, mendengar nominalnya, mengganti lembar,
  * mendengar lagi. Tidak ada langkah berikutnya, tidak ada yang harus
  * dikonfirmasi, dan tidak ada yang perlu diselesaikan.
  *
- * KENAPA DIPISAHKAN DARI TRANSAKSI. Pertanyaan "ini uang berapa" jauh lebih
+ * KENAPA INI YANG PERTAMA TERBUKA. Pertanyaan "ini uang berapa" jauh lebih
  * sering muncul daripada "hitungkan kembalian saya" — saat merapikan dompet,
- * saat menerima uang dari seseorang, saat memastikan sebelum berangkat.
- * Memaksanya lewat alur transaksi berarti menuntut harga belanja dan verifikasi
- * kembalian untuk pertanyaan yang tidak ada hubungannya dengan keduanya.
+ * saat menerima uang dari seseorang, saat memastikan sebelum berangkat. Yang
+ * paling sering dibutuhkan pantas berada di tempat yang tidak perlu dicari.
+ *
+ * Karena itu tidak ada halaman pembuka sama sekali. Membuka aplikasi berarti
+ * kamera sudah menyala dan siap menjawab; transaksi dan pelatihan suara ada
+ * sebagai tombol di layar yang sama, bukan sebagai tujuan yang harus dilewati
+ * lebih dulu.
  *
  * Seluruh keputusan apa yang diucapkan ada di `core/pembaca.ts` sebagai fungsi
  * murni yang sudah punya tesnya sendiri. Berkas ini hanya menjalankan efeknya.
@@ -25,7 +29,7 @@ import type {
 import { bacaUang, PEMBACA_AWAL } from '@/core/pembaca';
 import { keTeks } from '@/audio/pengucap';
 import type { Detak } from '@/audio/detak';
-import { Kerangka, Tombol } from './Kerangka';
+import { Kerangka } from './Kerangka';
 import { Pratinjau } from './Pratinjau';
 
 export interface LayarBacaProps {
@@ -34,7 +38,8 @@ export interface LayarBacaProps {
   readonly platform: Platform;
   readonly detak: Detak;
   readonly videoRef: React.RefObject<HTMLVideoElement | null>;
-  readonly onKeluar: () => void;
+  /** Tombol di bawah. Ditentukan pemanggil karena layar ini juga beranda. */
+  readonly aksi: React.ReactNode;
 }
 
 export function LayarBaca({
@@ -43,7 +48,7 @@ export function LayarBaca({
   platform,
   detak,
   videoRef,
-  onKeluar,
+  aksi,
 }: LayarBacaProps) {
   const [hasil, setHasil] = useState<HasilPindai | null>(null);
   const statePembaca = useRef(PEMBACA_AWAL);
@@ -93,19 +98,10 @@ export function LayarBaca({
   return (
     <Kerangka
       langkah={null}
-      judul="Baca uang"
+      judul="SUDEPI"
       subjudul="Arahkan kamera ke uang. Ganti lembarnya kapan saja."
-      onKembali={onKeluar}
       isiPenuh
-      aksi={
-        <Tombol
-          label="Selesai membaca uang, kembali ke menu"
-          ragam="sekunder"
-          onAktif={onKeluar}
-        >
-          Selesai
-        </Tombol>
-      }
+      aksi={aksi}
     >
       <Pratinjau
         videoRef={videoRef}
