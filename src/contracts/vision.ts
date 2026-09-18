@@ -85,7 +85,7 @@ export interface PemindaiKamera {
  * kita harus bisa mengubahnya di satu tempat.
  * ------------------------------------------------------------------------- */
 
-export const AMBANG_KEYAKINAN = 0.85;
+export const AMBANG_KEYAKINAN = 0.70;
 export const AMBANG_IOU = 0.4;
 
 /** Deteksi yang sama harus muncul di VOTING_BUTUH dari VOTING_DARI bingkai. */

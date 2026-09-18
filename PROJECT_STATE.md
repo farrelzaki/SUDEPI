@@ -6,13 +6,13 @@ Perbarui saat memulai sesi, melewati checkpoint, membuat keputusan penting, mene
 
 ## Metadata
 
-- Terakhir diperbarui: 2026-09-18
+- Terakhir diperbarui: 2026-09-18 21:15 WIB
 - Mode kerja: `competition`
 - Status sesi: Berjalan
-- Task aktif: Verifikasi lapangan dengan model asli
-- Fase aktif: Implementation
-- Checkpoint terakhir: Verification (pipeline utuh terbukti di perangkat)
-- Konfirmasi pengguna terakhir: Farrel kerjakan bagian Fajar, perbarui pembagian tiap kali
+- Task aktif: Solusi kalibrasi ambang multi-uang & presensi koin
+- Fase aktif: Plan / Handoff
+- Checkpoint terakhir: Plan (solusi kalibrasi AMBANG_KEYAKINAN 0.70 siap dikomunikasikan ke Farrel)
+- Konfirmasi pengguna terakhir: Persetujuan solusi multi-uang (>2 uang) & koin sulit terdeteksi
 
 ## Scope Yang Disetujui
 

@@ -59,7 +59,7 @@ KELAS = [
 ]
 
 # Harus sama dengan tetapan di src/contracts/vision.ts.
-AMBANG_KEYAKINAN = 0.85
+AMBANG_KEYAKINAN = 0.70
 AMBANG_IOU = 0.40
 # Skor serendah ini pun dicatat, supaya sebarannya terlihat utuh saat kalibrasi.
 AMBANG_MINAT = 0.25

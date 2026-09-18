@@ -78,8 +78,8 @@ describe('tabel denominasi', () => {
 });
 
 describe('tetapan rantai keyakinan', () => {
-  it('sesuai angka yang dijanjikan executive summary', () => {
-    expect(AMBANG_KEYAKINAN).toBe(0.85);
+  it('sesuai angka hasil kalibrasi lapangan (lihat ADR-0010)', () => {
+    expect(AMBANG_KEYAKINAN).toBe(0.70);
     expect(AMBANG_IOU).toBe(0.4);
   });
 

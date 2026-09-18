@@ -143,15 +143,15 @@ export interface PemindaiKamera {
 ### Tetapan yang dipakai bersama
 
 ```ts
-export const AMBANG_KEYAKINAN = 0.85;
+export const AMBANG_KEYAKINAN = 0.70; // dikalibrasi (ADR-0010)
 export const AMBANG_IOU = 0.40;
 export const VOTING_BUTUH = 3;   // dari
 export const VOTING_DARI = 5;    // bingkai berurutan
 export const UKURAN_MASUKAN = 320;
 ```
 
-Angka-angka ini **hanya boleh hidup di sini**. Jangan pernah menulis `0.85`
-sebagai literal di tempat lain — saat kalibrasi di jam ke-16, kita harus bisa
+Angka-angka ini **hanya boleh hidup di sini**. Jangan pernah menulis nilai ambang
+sebagai literal di tempat lain — saat kalibrasi, kita harus bisa
 mengubahnya di satu tempat.
 
 ## 3. Transaksi — `contracts/transaksi.ts`
