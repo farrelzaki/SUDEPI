@@ -244,7 +244,7 @@ export function hitungMfcc(contoh: Float32Array): HasilMfcc {
 }
 
 /**
- * Pengurangan rerata cepstral — DIPANGGIL PER POTONGAN KATA, bukan per rekaman.
+ * Normalisasi rerata DAN ragam — dipanggil per potongan kata, bukan per rekaman.
  *
  * Perbedaan itu menentukan, dan versi pertama salah menaruhnya. Rerata yang
  * dihitung atas SELURUH rekaman ikut memuat keheningan sebelum dan sesudah
@@ -331,10 +331,33 @@ export function kurangiRerata(bingkai: readonly Bingkai[]): Bingkai[] {
     rerata[i] = (rerata[i] ?? 0) / bingkai.length;
   }
 
+  // Ragam tiap koefisien, untuk menyetarakan bobotnya.
+  //
+  // Koefisien pertama berayun jauh lebih lebar daripada yang terakhir —
+  // puluhan berbanding satuan. Tanpa penyetaraan, jarak antar kata praktis
+  // hanya ditentukan satu atau dua koefisien pertama, dan seluruh koefisien
+  // lain yang justru membedakan bunyi menjadi tidak berarti.
+  //
+  // Terukur: sebelum penyetaraan, jarak kata juara dan runner-up sering hanya
+  // berbeda setengah persen, sehingga gerbang keraguan menolak hampir setiap
+  // ucapan.
+  const ragam = new Float32Array(JUMLAH_KOEFISIEN);
+  for (const b of bingkai) {
+    for (let i = 0; i < JUMLAH_KOEFISIEN; i += 1) {
+      const d = (b[i] ?? 0) - (rerata[i] ?? 0);
+      ragam[i] = (ragam[i] ?? 0) + d * d;
+    }
+  }
+  for (let i = 0; i < JUMLAH_KOEFISIEN; i += 1) {
+    // Akar ragam, dengan lantai kecil supaya koefisien yang nyaris tidak
+    // bergerak tidak diperbesar menjadi derau murni.
+    ragam[i] = Math.max(Math.sqrt((ragam[i] ?? 0) / bingkai.length), 1e-3);
+  }
+
   return bingkai.map((b) => {
     const keluar = new Float32Array(JUMLAH_KOEFISIEN);
     for (let i = 0; i < JUMLAH_KOEFISIEN; i += 1) {
-      keluar[i] = (b[i] ?? 0) - (rerata[i] ?? 0);
+      keluar[i] = ((b[i] ?? 0) - (rerata[i] ?? 0)) / (ragam[i] ?? 1);
     }
     return keluar;
   });

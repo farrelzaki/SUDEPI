@@ -38,9 +38,10 @@ export interface OpsiPengenal {
   /**
    * Jarak DTW maksimum agar sebuah potongan diterima.
    *
-   * Nilainya diturunkan dari pengukuran, bukan dipilih rapi: ucapan yang sama
-   * dari orang yang sama biasanya berjarak di bawah 20, sementara kata yang
-   * berbeda melompat jauh di atasnya.
+   * Skalanya berubah total setelah ciri disetarakan ragamnya — dulu berkisar
+   * belasan sampai tiga puluhan, kini satuan. Angka awal ini sengaja longgar;
+   * nilai sebenarnya ditetapkan dari jejak `[KATA]` di perangkat, bukan
+   * ditebak.
    */
   readonly jarakMaks?: number;
   /**
@@ -92,7 +93,7 @@ export function cocokkanKata(
   contoh: readonly Contoh[],
   opsi: OpsiPengenal = {},
 ): HasilKata | null {
-  const jarakMaks = opsi.jarakMaks ?? 26;
+  const jarakMaks = opsi.jarakMaks ?? 6;
   const selisihMin = opsi.selisihMin ?? 0.08;
   if (contoh.length === 0 || potongan.length === 0) return null;
 

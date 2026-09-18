@@ -8,6 +8,11 @@
  *
  * Kalau urutan ucapan salah, tidak ada tes unit yang akan menangkapnya, dan
  * kekeliruannya baru terdengar di depan juri.
+ *
+ * ALURNYA BERUBAH DI ADR-0014. Transaksi kini dimulai langsung dari kalkulator:
+ * uang yang dipegang dimasukkan lebih dulu, lalu total belanja. Kamera tidak
+ * lagi muncul di awal — ia hanya dipakai di akhir untuk memeriksa kembalian.
+ * Tes pendengaran untuk alat baca uang pindah ke `pembaca.test.ts`.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -55,31 +60,17 @@ function pindai(
   return {
     status,
     deteksi: stabil
-      ? [
-          ...nominal.map((n, i) => ({
-            kodeKelas: i,
-            nominal: n as never,
-            koin: false,
-            skor: 0.95,
-            kotak: { x: 0, y: i * 0.2, w: 0.5, h: 0.15 },
-            iouMaks: 0,
-          })),
-          ...(adaKoin
-            ? [
-                {
-                  kodeKelas: 7,
-                  nominal: null,
-                  koin: true,
-                  skor: 0.95,
-                  kotak: { x: 0.6, y: 0.6, w: 0.2, h: 0.2 },
-                  iouMaks: 0,
-                },
-              ]
-            : []),
-        ]
+      ? nominal.map((n, i) => ({
+          kodeKelas: i,
+          nominal: n as never,
+          koin: false,
+          skor: 0.95,
+          kotak: { x: 0, y: i * 0.1, w: 0.5, h: 0.2 },
+          iouMaks: 0,
+        }))
       : [],
     totalKertas: stabil ? nominal.reduce((a, b) => a + b, 0) : 0,
-    adaKoin: stabil && adaKoin,
+    adaKoin: stabil ? adaKoin : false,
     latensiMs: 120,
     fps: 8,
     luma: 0.6,
@@ -87,13 +78,19 @@ function pindai(
   };
 }
 
+/** Pembuka yang dipakai hampir semua tes: masuk transaksi, isi kedua nominal. */
+function transaksi(bayar: number, belanja: number): readonly Peristiwa[] {
+  return [
+    { jenis: 'MULAI', padaMs: 1000 },
+    { jenis: 'SET_BAYAR', nilai: bayar },
+    { jenis: 'SET_BELANJA', nilai: belanja },
+  ];
+}
+
 describe('satu transaksi utuh, didengar dari awal sampai akhir', () => {
-  it('belanja 35.000 dibayar 50.000, kembalian 15.000', () => {
+  it('bayar 50.000 untuk belanja 35.000, kembalian 15.000', () => {
     const { state, ucapan, getaran } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 35_000 },
+      ...transaksi(50_000, 35_000),
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
       { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [10_000, 5000]) },
@@ -102,12 +99,9 @@ describe('satu transaksi utuh, didengar dari awal sampai akhir', () => {
 
     expect(state.fase).toBe('SELESAI');
     expect(ucapan).toEqual([
-      'Arahkan kamera ke uang',
-      'Terdeteksi lima puluh ribu rupiah Total lima puluh ribu rupiah',
-      'Uang dibayar lima puluh ribu rupiah Total belanja',
-      // Hanya angkanya. Awalan "total belanja" sudah disebut sebaris di atas
-      // saat masuk fase kalkulator; mengulanginya tiap tekan membuat pengguna
-      // menunggu dua kata sebelum mendengar hal yang ia butuhkan.
+      // Masuk transaksi langsung menyebut kolom yang harus diisi lebih dulu.
+      'Uang dibayar',
+      'lima puluh ribu rupiah',
       'tiga puluh lima ribu rupiah',
       'Kembalian lima belas ribu rupiah',
       'Arahkan kamera ke uang',
@@ -115,77 +109,40 @@ describe('satu transaksi utuh, didengar dari awal sampai akhir', () => {
       'Transaksi selesai',
     ]);
 
-    // Getaran berhasil menandai setiap penguncian nominal — satu-satunya
-    // isyarat yang tetap sampai ketika pasar terlalu bising untuk mendengar.
+    // Getaran menandai penguncian nominal — satu-satunya isyarat yang tetap
+    // sampai ketika pasar terlalu bising untuk mendengar.
     expect(getaran).toContain('berhasil');
   });
 
-  it('menyebut tiap lembar lalu totalnya pada tumpukan', () => {
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [100_000, 20_000, 5000]) },
-    );
-    expect(ucapan[1]).toBe(
-      'Terdeteksi seratus ribu rupiah dua puluh ribu rupiah lima ribu rupiah ' +
-        'Total seratus dua puluh lima ribu rupiah',
-    );
-  });
-
-  it('menyebut keberadaan koin tanpa menyebut nilainya di Fase 1', () => {
-    // Nilai koin baru diketahui di Fase 4, dari selisih. Menyebut angka di
-    // Fase 1 berarti menebak.
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [20_000], true) },
-    );
-    expect(ucapan[1]).toContain('ditambah koin');
-    expect(ucapan[1]).not.toMatch(/ratus rupiah$/);
-  });
-
-  it('menyebut nilai koin di Fase 4, diturunkan dari selisih', () => {
+  it('menyebut nilai koin di akhir, diturunkan dari selisih', () => {
     const { state, ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 49_500 },
+      ...transaksi(50_000, 49_500),
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
       { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [], true) },
     );
     expect(state.nominalKoin).toBe(500);
-    expect(ucapan.at(-1)).toBe('Kembalian nol rupiah ditambah koin lima ratus rupiah');
+    expect(ucapan.at(-1)).toBe(
+      'Kembalian nol rupiah ditambah koin lima ratus rupiah',
+    );
+  });
+
+  it('uang pas tetap menyelesaikan transaksi', () => {
+    const { state } = jalankanAlur(
+      ...transaksi(50_000, 50_000),
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', []) },
+      { jenis: 'KONFIRMASI' },
+    );
+    expect(state.fase).toBe('SELESAI');
   });
 });
 
 describe('yang didengar saat ada yang salah', () => {
-  it('abstain terdengar sebagai ajakan mengulang, bukan kesalahan', () => {
-    const { ucapan, getaran } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
-    );
-    expect(ucapan.at(-1)).toBe('Belum yakin. Coba pindai lagi');
-    expect(getaran.at(-1)).toBe('gagal');
-  });
-
-  it('TIDAK menyebut nominal apa pun saat abstain', () => {
-    // Inilah janji inti produk. Kalau tes ini gagal, sistem berbohong kepada
-    // orang yang tidak bisa memeriksa ulang jawabannya.
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
-    );
-    for (const u of ucapan) {
-      expect(u).not.toMatch(/ribu rupiah/);
-    }
-  });
-
   it('bayar kurang terdengar jelas dan tidak memajukan fase', () => {
     const { state, ucapan, getaran } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [20_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 50_000 },
+      ...transaksi(20_000, 50_000),
       { jenis: 'KONFIRMASI' },
     );
     expect(state.fase).toBe('KALKULATOR');
@@ -193,24 +150,22 @@ describe('yang didengar saat ada yang salah', () => {
     expect(getaran.at(-1)).toBe('gagal');
   });
 
-  it('diam total saat hasil belum stabil', () => {
-    // Bicara setengah matang lebih buruk daripada diam: pengguna akan
-    // menurunkan tangannya mengira sudah selesai.
-    const { ucapan } = jalankanAlur(
+  it('belum lengkap tidak memajukan fase, dan tidak berbohong', () => {
+    // Total belanja belum diisi. Sistem harus DIAM, bukan melanjutkan dengan
+    // angka yang belum ada.
+    const { state, ucapan } = jalankanAlur(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('tidak-ada-objek') },
+      { jenis: 'SET_BAYAR', nilai: 50_000 },
+      { jenis: 'KONFIRMASI' },
     );
-    expect(ucapan).toEqual(['Arahkan kamera ke uang']);
+    expect(state.fase).toBe('KALKULATOR');
+    expect(ucapan).not.toContain('Transaksi selesai');
   });
 
   it('pembatalan terdengar berbeda dari penyelesaian', () => {
-    const batal = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'BATAL' },
-    );
+    const batal = jalankanAlur(...transaksi(50_000, 35_000), {
+      jenis: 'BATAL',
+    });
     expect(batal.ucapan.at(-1)).toBe('Transaksi dibatalkan');
     expect(batal.state).toEqual(STATE_AWAL);
   });
@@ -219,10 +174,7 @@ describe('yang didengar saat ada yang salah', () => {
     // Mengucapkan kata yang salah kepada orang yang hanya punya suara sebagai
     // umpan balik akan membuatnya mengira transaksinya gagal.
     const { state, ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 50_000 },
+      ...transaksi(50_000, 50_000),
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
       { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', []) },
@@ -236,38 +188,29 @@ describe('yang didengar saat ada yang salah', () => {
 });
 
 describe('urutan efek perangkat', () => {
-  it('pemindaian dihentikan sebelum masuk kalkulator', () => {
-    // Kamera yang terus hidup di fase kalkulator memboroskan baterai dan
-    // memanaskan HP, dan pengguna tidak akan menyadarinya.
-    const { efek } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-    );
-    expect(efek.map((e) => e.jenis)).toContain('HENTIKAN_PINDAI');
+  it('kamera TIDAK menyala di awal transaksi', () => {
+    // Inti perubahan ADR-0014. Kamera yang menyala sejak awal memboroskan
+    // baterai dan memanaskan HP sepanjang pengguna mengetik nominal — dan
+    // pengguna yang tidak bisa melihat layar tidak akan menyadarinya.
+    const { efek } = jalankanAlur(...transaksi(50_000, 35_000));
+    expect(efek.map((e) => e.jenis)).not.toContain('MULAI_PINDAI');
   });
 
-  it('pemindaian Fase 4 dimulai setelah layar kasir', () => {
+  it('pemindaian hanya dimulai sekali, untuk kembalian', () => {
     const { efek } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 35_000 },
+      ...transaksi(50_000, 35_000),
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
     );
-    const mulaiPindai = efek.filter((e) => e.jenis === 'MULAI_PINDAI');
-    expect(mulaiPindai.map((e) => (e.jenis === 'MULAI_PINDAI' ? e.fase : 0))).toEqual([
-      1, 4,
-    ]);
+    const mulai = efek.filter((e) => e.jenis === 'MULAI_PINDAI');
+    expect(
+      mulai.map((e) => (e.jenis === 'MULAI_PINDAI' ? e.fase : 0)),
+    ).toEqual([4]);
   });
 
   it('transaksi disimpan tepat sekali, saat selesai', () => {
     const { efek } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 50_000 },
+      ...transaksi(50_000, 50_000),
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
       { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', []) },
@@ -281,240 +224,73 @@ describe('urutan efek perangkat', () => {
     // angkanya justru yang dibutuhkan tahap Check pada Lampiran 11. Seberapa
     // sering pengguna menyerah di tengah jalan adalah ukuran kegunaan yang
     // lebih jujur daripada seberapa sering ia berhasil.
-    const { efek } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'BATAL' },
-    );
+    const { efek } = jalankanAlur(...transaksi(50_000, 35_000), {
+      jenis: 'BATAL',
+    });
     expect(efek.filter((e) => e.jenis === 'SIMPAN_TRANSAKSI')).toHaveLength(1);
   });
 });
 
-describe('peringatan lembaran bertumpuk (Lampiran 8 risiko nomor 2)', () => {
-  /** Hasil pindai stabil dengan iouMaks yang bisa diatur. */
-  function pindaiBerdempetan(nominal: readonly number[], iouMaks: number): HasilPindai {
-    return {
-      status: 'stabil',
-      deteksi: nominal.map((n, i) => ({
-        kodeKelas: i,
-        nominal: n as never,
-        koin: false,
-        skor: 0.95,
-        kotak: { x: 0, y: i * 0.1, w: 0.5, h: 0.2 },
-        iouMaks,
-      })),
-      totalKertas: nominal.reduce((a, b) => a + b, 0),
-      adaKoin: false,
-      latensiMs: 120,
-      fps: 8,
-      luma: 0.6,
-      senterAktif: false,
-    };
-  }
-
-  it('meminta merenggangkan saat lembaran terlalu berdempetan', () => {
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000, 50_000], 0.35) },
-    );
-    expect(ucapan.at(-1)).toContain('Renggangkan lembarannya');
-  });
-
-  it('TIDAK meminta apa-apa saat lembaran sudah terpisah', () => {
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000, 20_000], 0.05) },
-    );
-    expect(ucapan.at(-1)).not.toContain('Renggangkan');
-  });
-
-  it('nominal disebut LEBIH DULU, peringatan menyusul di akhir', () => {
-    // Kalau peringatan di depan, pengguna mendengar instruksi sebelum tahu
-    // angkanya, dan harus menunggu seluruh kalimat selesai untuk tahu apakah
-    // perlu bertindak.
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000, 50_000], 0.5) },
-    );
-    const kalimat = ucapan.at(-1) ?? '';
-    expect(kalimat.indexOf('seratus ribu rupiah')).toBeLessThan(
-      kalimat.indexOf('Renggangkan'),
-    );
-  });
-
-  it('tetap memperingatkan walau kotaknya sudah disaring NMS', () => {
-    // iouMaks di atas AMBANG_IOU berarti satu kotak memang sudah dibuang.
-    // Justru di sinilah ambiguitasnya paling besar: satu lembar terbaca dua
-    // kali, atau dua lembar bertumpuk? Sistem tidak boleh menebak.
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000], 0.72) },
-    );
-    expect(ucapan.at(-1)).toContain('Renggangkan lembarannya');
-  });
-});
-
 describe('kembali ke Mode Siaga', () => {
-  it('mengumumkan siap memindai setelah transaksi selesai', () => {
+  it('mengumumkan siap setelah transaksi selesai', () => {
     // Tanpa ini pengguna hanya mendengar kesunyian setelah menekan, dan tidak
-    // punya cara mengetahui apakah aplikasi siap atau tersangkut.
+    // tahu apakah aplikasi sudah siap dipakai lagi.
     const { state, ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 50_000 },
+      ...transaksi(50_000, 50_000),
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
       { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', []) },
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
     );
-    expect(state).toEqual(STATE_AWAL);
+    expect(state.fase).toBe('SIAGA');
     expect(ucapan.at(-1)).toBe('Siap memindai');
-  });
-
-  it('pembatalan TIDAK ikut mengucapkan siap memindai', () => {
-    // "Transaksi dibatalkan" sudah cukup menyatakan kembali ke awal. Dua
-    // pengumuman berturut-turut hanya memperlambat pengguna yang sedang
-    // berdiri di depan kasir.
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'BATAL' },
-    );
-    expect(ucapan.at(-1)).toBe('Transaksi dibatalkan');
-  });
-});
-
-describe('tidak mengumumkan ulang isi yang sama', () => {
-  // BUG NYATA yang dilaporkan dari HP: suara terdengar berulang dan bergema
-  // tanpa henti. Penyebabnya kamera menghasilkan sekitar 8 bingkai stabil per
-  // detik selama uang masih di depannya, dan SETIAP bingkai memicu pengumuman
-  // baru — delapan kali per detik, saling menumpuk.
-
-  it('delapan bingkai stabil identik hanya diucapkan SEKALI', () => {
-    const bingkai = Array.from({ length: 8 }, () =>
-      ({ jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) }) as const,
-    );
-    const { ucapan } = jalankanAlur({ jenis: 'MULAI', padaMs: 1000 }, ...bingkai);
-
-    const menyebutNominal = ucapan.filter((u) => u.includes('lima puluh ribu'));
-    expect(menyebutNominal).toHaveLength(1);
-  });
-
-  it('tetap mengumumkan saat pengguna menambah lembaran', () => {
-    // Kalau peredaman terlalu agresif, penambahan uang jadi tidak terdengar —
-    // dan pengguna mengunci nominal yang salah.
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000, 20_000]) },
-    );
-    expect(ucapan.filter((u) => u.includes('Total')).length).toBe(2);
-    expect(ucapan.at(-1)).toContain('tujuh puluh ribu rupiah');
-  });
-
-  it('mengumumkan lagi kalau koin muncul, walau totalnya sama', () => {
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [20_000]) },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [20_000], true) },
-    );
-    expect(ucapan.at(-1)).toContain('ditambah koin');
-  });
-
-  it('bingkai goyah di tengah tidak memicu pengumuman ulang', () => {
-    // Tangan bergerak sedikit, satu bingkai jadi tidak stabil, lalu kembali
-    // stabil dengan isi yang sama. Itu bukan informasi baru.
-    const { ucapan } = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-    );
-    expect(ucapan.filter((u) => u.includes('lima puluh ribu'))).toHaveLength(1);
-  });
-
-  it('Fase 4 juga tidak mengulang', () => {
-    const awal = jalankanAlur(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 35_000 },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'KONFIRMASI' },
-    );
-    let s = awal.state;
-    const efek: Efek[] = [];
-    for (let i = 0; i < 8; i += 1) {
-      const h = reduksi(s, {
-        jenis: 'HASIL_PINDAI',
-        muatan: pindai('stabil', [15_000]),
-      });
-      s = h.state;
-      efek.push(...h.efek);
-    }
-    const ucapan = efek.flatMap((e) => (e.jenis === 'UCAP' ? [keTeks(e.ucapan)] : []));
-    expect(ucapan.filter((u) => u.includes('lima belas ribu'))).toHaveLength(1);
   });
 });
 
 describe('umpan balik saat memasukkan nominal', () => {
-  // BUG DILAPORKAN DARI HP: menekan tombol pecahan tidak mengeluarkan suara
-  // apa pun. Pengguna yang tidak bisa melihat layar menekan "+50.000" dan
-  // tidak punya cara mengetahui apakah tercatat.
-
   it('setiap perubahan nominal diucapkan dan bergetar', () => {
     const { ucapan, getaran } = jalankanAlur(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 50_000 },
+      { jenis: 'SET_BAYAR', nilai: 50_000 },
     );
     expect(ucapan.at(-1)).toBe('lima puluh ribu rupiah');
     expect(getaran.at(-1)).toBe('ringan');
   });
 
   it('penekanan beruntun mengucapkan TOTAL BERJALAN, bukan yang ditambahkan', () => {
-    // Yang dibutuhkan pengguna adalah "sekarang berapa", bukan "tadi menambah
-    // berapa" — ia sudah tahu tombol mana yang ditekan.
+    // Pengguna perlu tahu di mana angkanya sekarang, bukan apa yang barusan
+    // ditekan — ia tidak bisa melihat layar untuk memeriksanya.
     const { ucapan } = jalankanAlur(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [100_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 50_000 },
-      { jenis: 'SET_BELANJA', nilai: 70_000 },
-      { jenis: 'SET_BELANJA', nilai: 75_000 },
+      { jenis: 'SET_BELANJA', nilai: 5 },
+      { jenis: 'SET_BELANJA', nilai: 50 },
+      { jenis: 'SET_BELANJA', nilai: 500 },
     );
     expect(ucapan.slice(-3)).toEqual([
-      'lima puluh ribu rupiah',
-      'tujuh puluh ribu rupiah',
-      'tujuh puluh lima ribu rupiah',
+      'lima rupiah',
+      'lima puluh rupiah',
+      'lima ratus rupiah',
     ]);
   });
 
   it('tombol hapus juga terdengar', () => {
     const { ucapan } = jalankanAlur(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 20_000 },
+      { jenis: 'SET_BELANJA', nilai: 50_000 },
       { jenis: 'SET_BELANJA', nilai: 0 },
     );
     expect(ucapan.at(-1)).toBe('nol rupiah');
   });
 
-  it('TIDAK mengulang awalan "total belanja" tiap tekan', () => {
+  it('TIDAK mengulang awalan pada tiap tekan', () => {
+    // Konteksnya sudah disebut saat masuk fase; mengulanginya tiap tekan
+    // membuat pengguna menunggu dua kata sebelum mendengar hal yang ia
+    // butuhkan.
     const { ucapan } = jalankanAlur(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
-      { jenis: 'KONFIRMASI' },
-      { jenis: 'SET_BELANJA', nilai: 10_000 },
-      { jenis: 'SET_BELANJA', nilai: 20_000 },
+      { jenis: 'SET_BELANJA', nilai: 35_000 },
     );
-    expect(ucapan.slice(-2).filter((u) => u.includes('Total belanja'))).toHaveLength(0);
+    expect(ucapan.at(-1)).toBe('tiga puluh lima ribu rupiah');
   });
 });

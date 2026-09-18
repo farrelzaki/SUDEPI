@@ -88,11 +88,19 @@ export function PapanAngka({
       {onSuara && (
         <button
           type="button"
-          aria-label={
-            mendengar
-              ? 'Sedang mendengarkan. Sebutkan total belanja'
-              : `Sebutkan ${namaKolom} dengan suara`
-          }
+          /*
+            Label ini TIDAK BOLEH BERUBAH saat mendengarkan.
+            
+            Versi pertama menggantinya menjadi "Sedang mendengarkan", dan
+            TalkBack membacakan label baru itu tepat ketika mikrofon menyala —
+            sehingga suara TalkBack sendiri ikut terekam dan dicocokkan sebagai
+            kata. Akibatnya tiap rekaman memuat ucapan yang sama di depannya,
+            seluruh kata tampak sama jauhnya, dan hampir semuanya ditolak.
+            
+            Penanda "sedang mendengarkan" disampaikan lewat nada dan warna,
+            bukan lewat teks yang akan dibacakan.
+          */
+          aria-label={`Sebutkan ${namaKolom} dengan suara`}
           onClick={onSuara}
           disabled={mendengar}
           className="flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-[1.125rem] text-lg font-bold transition-colors"

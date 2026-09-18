@@ -119,12 +119,21 @@ describe('hitungMfcc', () => {
     expect(tengah).toBeGreaterThan(awal + 3);
   });
 
-  it('bunyi berbeda menghasilkan ciri yang berbeda', () => {
+  it('bunyi berbeda jauh lebih jauh daripada bunyi yang sama', () => {
     // Kalau ini gagal, seluruh pendekatan runtuh: ciri yang tidak membedakan
-    // apa pun membuat setiap kata terlihat sama.
-    const a = ciri(NADA.lima ?? []);
-    const b = ciri(NADA.ribu ?? []);
-    expect(jarakDtw(a, b)).toBeGreaterThan(5);
+    // apa pun membuat setiap kata terlihat sama jauhnya — dan itulah persis
+    // gejala yang terukur di perangkat sebelum ragam ciri disetarakan.
+    //
+    // Dibandingkan sebagai RASIO, bukan angka mutlak: skala jarak berubah
+    // setiap kali cara menormalkan ciri berubah, sedangkan yang harus selalu
+    // benar adalah perbandingannya.
+    const lima = ciri(NADA.lima ?? [], 0.3);
+    const limaLagi = ciri(NADA.lima ?? [], 0.36);
+    const ribu = ciri(NADA.ribu ?? [], 0.3);
+
+    const sama = jarakDtw(lima, limaLagi);
+    const beda = jarakDtw(lima, ribu);
+    expect(beda).toBeGreaterThan(sama * 2);
   });
 });
 

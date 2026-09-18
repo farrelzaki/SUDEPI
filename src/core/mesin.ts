@@ -70,8 +70,8 @@ function adaYangBerdempetan(hasil: HasilPindai): boolean {
   return hasil.deteksi.some((d) => d.iouMaks > AMBANG_BERDEMPETAN);
 }
 
-/** Menyusun ucapan hasil pindai Fase 1: tiap lembar, total, lalu koin. */
-function ucapkanHasilPindai(hasil: HasilPindai): Efek[] {
+/** Menyusun ucapan hasil pindai: tiap lembar, total, lalu koin. */
+export function ucapkanHasilPindai(hasil: HasilPindai): Efek[] {
   const bernominal = hasil.deteksi.filter((d) => d.nominal !== null);
 
   if (bernominal.length === 0 && !hasil.adaKoin) {
@@ -108,7 +108,7 @@ function ucapkanHasilPindai(hasil: HasilPindai): Efek[] {
  * dan himpunan pecahannya. Posisi kotak sengaja diabaikan — uang yang dipegang
  * tangan selalu bergeser sedikit, dan itu tidak mengubah apa pun yang diucapkan.
  */
-function isinyaSama(a: HasilPindai | null, b: HasilPindai): boolean {
+export function isinyaSama(a: HasilPindai | null, b: HasilPindai): boolean {
   if (!a || a.status !== 'stabil' || b.status !== 'stabil') return false;
   if (a.totalKertas !== b.totalKertas) return false;
   if (a.adaKoin !== b.adaKoin) return false;
@@ -119,7 +119,7 @@ function isinyaSama(a: HasilPindai | null, b: HasilPindai): boolean {
 }
 
 /** Respons seragam saat sistem tidak cukup yakin. */
-const EFEK_ABSTAIN: readonly Efek[] = [
+export const EFEK_ABSTAIN: readonly Efek[] = [
   { jenis: 'UCAP', ucapan: frasa('belum_yakin_ulangi') },
   { jenis: 'GETAR', pola: 'gagal' },
 ];
@@ -168,12 +168,17 @@ export function reduksi(
   switch (state.fase) {
     case 'SIAGA': {
       if (peristiwa.jenis !== 'MULAI') return diam(state);
+      // Transaksi kini dimulai dari KALKULATOR, bukan dari kamera.
+      //
+      // Membaca uang dan bertransaksi adalah dua kebutuhan berbeda, dan
+      // menyatukannya memaksa orang yang hanya ingin tahu "ini uang berapa"
+      // melewati alur yang menuntut harga belanja, layar pedagang, dan
+      // verifikasi kembalian. Alat bacanya kini berdiri sendiri di
+      // `core/pembaca.ts`, dan kamera hanya muncul lagi di akhir untuk
+      // memeriksa kembalian. Lihat ADR-0014.
       return {
-        state: { ...STATE_AWAL, fase: 'PINDAI_BAYAR', mulaiPadaMs: peristiwa.padaMs },
-        efek: [
-          { jenis: 'MULAI_PINDAI', fase: 1 },
-          { jenis: 'UCAP', ucapan: frasa('arahkan_kamera') },
-        ],
+        state: { ...STATE_AWAL, fase: 'KALKULATOR', mulaiPadaMs: peristiwa.padaMs },
+        efek: [{ jenis: 'UCAP', ucapan: frasa('uang_dibayar') }],
       };
     }
 

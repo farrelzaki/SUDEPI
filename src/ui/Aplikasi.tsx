@@ -17,7 +17,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PemindaiKamera, Platform } from '@/contracts';
+import { frasa, type PemindaiKamera, type Platform } from '@/contracts';
 import { buatPengucap } from '@/audio/pengucap';
 import { buatMockPlatform, pilihPlatform } from '@/platform/mock';
 import {
@@ -29,6 +29,7 @@ import { NOMINAL_MAKS } from '@/audio/urai';
 import { dengarNominal, type Contoh } from '@/audio/dengar/pengenal';
 import { bacaContoh, tulisContoh } from '@/audio/dengar/templat';
 import { LatihSuara } from './LatihSuara';
+import { LayarBaca } from './LayarBaca';
 import { DbSudepi, siapkanDb } from '@/data/db';
 import { buatRepositori, type Repositori } from '@/data/repositori';
 import { buatPemindai } from '@/vision/pemindai';
@@ -56,6 +57,9 @@ const PAKAI_MOCK = !import.meta.env.PROD;
  * pengguna merasa menunggu.
  */
 const REKAM_UCAPAN_MS = 3000;
+
+/** Jeda agar TalkBack selesai bicara sebelum mikrofon menyala. */
+const JEDA_SEBELUM_REKAM_MS = 700;
 
 export function Aplikasi() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -127,6 +131,19 @@ export function Aplikasi() {
   const pengenal = useMemo<PengenalSuara>(() => buatPengenalSuara(), []);
   const [mendengar, setMendengar] = useState(false);
   const [melatih, setMelatih] = useState(false);
+
+  /**
+   * Layar mana yang sedang dibuka di luar alur transaksi.
+   *
+   * Membaca uang dan melatih suara bukan fase transaksi, jadi keduanya tidak
+   * hidup di state machine. Menaruhnya di sana akan memaksa `src/contracts/`
+   * yang beku ikut berubah demi dua layar yang tidak ada hubungannya dengan
+   * perhitungan kembalian.
+   */
+  const [mode, setMode] = useState<'beranda' | 'baca'>('beranda');
+
+  /** Kolom mana yang sedang diisi di kalkulator. */
+  const [kolom, setKolom] = useState<'bayar' | 'belanja'>('bayar');
   /**
    * Contoh suara pengguna. Kosong berarti fitur suara belum dilatih, dan
    * tombolnya tidak ditawarkan sama sekali.
@@ -152,11 +169,34 @@ export function Aplikasi() {
   // hanya mengubah tampilan tanpa mengirim apa pun ke mesin transaksi —
   // sehingga tidak ada yang diucapkan. Pengguna yang tidak bisa melihat layar
   // memasukkan nominal dan tidak punya cara mengetahui apakah tercatat.
-  const nilaiKolom = state.totalBelanja ?? 0;
+
+  function mulaiTransaksi(): void {
+    setKolom('bayar');
+    mulai();
+  }
+
+  /**
+   * Lanjut dari kalkulator.
+   *
+   * Kolom pertama hanya berpindah di dalam antarmuka — mesin transaksi tidak
+   * tahu apa-apa soal urutan pengisian, dan memang tidak perlu tahu. Ia baru
+   * dilibatkan setelah kedua nominal terisi, dan di situlah ia menolak
+   * pembayaran yang kurang, sebelum satu angka pun tampil ke pedagang.
+   */
+  function lanjutKalkulator(): void {
+    if (kolom === 'bayar') {
+      setKolom('belanja');
+      // Kolom berikutnya disebutkan supaya pengguna tahu ia sedang mengisi apa.
+      void pengucap.ucap(frasa('total_belanja'));
+      void platform.getar('ringan');
+      return;
+    }
+    kirim({ jenis: 'KONFIRMASI' });
+  }
 
   function tindakanUtama(): void {
     if (state.fase === 'SIAGA') {
-      mulai();
+      mulaiTransaksi();
       return;
     }
     // Dari SELESAI kita kembali ke Mode Siaga, BUKAN langsung memulai
@@ -196,6 +236,12 @@ export function Aplikasi() {
     void platform.getar('ringan');
     detak.tik('dengar');
 
+    // Jeda sebelum mikrofon menyala. TalkBack yang masih menyelesaikan
+    // kalimatnya akan ikut terekam dan dicocokkan sebagai kata — kesalahan
+    // yang tidak terlihat sama sekali dari luar, dan membuat hampir setiap
+    // ucapan ditolak.
+    await new Promise((lanjut) => setTimeout(lanjut, JEDA_SEBELUM_REKAM_MS));
+
     try {
       const rekaman = await pengenal.rekam(REKAM_UCAPAN_MS);
       detak.tik('usai');
@@ -232,7 +278,11 @@ export function Aplikasi() {
         return;
       }
 
-      kirim({ jenis: 'SET_BELANJA', nilai });
+      kirim(
+        kolom === 'bayar'
+          ? { jenis: 'SET_BAYAR', nilai }
+          : { jenis: 'SET_BELANJA', nilai },
+      );
     } catch (galat) {
       console.log('[SUARA] galat:', kodeGalat(galat));
       detak.tik('tolak');
@@ -266,6 +316,7 @@ export function Aplikasi() {
     </Tombol>
   );
 
+
   if (melatih) {
     return (
       <LatihSuara
@@ -276,6 +327,19 @@ export function Aplikasi() {
           setPustaka(contoh);
         }}
         onBatal={() => setMelatih(false)}
+      />
+    );
+  }
+
+  if (mode === 'baca') {
+    return (
+      <LayarBaca
+        pemindai={pemindai}
+        pengucap={pengucap}
+        platform={platform}
+        detak={detak}
+        videoRef={videoRef}
+        onKeluar={() => setMode('beranda')}
       />
     );
   }
@@ -303,17 +367,26 @@ export function Aplikasi() {
             langkah={null}
             judul="SUDEPI"
             subjudul="Suara Deteksi Rupiah"
-            petunjuk="Ketuk di mana saja untuk memulai"
             aksi={
               <>
-                <Tombol label={label} onAktif={tindakanUtama}>
+                <Tombol
+                  label="Baca uang dengan kamera"
+                  onAktif={() => setMode('baca')}
+                >
+                  Baca uang
+                </Tombol>
+                <Tombol
+                  label="Mulai transaksi dan hitung kembalian"
+                  ragam="sekunder"
+                  onAktif={mulaiTransaksi}
+                >
                   Mulai transaksi
                 </Tombol>
                 <Tombol
                   label={
                     suaraTersedia
                       ? 'Latih ulang suara untuk memasukkan nominal'
-                      : 'Latih suara agar nominal bisa disebutkan, sekitar satu menit'
+                      : 'Latih suara agar nominal bisa disebutkan, sekitar satu setengah menit'
                   }
                   ragam="hantu"
                   onAktif={() => setMelatih(true)}
@@ -323,39 +396,26 @@ export function Aplikasi() {
               </>
             }
           >
-            <LapisanKetuk onAktif={tindakanUtama} />
-            <div className="pointer-events-none flex h-full flex-col justify-center gap-6">
+            {/*
+              Tidak ada LapisanKetuk di layar ini.
+
+              Dulu seluruh layar adalah satu tombol "mulai", karena hanya ada
+              satu hal yang bisa dilakukan. Sekarang ada dua jalan yang berbeda
+              — membaca uang dan bertransaksi — dan sasaran sebesar layar akan
+              memilih salah satunya tanpa pengguna tahu yang mana.
+            */}
+            <div className="pointer-events-none flex h-full flex-col justify-center gap-5">
               <p className="max-w-[30ch] text-[1.0625rem] leading-relaxed text-[var(--color-tinta-redup)]">
-                Kenali nominal uang, hitung kembalian, lalu periksa kembalian
-                yang kamu terima.
+                Kenali nominal uang kapan saja, atau hitung kembalian untuk satu
+                transaksi.
               </p>
 
-              <ol className="flex flex-col gap-2.5">
-                {[
-                  'Pindai uang yang kamu bayarkan',
-                  'Masukkan total belanja',
-                  'Tunjukkan layar ke pedagang',
-                  'Periksa kembalian dari pedagang',
-                ].map((teks, i) => (
-                  <li
-                    key={teks}
-                    className="flex items-center gap-3.5 rounded-2xl bg-[var(--color-kartu)] px-4 py-3.5"
-                    style={{ boxShadow: 'var(--shadow-kartu)' }}
-                  >
-                    <span
-                      className="flex size-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold"
-                      style={{
-                        backgroundColor: 'var(--color-primer-tipis)',
-                        color: 'var(--color-primer)',
-                      }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="text-[0.9375rem] font-semibold">{teks}</span>
-                  </li>
-                ))}
-              </ol>
-
+              {/*
+                Dulu di sini ada dua kartu penjelas, satu untuk tiap tombol.
+                Keduanya dibuang: isinya mengulang persis nama tombol yang ada
+                tepat di bawahnya, dan bagi pengguna TalkBack itu berarti
+                mendengar hal yang sama dua kali sebelum sampai ke tombolnya.
+              */}
               <div className="flex items-center gap-2.5 text-[var(--color-tinta-samar)]">
                 <IkonLuring />
                 <span className="text-[0.8125rem] font-semibold">
@@ -366,42 +426,28 @@ export function Aplikasi() {
           </Kerangka>
         );
 
-      case 'PINDAI_BAYAR':
+      case 'KALKULATOR': {
+        const bayar = kolom === 'bayar';
         return (
           <Kerangka
-            langkah={1}
-            judul="Pindai uang"
-            subjudul="Arahkan kamera ke uang yang dibayarkan"
-            isiPenuh
-            petunjuk="Ketuk di mana saja untuk lanjut"
-            aksi={
-              <>
-                <Tombol label={label} onAktif={tindakanUtama}>
-                  Lanjutkan
-                </Tombol>
-                {tombolBatal}
-              </>
+            langkah={bayar ? 1 : 2}
+            judul={bayar ? 'Uang kamu' : 'Total belanja'}
+            subjudul={
+              bayar
+                ? 'Masukkan nominal uang yang kamu pegang'
+                : 'Masukkan harga yang harus dibayar'
             }
-          >
-            <LapisanKetuk onAktif={tindakanUtama} />
-            <Pratinjau
-              videoRef={videoRef}
-              hasil={hasilPindai}
-              onSenter={(n) => void pemindai.setSenter(n)}
-            />
-          </Kerangka>
-        );
-
-      case 'KALKULATOR':
-        return (
-          <Kerangka
-            langkah={2}
-            judul="Dialog transaksi kamu"
-            subjudul="Masukkan total belanja agar kembalian bisa diperiksa"
-            onKembali={batal}
+            onKembali={bayar ? batal : () => setKolom('bayar')}
             aksi={
               <>
-                <Tombol label={label} onAktif={tindakanUtama}>
+                <Tombol
+                  label={
+                    bayar
+                      ? 'Kunci uang kamu dan lanjut ke total belanja'
+                      : 'Kunci total belanja dan tunjukkan ke pedagang'
+                  }
+                  onAktif={lanjutKalkulator}
+                >
                   Lanjutkan
                 </Tombol>
                 {tombolBatal}
@@ -415,15 +461,26 @@ export function Aplikasi() {
               mengunci nominal yang belum selesai diketik.
             */}
             <PapanAngka
-              nilai={nilaiKolom}
-              onUbah={(n) => kirim({ jenis: 'SET_BELANJA', nilai: n })}
-              namaKolom="total belanja"
-              pertanyaan="Berapa total belanjaan kamu?"
+              nilai={bayar ? (state.uangDibayar ?? 0) : (state.totalBelanja ?? 0)}
+              onUbah={(n) =>
+                kirim(
+                  bayar
+                    ? { jenis: 'SET_BAYAR', nilai: n }
+                    : { jenis: 'SET_BELANJA', nilai: n },
+                )
+              }
+              namaKolom={bayar ? 'uang kamu' : 'total belanja'}
+              pertanyaan={
+                bayar
+                  ? 'Berapa uang yang kamu pegang?'
+                  : 'Berapa total belanjanya?'
+              }
               onSuara={suaraTersedia ? () => void dengarkanNominal() : undefined}
               mendengar={mendengar}
             />
           </Kerangka>
         );
+      }
 
       case 'LAYAR_KASIR':
         return (
@@ -457,7 +514,7 @@ export function Aplikasi() {
         return (
           <Kerangka
             langkah={4}
-            judul="Deteksi kembalian"
+            judul="Periksa kembalian"
             subjudul="Arahkan kamera ke uang kembalian dari pedagang"
             isiPenuh
             petunjuk="Ketuk di mana saja untuk menyelesaikan transaksi"
@@ -497,7 +554,10 @@ export function Aplikasi() {
               <LencanaCentang />
 
               <div className="flex flex-col items-center gap-2">
-                <span className="eyebrow" style={{ color: 'var(--color-sukses-terang)' }}>
+                <span
+                  className="eyebrow"
+                  style={{ color: 'var(--color-sukses-terang)' }}
+                >
                   Transaksi selesai
                 </span>
                 <div className="flex items-baseline gap-2">
@@ -523,7 +583,10 @@ export function Aplikasi() {
                   ['Dibayar', state.uangDibayar ?? 0],
                 ].map(([teks, nilai]) => (
                   <div key={String(teks)} className="flex flex-col gap-1">
-                    <span className="eyebrow" style={{ color: 'var(--color-kasir-redup)' }}>
+                    <span
+                      className="eyebrow"
+                      style={{ color: 'var(--color-kasir-redup)' }}
+                    >
                       {teks}
                     </span>
                     <span
@@ -534,11 +597,22 @@ export function Aplikasi() {
                     </span>
                   </div>
                 ))}
-                <KodeTunanetra jumlah={3} warna="var(--color-kasir-redup)" ukuran={9} />
+                <KodeTunanetra
+                  jumlah={3}
+                  warna="var(--color-kasir-redup)"
+                  ukuran={9}
+                />
               </div>
             </div>
           </Kerangka>
         );
+
+      case 'PINDAI_BAYAR':
+        // Fase ini tidak lagi dipakai sejak ADR-0014: uang yang dibayarkan
+        // dimasukkan lewat kalkulator, bukan dipindai. Ia masih ada di
+        // `src/contracts/` yang beku, jadi cabang ini dijaga agar tidak ada
+        // keadaan yang berakhir di layar kosong.
+        return null;
     }
   }
 }
@@ -552,7 +626,12 @@ function IkonLuring() {
         strokeWidth="1.8"
         strokeLinecap="round"
       />
-      <path d="M3 3l18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M3 3l18 18"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

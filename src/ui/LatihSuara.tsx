@@ -40,7 +40,7 @@ const REKAM_MS = 1600;
  * suara TalkBack sendiri ikut terekam dan menjadi contoh latih — kesalahan
  * yang merusak seluruh pengenalan sesudahnya tanpa terlihat.
  */
-const JEDA_ABA_ABA_MS = 1400;
+const JEDA_ABA_ABA_MS = 2200;
 
 /** Berapa kali seluruh kosakata dilalui. */
 const PUTARAN = 2;
@@ -198,9 +198,15 @@ export function LatihSuara({
     >
       {/* Aba-aba. Dibacakan TalkBack setiap kali katanya berganti. */}
       <div role="status" aria-live="assertive" className="sr-only">
+        {/*
+          Dikosongkan selama MEREKAM. TalkBack yang masih berbicara ketika
+          mikrofon menyala akan ikut terekam dan menjadi bagian dari contoh
+          latih — dan contoh yang tercemar membuat setiap kata tampak sama,
+          sehingga pengenalan menolak hampir semuanya.
+        */}
         {selesai
           ? 'Pelatihan suara selesai'
-          : berjalan
+          : berjalan && tahap === 'menyebut'
             ? `Ucapkan: ${sekarang?.kata ?? ''}`
             : ''}
       </div>

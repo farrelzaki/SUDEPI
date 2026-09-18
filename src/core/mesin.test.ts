@@ -62,12 +62,17 @@ function jalankan(...peristiwa: readonly Peristiwa[]): StateTransaksi {
 const jenisEfek = (efek: readonly Efek[]): readonly string[] =>
   efek.map((e) => e.jenis);
 
-/** Sampai ke KALKULATOR dengan hasil pindai stabil senilai `dibayar`. */
+/**
+ * Sampai ke KALKULATOR dengan uang dibayar sudah terisi.
+ *
+ * Sejak ADR-0014, transaksi dimulai langsung di kalkulator — kamera tidak lagi
+ * dipakai untuk menentukan uang yang dibayarkan, melainkan hanya di akhir untuk
+ * memeriksa kembalian.
+ */
 function sampaiKalkulator(dibayar = 100_000): StateTransaksi {
   return jalankan(
     { jenis: 'MULAI', padaMs: 1000 },
-    { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', dibayar) },
-    { jenis: 'KONFIRMASI' },
+    { jenis: 'SET_BAYAR', nilai: dibayar },
   );
 }
 
@@ -75,8 +80,7 @@ function sampaiKalkulator(dibayar = 100_000): StateTransaksi {
 function sampaiPindaiKembalian(): StateTransaksi {
   return jalankan(
     { jenis: 'MULAI', padaMs: 1000 },
-    { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-    { jenis: 'KONFIRMASI' },
+    { jenis: 'SET_BAYAR', nilai: 50_000 },
     { jenis: 'SET_BELANJA', nilai: 35_000 },
     { jenis: 'KONFIRMASI' },
     { jenis: 'KONFIRMASI' },
@@ -89,8 +93,7 @@ describe('alur bahagia', () => {
   it('menjalani Fase 1 sampai 4 secara utuh', () => {
     const akhir = jalankan(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BAYAR', nilai: 50_000 },
       { jenis: 'SET_BELANJA', nilai: 35_000 },
       { jenis: 'KONFIRMASI' },
       { jenis: 'KONFIRMASI' },
@@ -114,8 +117,7 @@ describe('alur bahagia', () => {
   it('LAYAR_KASIR dapat dilewati langsung ke pemindaian kembalian', () => {
     const s = jalankan(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BAYAR', nilai: 50_000 },
       { jenis: 'SET_BELANJA', nilai: 20_000 },
       { jenis: 'LEWATI_LAYAR_KASIR' },
     );
@@ -134,11 +136,11 @@ describe('alur bahagia', () => {
 
 describe('abstain — sistem boleh berkata tidak tahu', () => {
   it('tidak menyebut nominal apa pun saat abstain', () => {
-    const { state, efek } = reduksi(
-      jalankan({ jenis: 'MULAI', padaMs: 1000 }),
-      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
-    );
-    expect(state.fase).toBe<Fase>('PINDAI_BAYAR');
+    const { state, efek } = reduksi(sampaiPindaiKembalian(), {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('abstain'),
+    });
+    expect(state.fase).toBe<Fase>('PINDAI_KEMBALIAN');
     expect(state.alasanAbstain).not.toBeNull();
     expect(jenisEfek(efek)).toEqual(['UCAP', 'GETAR']);
   });
@@ -148,7 +150,7 @@ describe('abstain — sistem boleh berkata tidak tahu', () => {
     // sehingga bingkai abstain berdatangan beruntun. Kalimat peringatannya
     // lebih panjang daripada jeda antar bingkai, jadi mengucapkannya setiap
     // kali membuat ucapan memotong dirinya sendiri di tengah kata.
-    let state = jalankan({ jenis: 'MULAI', padaMs: 1000 });
+    let state = sampaiPindaiKembalian();
     const diucapkan: number[] = [];
 
     for (let i = 0; i < 5; i++) {
@@ -164,7 +166,7 @@ describe('abstain — sistem boleh berkata tidak tahu', () => {
   });
 
   it('kedipan belum-stabil di tengah abstain tidak memicu peringatan ulang', () => {
-    let state = reduksi(jalankan({ jenis: 'MULAI', padaMs: 1000 }), {
+    let state = reduksi(sampaiPindaiKembalian(), {
       jenis: 'HASIL_PINDAI',
       muatan: pindai('abstain'),
     }).state;
@@ -184,7 +186,7 @@ describe('abstain — sistem boleh berkata tidak tahu', () => {
   it('memperingatkan lagi setelah uang disingkirkan dari depan kamera', () => {
     // Percobaan BARU berhak mendapat peringatan baru. Kalau tidak, pengguna
     // yang mencoba ulang dengan lembar lain hanya mendapat kesenyapan.
-    let state = reduksi(jalankan({ jenis: 'MULAI', padaMs: 1000 }), {
+    let state = reduksi(sampaiPindaiKembalian(), {
       jenis: 'HASIL_PINDAI',
       muatan: pindai('abstain'),
     }).state;
@@ -251,8 +253,7 @@ describe('BATAL sah dari fase mana pun kecuali SIAGA', () => {
   it('dari LAYAR_KASIR juga bisa dibatalkan', () => {
     const s = jalankan(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BAYAR', nilai: 50_000 },
       { jenis: 'SET_BELANJA', nilai: 35_000 },
       { jenis: 'KONFIRMASI' },
     );
@@ -272,28 +273,27 @@ describe('BATAL sah dari fase mana pun kecuali SIAGA', () => {
 });
 
 describe('transisi tidak sah ditolak tanpa melempar error', () => {
-  it('tidak bisa lanjut dari PINDAI_BAYAR tanpa hasil stabil', () => {
-    const s = jalankan({ jenis: 'MULAI', padaMs: 1000 });
+  it('tidak bisa lanjut dari pemindaian kembalian tanpa hasil stabil', () => {
+    const s = sampaiPindaiKembalian();
     expect(reduksi(s, { jenis: 'KONFIRMASI' }).state.fase).toBe<Fase>(
-      'PINDAI_BAYAR',
+      'PINDAI_KEMBALIAN',
     );
   });
 
   it('tidak bisa lanjut dengan hasil abstain, walau ada deteksi', () => {
-    const s = jalankan(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
-    );
+    const s = reduksi(sampaiPindaiKembalian(), {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('abstain'),
+    }).state;
     expect(reduksi(s, { jenis: 'KONFIRMASI' }).state.fase).toBe<Fase>(
-      'PINDAI_BAYAR',
+      'PINDAI_KEMBALIAN',
     );
   });
 
   it('MENOLAK maju saat uang dibayar kurang dari belanja', () => {
     const s = jalankan(
       { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 20_000) },
-      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BAYAR', nilai: 20_000 },
       { jenis: 'SET_BELANJA', nilai: 50_000 },
     );
     const { state, efek } = reduksi(s, { jenis: 'KONFIRMASI' });
@@ -312,7 +312,7 @@ describe('transisi tidak sah ditolak tanpa melempar error', () => {
   });
 
   it('peristiwa kalkulator tidak berlaku saat masih memindai', () => {
-    const s = jalankan({ jenis: 'MULAI', padaMs: 1000 });
+    const s = sampaiPindaiKembalian();
     expect(reduksi(s, { jenis: 'SET_BELANJA', nilai: 10_000 }).state).toEqual(s);
     expect(reduksi(s, { jenis: 'SET_BAYAR', nilai: 10_000 }).state).toEqual(s);
   });
@@ -366,46 +366,56 @@ describe('penguncian hasil stabil', () => {
   // apa yang terjadi.
 
   it('hasil tidak stabil TIDAK menghapus hasil stabil yang sudah diucapkan', () => {
-    const s = jalankan(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('tidak-ada-objek') },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
-    );
+    let s = sampaiPindaiKembalian();
+    for (const muatan of [
+      pindai('stabil', 15_000),
+      pindai('belum-stabil'),
+      pindai('tidak-ada-objek'),
+      pindai('abstain'),
+    ]) {
+      s = reduksi(s, { jenis: 'HASIL_PINDAI', muatan }).state;
+    }
     expect(s.hasilPindaiTerakhir?.status).toBe('stabil');
-    expect(s.hasilPindaiTerakhir?.totalKertas).toBe(50_000);
+    expect(s.hasilPindaiTerakhir?.totalKertas).toBe(15_000);
   });
 
   it('ketukan tetap diterima setelah bingkai sempat goyah', () => {
-    const s = jalankan(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
-      { jenis: 'KONFIRMASI' },
-    );
-    expect(s.fase).toBe<Fase>('KALKULATOR');
-    expect(s.uangDibayar).toBe(50_000);
+    let s = sampaiPindaiKembalian();
+    s = reduksi(s, {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('stabil', 15_000),
+    }).state;
+    s = reduksi(s, {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('belum-stabil'),
+    }).state;
+    s = reduksi(s, { jenis: 'KONFIRMASI' }).state;
+
+    expect(s.fase).toBe<Fase>('SELESAI');
+    expect(s.kembalianTerverifikasi).toBe(15_000);
   });
 
   it('hasil stabil BARU tetap menggantikan yang lama', () => {
     // Pengguna menambah selembar lagi. Nominalnya harus ikut naik.
-    const s = jalankan(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 70_000) },
-    );
-    expect(s.hasilPindaiTerakhir?.totalKertas).toBe(70_000);
+    let s = sampaiPindaiKembalian();
+    for (const muatan of [
+      pindai('stabil', 10_000),
+      pindai('belum-stabil'),
+      pindai('stabil', 15_000),
+    ]) {
+      s = reduksi(s, { jenis: 'HASIL_PINDAI', muatan }).state;
+    }
+    expect(s.hasilPindaiTerakhir?.totalKertas).toBe(15_000);
   });
 
   it('ULANGI_PINDAI membuka kuncinya', () => {
-    const s = jalankan(
-      { jenis: 'MULAI', padaMs: 1000 },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
-      { jenis: 'ULANGI_PINDAI' },
-      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
-    );
+    let s = sampaiPindaiKembalian();
+    s = reduksi(s, {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('stabil', 15_000),
+    }).state;
+    s = reduksi(s, { jenis: 'ULANGI_PINDAI' }).state;
+    s = reduksi(s, { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') }).state;
     expect(s.hasilPindaiTerakhir?.status).toBe('abstain');
   });
 

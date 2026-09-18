@@ -27,7 +27,7 @@ import type { Contoh } from './pengenal';
  * melainkan acak. Menaikkan versi membuat contoh lama diabaikan diam-diam, dan
  * layar pelatihan akan menawarkan dirinya lagi.
  */
-const KUNCI = 'sudepi.suara.contoh.v2';
+const KUNCI = 'sudepi.suara.contoh.v3';
 
 /** Bentuk tersimpan: angka biasa, supaya bisa jadi JSON. */
 interface ContohTersimpan {
@@ -45,8 +45,11 @@ interface ContohTersimpan {
 function keTersimpan(c: Contoh): ContohTersimpan {
   return {
     kata: c.kata,
+    // Tiga angka di belakang koma sejak ciri disetarakan ragamnya: nilainya
+    // kini bergerak di satuan, bukan puluhan, sehingga pembulatan yang lebih
+    // kasar mulai menghapus perbedaan yang berarti.
     bingkai: c.bingkai.map((b) =>
-      Array.from(b, (x) => Math.round(x * 100) / 100),
+      Array.from(b, (x) => Math.round(x * 1000) / 1000),
     ),
   };
 }
