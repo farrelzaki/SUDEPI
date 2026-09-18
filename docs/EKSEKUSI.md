@@ -10,24 +10,48 @@ Status: **aktif** · Dua pelaksana: **Farrel** dan **Fajar** · Duduk bersebelah
 
 ---
 
-> ## ⚠ PEMBAGIAN BERUBAH — 18 September 2026
+> ## ⚠ PEMBAGIAN BERUBAH — 18 September 2026 (pembaruan kedua)
 >
-> **Fajar sekarang HANYA memegang `model/`** dan berfokus penuh pada dataset
-> serta training. Seluruh kode aplikasi diambil alih Farrel.
+> **Fajar memegang `model/` untuk DATASET dan TRAINING.** Seluruh kode aplikasi
+> dipegang Farrel.
 >
-> **Untuk agen AI Fajar:** jangan menulis apa pun di `src/`. Kalau kamu sudah
-> terlanjur menulis di `src/ui/`, `src/platform/`, atau `src/audio/`, **jangan
-> di-push** — bilang ke Farrel lebih dulu, karena dia sedang mengerjakan folder
-> yang sama dan pekerjaannya akan bertabrakan.
+> **Pembaruan:** Farrel juga menyiapkan **berkas bantu** di `model/` —
+> `data.yaml` dan skrip pemetaan dataset — karena urutan kelasnya harus cocok
+> persis dengan `src/contracts/uang.ts` yang dia pegang. Rinciannya di tabel
+> "Siapa memegang apa di `model/`" tepat di bawah.
+>
+> **Untuk agen AI Fajar:**
+> - Jangan menulis apa pun di `src/`.
+> - Di `model/`, **jangan menulis ulang `data.yaml`** — pakai yang sudah ada.
+>   Kalau isinya terasa salah, bilang ke Farrel, jangan perbaiki sendiri.
+> - Berkas hasil training (`runs/`, `*.pt`, `*.onnx`) sepenuhnya milikmu.
 
 ## Pembagian wilayah
 
 | | **Farrel** | **Fajar** |
 | --- | --- | --- |
-| Folder | seluruh `src/` | `model/` |
+| Folder | seluruh `src/` | `model/` (dataset & training) |
 | Berkas akar | semua | — |
 | Fokus | Membangun aplikasinya | Dataset, training, ekspor ONNX, kuantisasi |
 | Keluaran yang ditunggu pihak lain | — | **`public/model/sudepi.onnx`** |
+
+### Siapa memegang apa di `model/`
+
+Satu-satunya folder yang dipegang berdua, jadi batasnya ditulis per berkas.
+
+| Berkas | Pemilik | Alasan |
+| --- | --- | --- |
+| `data.yaml` | **Farrel** | Urutan kelasnya WAJIB cocok persis dengan `src/contracts/uang.ts`. Satu sumber kebenaran, satu pemilik. |
+| `petakan_dataset.py` | **Farrel** | Memetakan nama kelas dataset publik ke skema 8 kelas kita. |
+| `README.md` | **Farrel** | Rancangan pipeline. |
+| `latih.ipynb`, `runs/`, `*.pt`, `*.onnx` | **Fajar** | Pelaksanaan training dan seluruh hasilnya. |
+| Dataset mentah (`dataset/`) | **Fajar** | Unduhan dan kurasi. |
+
+**Kenapa `data.yaml` dipegang Farrel.** Kalau urutan kelasnya bergeser satu
+saja, SUDEPI menyebut nominal yang salah dengan penuh keyakinan, dan tidak ada
+satu pun dari 204 tes yang bisa menangkapnya — hanya uang sungguhan di depan
+kamera. Berkas itu harus punya satu pemilik yang sama dengan pemilik tabel
+denominasi, supaya keduanya tidak pernah bisa berbeda.
 
 Pembagian ini menyimpang dari Lampiran 9, dan itu wajar: peran di proposal
 adalah rencana, sedangkan ini kenyataan pada jam ke-sekian. Yang menentukan
