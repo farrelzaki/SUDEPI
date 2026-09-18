@@ -36,9 +36,38 @@ Yang diperiksa langsung di perangkat, bukan disimpulkan dari kode:
 - TalkBack membacakan label, dan ketuk ganda berpindah fase
 - Riwayat tersimpan di IndexedDB perangkat (`selesai` ×16, agregat harian)
 - Siklus penuh Siaga → Pindai → Kalkulator → Kasir → Kembalian → Selesai → Siaga
+- **Seluruh siklus itu berjalan dengan jaringan HP dimatikan total**
 
 Cara ini mahal, tetapi ia menemukan sembilan kesalahan yang **tidak satu pun**
 tertangkap oleh 210 tes otomatis. Bagian berikutnya menjelaskannya.
+
+## Klaim terbesar proposal, akhirnya diuji
+
+SUDEPI menjanjikan **100% luring**. Itu klaim yang paling sering diucapkan di
+proposal, dan yang paling membedakannya dari Google Lookout maupun Seeing AI —
+tetapi sampai hari ini belum pernah dibuktikan.
+
+Kami mematikan WiFi dan data seluler pada perangkat, memastikan benar-benar
+terputus (`ping 8.8.8.8` menjawab *Network is unreachable*), lalu menjalankan
+satu transaksi utuh:
+
+```
+Siaga → Pindai → Kalkulator → Layar kasir → Cek kembalian → Selesai → Siaga
+```
+
+Seluruhnya berjalan. Model termuat, 34 potongan suara termuat
+(`termuat=34 gagal=0`), dan **tidak ada satu pun percobaan akses jaringan yang
+tercatat di logcat** — bukan sekadar "gagal dengan anggun", melainkan memang
+tidak pernah mencoba.
+
+Itu bukan kebetulan melainkan sifat arsitektur: tidak ada satu baris pun kode
+jaringan di aplikasi ini, sehingga secara struktural tidak ada tempat untuk
+pergi. Konsekuensinya juga menjawab risiko nomor 7 Lampiran 8 — riwayat
+transaksi tidak mungkin bocor ke pihak ketiga, karena tidak ada pihak ketiga.
+
+Catatan kejujuran: pengujian ini memakai model tiruan, karena bobot hasil
+pelatihan belum tersedia. Yang dibuktikan adalah **kemandirian dari jaringan**,
+bukan akurasi deteksi.
 
 ## Sembilan kesalahan yang hanya ditemukan dengan menjalankan
 

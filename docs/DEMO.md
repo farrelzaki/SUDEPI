@@ -58,6 +58,11 @@ sinyal kematangan rekayasa yang jauh lebih kuat.
 **Demo mode pesawat.** Perlihatkan ikon pesawat di bilah status sebelum mulai.
 Butuh tiga detik, dan langsung membuktikan klaim terbesar di proposal.
 
+Jalur ini **sudah pernah diuji dan lulus**: seluruh siklus Fase 1 sampai 4
+berjalan dengan WiFi dan data seluler dimatikan, tanpa satu pun percobaan akses
+jaringan tercatat di logcat. Jadi saat demo kamu tidak sedang berharap, kamu
+sedang mengulang sesuatu yang sudah terbukti.
+
 ## Kalau ada yang gagal saat demo
 
 - **Deteksi meleset:** jangan diulang-ulang berkali-kali. Katakan

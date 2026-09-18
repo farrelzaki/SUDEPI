@@ -84,7 +84,11 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
   adalah keluaran `model/buat_model_uji.py`. Ia TIDAK melihat apa pun dan
   selalu menyebut Rp50.000 ditambah koin. **Jangan dipakai demo.** Hapus
   berkasnya begitu model asli tersedia.
-- **Uji mode pesawat belum dijalankan** — menunggu model asli.
+- ~~Uji mode pesawat~~ **SUDAH DIJALANKAN DAN LULUS.** Siklus penuh Fase 1–4
+  berjalan dengan WiFi dan data seluler dimatikan (`ping` menjawab
+  *Network is unreachable*), tanpa satu pun percobaan akses jaringan di logcat.
+  Memakai model tiruan, jadi yang terbukti adalah kemandirian dari jaringan,
+  bukan akurasi.
 - **Uji layar tertutup telapak tangan belum dijalankan** — menunggu model asli.
 
 ## Keputusan Penting
