@@ -1,0 +1,19 @@
+# Setting pnpm. Sejak pnpm 10 lokasinya di sini, bukan lagi field "pnpm" di
+# package.json.
+#
+# pnpm menolak berjalan selama masih ada paket dengan build script yang belum
+# diputuskan, jadi KEDUA daftar di bawah harus lengkap.
+#
+# esbuild  : postinstall-nya memilih binary sesuai platform. Vite butuh ini.
+# protobufjs: postinstall-nya hanya membangkitkan berkas tipe untuk pemakaian
+#             API-nya secara langsung. onnxruntime-web tidak memerlukannya saat
+#             runtime, jadi sengaja dilewati agar permukaan build tetap kecil.
+onlyBuiltDependencies:
+  - esbuild
+
+ignoredBuiltDependencies:
+  - protobufjs
+
+allowBuilds:
+  esbuild: set this to true or false
+  protobufjs: set this to true or false

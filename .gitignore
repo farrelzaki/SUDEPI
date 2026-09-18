@@ -2,3 +2,22 @@ IFest/
 IFest Competition/
 Exsum_IFEST2026_PenungguTokenReset_LAST.pdf
 Exsum_IFEST2026_PenungguTokenReset.pdf
+# --- Node / Vite ---
+node_modules/
+dist/
+*.local
+.vite/
+
+# --- Capacitor / Android ---
+# Proyek android/ dihasilkan `cap add android` dan dapat dibuat ulang.
+# Dikecualikan supaya tidak membanjiri diff dan tidak bentrok antar mesin.
+android/
+.gradle/
+local.properties
+
+# --- Editor / OS ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

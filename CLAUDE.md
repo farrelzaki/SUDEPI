@@ -88,10 +88,17 @@ Kalau memang harus berubah:
 ```bash
 pnpm dev                 # dev server di browser desktop (pakai mock engine)
 pnpm test                # Vitest — logika murni (NMS, kalkulator, FSM)
-pnpm build               # bundel produksi ke dist/
+pnpm typecheck           # tsc --noEmit
+pnpm build               # typecheck + bundel produksi ke dist/
 pnpm cap:sync            # build + salin web ke proyek Android
 pnpm cap:run             # pasang & jalankan di HP terhubung
 ```
+
+**Kalau `pnpm install` keluar dengan `ERR_PNPM_IGNORED_BUILDS`:** itu esbuild
+yang butuh izin menjalankan postinstall-nya. Keputusannya sudah ditulis di
+`pnpm-workspace.yaml`, tapi pnpm menyimpan status lama di
+`node_modules/.modules.yaml`. Kosongkan larik `ignoredBuilds` di berkas itu,
+lalu `pnpm install` lagi. Muncul lagi setelah `node_modules` dihapus total.
 
 ## Kebiasaan yang diharapkan
 
@@ -116,6 +123,7 @@ Versi di bawah sudah **diverifikasi ke npm**, bukan dari ingatan.
 | Paket                  | Versi  | Kenapa dikunci                                       |
 | ---------------------- | ------ | ---------------------------------------------------- |
 | `vite`                 | 7.3.6  | Vite 8 mengganti bundler ke Rolldown. Pemuatan `.wasm` ORT dan bundling Web Worker adalah jalur kritis kita; jalur Rollup sudah teruji untuk itu. |
+| `typescript`           | 5.9.3  | TS 7 adalah kompilator native yang baru. Seluruh tooling kita dibangun terhadap 5.9. Alasan yang sama dengan Vite 7. |
 | `@vitejs/plugin-react` | 5.2.0  | Versi 6 hanya menerima Vite 8.                       |
 | `vitest`               | 4.1.11 | Pasangan Vite 7. Vitest 5 mengarah ke Vite 8.        |
 | `@capacitor/*`         | 7.6.9  | Cap 8 memaksa edge-to-edge; merusak tata letak kamera layar penuh. Lihat ADR-0004. |
