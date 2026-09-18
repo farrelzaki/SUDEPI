@@ -101,8 +101,17 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
   let penguat: GainNode | null = null;
   let pembatas: DynamicsCompressorNode | null = null;
   let sumberAktif: AudioBufferSourceNode | null = null;
-  let dibatalkan = false;
   const buffer = new Map<string, AudioBuffer>();
+
+  /**
+   * Nomor urut ucapan. Naik setiap kali ada ucapan baru atau penghentian.
+   *
+   * Menggantikan penanda boolean sebelumnya, yang punya lubang: dua panggilan
+   * `ucap` yang saling menyusul sama-sama menyetelnya ke false, sehingga kedua
+   * perulangan berjalan bersamaan dan suaranya bertumpuk. Dengan nomor urut,
+   * perulangan lama langsung tahu dirinya sudah tidak berlaku.
+   */
+  let generasi = 0;
 
   async function muatKlip(): Promise<void> {
     // fetch di sini menyasar aset di dalam bundel, bukan host luar. Ia tetap
@@ -230,11 +239,16 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
     },
 
     async ucap(ucapan: Ucapan) {
-      dibatalkan = false;
+      // Ucapan baru SELALU mengambil alih yang lama. Dua suara yang bicara
+      // bersamaan bukan sekadar berisik — bagi pengguna yang hanya punya
+      // telinga untuk mengetahui nominal uangnya, keduanya jadi tak terpahami.
+      this.hentikan();
+      const punyaku = generasi;
 
       if (buffer.size > 0) {
         for (const potongan of keUrutanPotongan(ucapan)) {
-          if (dibatalkan) return;
+          // Ucapan lain sudah mengambil alih di tengah jalan.
+          if (generasi !== punyaku) return;
           await putarPotongan(potongan);
         }
         return;
@@ -244,7 +258,7 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
     },
 
     hentikan() {
-      dibatalkan = true;
+      generasi += 1;
       try {
         sumberAktif?.stop();
       } catch {

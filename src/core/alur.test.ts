@@ -384,3 +384,77 @@ describe('kembali ke Mode Siaga', () => {
     expect(ucapan.at(-1)).toBe('Transaksi dibatalkan');
   });
 });
+
+describe('tidak mengumumkan ulang isi yang sama', () => {
+  // BUG NYATA yang dilaporkan dari HP: suara terdengar berulang dan bergema
+  // tanpa henti. Penyebabnya kamera menghasilkan sekitar 8 bingkai stabil per
+  // detik selama uang masih di depannya, dan SETIAP bingkai memicu pengumuman
+  // baru — delapan kali per detik, saling menumpuk.
+
+  it('delapan bingkai stabil identik hanya diucapkan SEKALI', () => {
+    const bingkai = Array.from({ length: 8 }, () =>
+      ({ jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) }) as const,
+    );
+    const { ucapan } = jalankanAlur({ jenis: 'MULAI', padaMs: 1000 }, ...bingkai);
+
+    const menyebutNominal = ucapan.filter((u) => u.includes('lima puluh ribu'));
+    expect(menyebutNominal).toHaveLength(1);
+  });
+
+  it('tetap mengumumkan saat pengguna menambah lembaran', () => {
+    // Kalau peredaman terlalu agresif, penambahan uang jadi tidak terdengar —
+    // dan pengguna mengunci nominal yang salah.
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000, 20_000]) },
+    );
+    expect(ucapan.filter((u) => u.includes('Total')).length).toBe(2);
+    expect(ucapan.at(-1)).toContain('tujuh puluh ribu rupiah');
+  });
+
+  it('mengumumkan lagi kalau koin muncul, walau totalnya sama', () => {
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [20_000]) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [20_000], true) },
+    );
+    expect(ucapan.at(-1)).toContain('ditambah koin');
+  });
+
+  it('bingkai goyah di tengah tidak memicu pengumuman ulang', () => {
+    // Tangan bergerak sedikit, satu bingkai jadi tidak stabil, lalu kembali
+    // stabil dengan isi yang sama. Itu bukan informasi baru.
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+    );
+    expect(ucapan.filter((u) => u.includes('lima puluh ribu'))).toHaveLength(1);
+  });
+
+  it('Fase 4 juga tidak mengulang', () => {
+    const awal = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BELANJA', nilai: 35_000 },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'KONFIRMASI' },
+    );
+    let s = awal.state;
+    const efek: Efek[] = [];
+    for (let i = 0; i < 8; i += 1) {
+      const h = reduksi(s, {
+        jenis: 'HASIL_PINDAI',
+        muatan: pindai('stabil', [15_000]),
+      });
+      s = h.state;
+      efek.push(...h.efek);
+    }
+    const ucapan = efek.flatMap((e) => (e.jenis === 'UCAP' ? [keTeks(e.ucapan)] : []));
+    expect(ucapan.filter((u) => u.includes('lima belas ribu'))).toHaveLength(1);
+  });
+});

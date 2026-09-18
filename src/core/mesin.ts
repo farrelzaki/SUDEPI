@@ -96,6 +96,28 @@ function ucapkanHasilPindai(hasil: HasilPindai): Efek[] {
   ];
 }
 
+/**
+ * Apakah dua hasil pindai menyampaikan isi yang sama kepada pengguna.
+ *
+ * Kamera menghasilkan sekitar 8 bingkai stabil per detik selama uang masih
+ * berada di depannya. Tanpa pembanding ini, setiap bingkai memicu pengumuman
+ * baru — delapan kali per detik, saling menumpuk, dan tidak pernah berhenti
+ * selama uangnya belum disingkirkan.
+ *
+ * Yang dibandingkan hanya apa yang DIDENGAR pengguna: total, keberadaan koin,
+ * dan himpunan pecahannya. Posisi kotak sengaja diabaikan — uang yang dipegang
+ * tangan selalu bergeser sedikit, dan itu tidak mengubah apa pun yang diucapkan.
+ */
+function isinyaSama(a: HasilPindai | null, b: HasilPindai): boolean {
+  if (!a || a.status !== 'stabil' || b.status !== 'stabil') return false;
+  if (a.totalKertas !== b.totalKertas) return false;
+  if (a.adaKoin !== b.adaKoin) return false;
+
+  const kunci = (h: HasilPindai): string =>
+    h.deteksi.map((d) => d.kodeKelas).sort((x, y) => x - y).join(',');
+  return kunci(a) === kunci(b);
+}
+
 /** Respons seragam saat sistem tidak cukup yakin. */
 const EFEK_ABSTAIN: readonly Efek[] = [
   { jenis: 'UCAP', ucapan: frasa('belum_yakin_ulangi') },
@@ -130,12 +152,20 @@ export function reduksi(
           const hasil = peristiwa.muatan;
 
           if (hasil.status === 'stabil') {
-            // Hasil stabil baru selalu menggantikan yang lama — pengguna
-            // mungkin menambah atau mengganti lembaran.
-            return {
-              state: { ...state, hasilPindaiTerakhir: hasil, alasanAbstain: null },
-              efek: ucapkanHasilPindai(hasil),
+            const dasar: StateTransaksi = {
+              ...state,
+              hasilPindaiTerakhir: hasil,
+              alasanAbstain: null,
             };
+            // Isi yang sama TIDAK diumumkan ulang. Selama uang masih di depan
+            // kamera, bingkai stabil terus berdatangan; mengucapkannya tiap
+            // kali membuat suara bertumpuk dan tak pernah berhenti.
+            if (isinyaSama(state.hasilPindaiTerakhir, hasil)) {
+              return { state: dasar, efek: [] };
+            }
+            // Isi yang BERBEDA tetap diumumkan — pengguna mungkin menambah
+            // atau mengganti lembaran, dan itu wajib terdengar.
+            return { state: dasar, efek: ucapkanHasilPindai(hasil) };
           }
 
           // KUNCI HASIL STABIL. Begitu sebuah nominal diucapkan, ia menjadi
@@ -272,6 +302,11 @@ export function reduksi(
           }
 
           if (state.kembalianWajib === null) return diam(state);
+
+          // Sama seperti Fase 1: jangan mengulang kalau isinya tidak berubah.
+          if (isinyaSama(state.hasilPindaiTerakhir, hasil)) {
+            return { state: dasar, efek: [] };
+          }
 
           const koin = turunkanKoin(state.kembalianWajib, hasil.totalKertas);
           if (!koin.ok) {

@@ -22,6 +22,7 @@ import {
   type StateTransaksi,
 } from '@/contracts';
 import { reduksi } from '@/core/mesin';
+import { keTeks } from '@/audio/pengucap';
 import { buatPenyangga } from '@/data/penyangga';
 import type { Repositori } from '@/data/repositori';
 
@@ -74,9 +75,14 @@ export function useTransaksi({
     for (const e of efek) {
       switch (e.jenis) {
         case 'UCAP':
-          // Ducking dinyalakan sebelum bicara dan dimatikan setelahnya, bukan
-          // dipasang permanen — kalau tidak, suara sekitar tertekan terus dan
-          // pengguna kehilangan kesadaran situasi di pasar.
+          // Dicatat dengan sengaja, dan dipertahankan di produksi.
+          //
+          // Pernah ada bug di mana setiap bingkai stabil memicu pengumuman
+          // baru — delapan kali per detik, saling menumpuk, terdengar seperti
+          // gema yang tidak berhenti. Kalau baris ini muncul beruntun dengan
+          // isi yang sama, bug itu kembali, dan penyebabnya langsung terlihat
+          // tanpa perlu menebak.
+          console.log('[UCAP]', keTeks(e.ucapan));
           pengucap.redam(true);
           void pengucap.ucap(e.ucapan).finally(() => pengucap.redam(false));
           break;
