@@ -48,10 +48,11 @@ bisa dihapus bukan riwayat.
 | [0005](perubahan/0005-input-taktil-utama.md) | Input taktil jadi jalur utama, perintah suara jadi opsional | Diterima | **Mengubah klaim "voice command" Bab III Fase 2** |
 | [0006](perubahan/0006-tombol-batal-permanen.md) | Tombol batal permanen mendampingi gestur tahan 2 detik | Diterima | Melengkapi Escape-Hatch Bab III Fase 3 |
 | [0007](perubahan/0007-delapan-kelas-tanpa-pisah-emisi.md) | Pakai 8 kelas, jangan pisahkan tahun emisi | Diterima | **Mengubah angka "15 kelas" di Bab II, Bab III, Lampiran 7** |
+| [0008](perubahan/0008-aktivasi-klik-semantik.md) | Pakai satu klik semantik, jangan deteksi ketuk ganda sendiri | Diterima | Cara "double tap" Bab III diwujudkan, bukan diubah |
 
 ## Ringkasan bagi juri
 
-Dari tujuh keputusan di atas, **hanya ADR-0005 yang mengurangi cakupan** yang
+Dari delapan keputusan di atas, **hanya ADR-0005 yang mengurangi cakupan** yang
 dijanjikan proposal, dan pengurangan itu berasal dari keterbatasan platform
 yang tidak bisa disiasati: Web Speech API di Android WebView mengirim audio ke
 server Google untuk diproses, sehingga mustahil berjalan dalam janji
@@ -64,6 +65,11 @@ yang dikenali: TE 2016 dan TE 2022 tetap sama-sama terdeteksi, hanya tidak
 diberi label terpisah. Karena tahun emisi tidak pernah diucapkan kepada
 pengguna, menggabungkannya justru menggandakan sampel per kelas dan menaikkan
 akurasi — terutama pada uang lecek, kasus yang justru kami klaim kuat.
+
+ADR-0008 justru membuat ketuk ganda di exsum terwujud **persis seperti
+bunyinya**, karena TalkBack sudah menerjemahkan ketuk ganda pengguna menjadi
+satu peristiwa klik. Menuliskan deteksi sendiri malah akan memaksa pengguna
+TalkBack melakukan ketuk ganda dua kali.
 
 Lima keputusan lainnya **memperkuat** klaim proposal: ADR-0001 dan 0002 membuat
 target latensi di bawah 250 ms benar-benar tercapai alih-alih sekadar

@@ -28,51 +28,51 @@ Gunakan file ini untuk mencatat pekerjaan proyek. Satu task harus memiliki tujua
 
 ## Task Aktif
 
-### [~] Bootstrap proyek SUDEPI
+### [~] Menunggu bobot model, lalu verifikasi di HP fisik
 
 - Status: [~] Sedang dikerjakan
-- Fase: Discovery (selesai, menunggu konfirmasi untuk lanjut ke Analysis/Plan)
+- Fase: Verification
 - Mode: competition
 - Prioritas: Tinggi
-- Tujuan: Mengubah repo dari "hanya dokumentasi" menjadi kerangka yang bisa langsung dipakai dua orang secara paralel, dengan rantai build Android yang sudah terbukti berjalan.
-- Konteks dan bukti awal: Lingkungan sudah diverifikasi langsung. Node 24.15.0, pnpm 11.24.0, Java 17.0.12, Android SDK lengkap (API 34/35/36, build-tools 36.1.0), adb berfungsi. Belum ada HP terhubung; ANDROID_HOME dan ANDROID_SDK_ROOT masih kosong. Rincian di PROJECT_STATE.md.
-- Scope termasuk: Hapus `backend/tes` dan `frontend/tes`; scaffold Vite 7 + React 19 + TypeScript strict + Tailwind 4; struktur folder `src/` sesuai CLAUDE.md; turunkan `docs/KONTRAK.md` jadi `src/contracts/*.ts`; mock wajib (mockMesin, mockPemindai, mockPengucap, platform/mock); Capacitor 7.6.x; Vitest dengan satu tes sanity.
-- Non-goals: Model ONNX, pipeline kamera, state machine transaksi, UI sungguhan, audio sprite, skema Dexie.
-- Dependensi: HP Android fisik dengan USB debugging untuk kriteria terakhir. Internet untuk build Gradle pertama.
+- Tujuan: Menyambungkan model sungguhan ke jalur deteksi yang sudah utuh, lalu membuktikan seluruh alur berjalan di perangkat nyata dalam mode pesawat.
+- Konteks dan bukti awal: Seluruh lapisan aplikasi selesai dan lulus 155 tes. APK terbentuk. Dua hal belum pernah ada sejak awal: bobot model dan HP fisik.
+- Scope termasuk: Memasang `public/model/sudepi.onnx` begitu Fajar menyerahkannya; `npx cap run android`; verifikasi TalkBack, haptik, senter, kamera; kalibrasi ambang dengan uang lecek.
+- Non-goals: Menambah fitur baru. Cakupan dibekukan sampai model terbukti jalan.
+- Dependensi: **`public/model/sudepi.onnx` dari Fajar** dan HP Android dengan USB debugging.
 
 Kriteria selesai:
 
-- [ ] `pnpm dev` berjalan di browser desktop memakai mock
-- [ ] `pnpm test` hijau
-- [ ] `pnpm build` menghasilkan `dist/` tanpa referensi jaringan
-- [ ] `tsc --noEmit` bersih, `src/contracts/` lengkap
-- [ ] APK terpasang dan terbuka di HP Android fisik
+- [ ] Model termuat tanpa galat, keluaran berbentuk `[1, 12, 2100]`
+- [ ] Latensi inferensi terukur di bawah 250 ms di HP sungguhan
+- [ ] Satu transaksi utuh Fase 1 sampai 4 berhasil dengan uang sungguhan
+- [ ] Seluruh alur berjalan dengan TalkBack menyala
+- [ ] Seluruh alur berjalan dalam mode pesawat
 
 Risiko dan asumsi:
 
-- Risiko: Build Gradle pertama butuh internet dan berpotensi lama. Harus dijalankan sedini mungkin karena demo berjalan dalam mode pesawat.
-- Risiko: Belum ada HP terhubung, sehingga kriteria terakhir tertunda.
-- Risiko: Rekan tim membuat struktur tandingan. Sudah dimitigasi lewat koordinasi; scaffold dikerjakan satu orang.
-- Asumsi: Capacitor 7.6.x berjalan dengan Java 17 dan build-tools yang tersedia. Belum diverifikasi sampai build pertama dijalankan.
+- Risiko: Urutan kelas di `data.yaml` tidak cocok dengan `TABEL_DENOMINASI`. Akibatnya sistem menyebut nominal yang salah dengan penuh keyakinan, dan tidak ada tes yang bisa menangkapnya. Periksa manual dengan tiap pecahan.
+- Risiko: Latensi melewati 250 ms di HP kelas bawah. Mitigasi tersedia — turunkan `targetFps`, atau `imgsz` 320 ke 256.
+- Asumsi: Model diekspor `nms=False` pada `imgsz=320` dengan 8 kelas. Belum terverifikasi.
 
 Rencana verifikasi:
 
-- `pnpm test`, `pnpm build`, `npx tsc --noEmit`
-- `adb devices` lalu `pnpm cap:run` untuk memasang APK
-- Periksa `dist/` tidak memuat URL absolut ke host mana pun
+- `pnpm cap:run` lalu jalankan skenario `docs/DEMO.md`
+- Mode pesawat menyala sepanjang pengujian
+- TalkBack menyala sepanjang pengujian UI
 
 Checkpoint dan approval:
 
 - Scope: Disetujui
-- Discovery: Selesai, menunggu konfirmasi
-- Analysis: Menunggu
-- Plan: Menunggu
-- Approval sebelum implementasi: Menunggu
-- Verification: Menunggu
+- Discovery: Selesai
+- Analysis: Selesai
+- Plan: Selesai
+- Approval sebelum implementasi: Disetujui
+- Verification: **Terhambat menunggu model dan HP**
 
 Catatan:
 
-- Temuan Discovery menyentuh ADR-0004: Android Studio di mesin ini seri 2025.2 (Otter), sehingga syarat perkakas Capacitor 8 sebenarnya terpenuhi. ADR perlu diamandemen agar akurat. Alasan utamanya (edge-to-edge) tetap berlaku.
+- Efek `SIMPAN_TRANSAKSI` masih kosong sampai `src/data/` ditulis. Transaksi berjalan normal, hanya tanpa riwayat.
+- Potongan audio belum dirender; jalur aktif adalah cadangan `speechSynthesis`.
 
 <!--
 Simpan hanya satu task yang sedang dikerjakan di bagian ini.
@@ -127,6 +127,12 @@ Belum ada task di backlog.
 
 ## Selesai
 
-Belum ada task yang selesai.
+- [x] **Bootstrap proyek** — scaffold Vite 7 + React 19 + TS strict, `src/contracts/`, mock. Diverifikasi: `tsc` bersih, 9 tes, build tanpa referensi jaringan. (`0fca155`)
+- [x] **Logika inti transaksi** — reducer FSM, kalkulator kembalian, presensi koin. Diverifikasi: 45 tes termasuk seluruh transisi tidak sah. (`7d358fb`)
+- [x] **Skema 8 kelas** — ADR-0007, kontrak diubah dalam commit tersendiri. (`77c887a`, `820d89c`)
+- [x] **Jalur penglihatan** — decode, NMS class-agnostic, voting temporal, worker ONNX, pemindai kamera. Diverifikasi: 92 tes, bundling worker diuji langsung. (`1722f5e`, `b21a075`)
+- [x] **Rantai build Android** — Capacitor 7.6.9, izin kamera, APK terbentuk. Diverifikasi: BUILD SUCCESSFUL, cache Gradle hangat (14 detik setelah yang pertama). (`45754cf`)
+- [x] **Audio dan platform** — penyusun bilangan Indonesia, pengucap, pembungkus Capacitor. Diverifikasi: 39 tes bilangan termasuk seluruh kaidah "se-". (`522e1e4`)
+- [x] **Antarmuka Fase 1–4** — pola dua tombol, roda taktil, Merchant Display. Diverifikasi: 155 tes termasuk integrasi urutan ucapan. (`75e9857`)
 
 <!-- Pindahkan task selesai ke sini jika riwayatnya masih berguna. Sertakan hasil dan verifikasi terakhir. -->

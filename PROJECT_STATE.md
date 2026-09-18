@@ -9,110 +9,93 @@ Perbarui saat memulai sesi, melewati checkpoint, membuat keputusan penting, mene
 - Terakhir diperbarui: 2026-09-18
 - Mode kerja: `competition`
 - Status sesi: Berjalan
-- Task aktif: Logika inti transaksi (`src/core/`)
-- Fase aktif: Implementation
-- Checkpoint terakhir: Verification (task Bootstrap diterima)
-- Konfirmasi pengguna terakhir: Fase 0 diterima, lanjut `core/` lebih dulu
+- Task aktif: Aplikasi utuh Fase 1–4 (selesai), menunggu bobot model
+- Fase aktif: Verification
+- Checkpoint terakhir: Verification
+- Konfirmasi pengguna terakhir: Farrel ambil alih seluruh kode; Fajar fokus model
 
 ## Scope Yang Disetujui
 
-**Task sebelumnya — Bootstrap proyek SUDEPI: SELESAI** (commit `0fca155`).
-
-**Task aktif — Logika inti transaksi.** Menulis `src/core/` sesuai Fase 1
-bagian Farrel di `docs/EKSEKUSI.md`:
-
-- `mesin.ts` — reducer murni state machine transaksi beserta `Efek[]`
-- `kembalian.ts` — kalkulator kembalian, menolak bayar kurang dari belanja
-- `koin.ts` — penurunan nominal koin dari selisih
-- Tes Vitest untuk ketiganya, termasuk transisi yang **tidak sah**
-
-Non-goals: `src/vision/`, ekspor model, skema Dexie, UI.
+**Pembagian berubah 18 September 2026.** Fajar fokus penuh ke `model/`
+(dataset, training, ekspor, kuantisasi). Farrel mengambil alih seluruh `src/`
+dan berkas akar. Tercatat di `docs/EKSEKUSI.md` dengan blok peringatan bagi
+agen AI Fajar.
 
 ## Tujuan Saat Ini
 
-Menyediakan otak transaksi yang sudah teruji penuh, sehingga saat pipeline
-deteksi dan UI menyusul, keduanya tinggal disambungkan ke logika yang sudah
-terbukti benar. Dikerjakan lebih dulu karena logika murni tidak bergantung
-pada model, kamera, maupun HP.
+Aplikasi sudah utuh dan teruji. Yang tersisa hanyalah menyambungkan model
+sungguhan, lalu memverifikasi di HP fisik.
 
 ## Progress
 
-- Lapisan dokumentasi selesai (`743858b`, `1d5b13c`).
-- **Fase 0 Bootstrap selesai dan terverifikasi** (`0fca155`): scaffold Vite 7 +
-  React 19 + TS strict, `src/contracts/` lengkap, mock vision, 9 tes lulus,
-  build bersih tanpa referensi jaringan.
-- Sedang berjalan: `src/core/`.
+Selesai dan terverifikasi:
+
+| Bagian | Isi |
+| --- | --- |
+| `src/contracts/` | 8 kelas, tipe lintas-modul, beku |
+| `src/core/` | Reducer FSM, kalkulator kembalian, presensi koin |
+| `src/vision/` | Decode, NMS, voting temporal, worker ONNX, pemindai kamera |
+| `src/audio/` | Penyusun bilangan Indonesia, pengucap sprite + cadangan TTS |
+| `src/platform/` | Pembungkus Capacitor (haptik, preferensi) + mock |
+| `src/ui/` | Pola dua tombol, roda taktil, Merchant Display, Fase 1–4 |
+| Capacitor | `cap init` + `cap add android`, APK terbentuk |
+
+**155 tes lulus, `tsc --noEmit` bersih dengan `strict` penuh, `pnpm build`
+lolos, APK 8,7 MB terbentuk dalam 14 detik.**
 
 ## Bukti Yang Sudah Diperiksa
 
-Lingkungan, diverifikasi dengan menjalankan perintahnya:
-
-| Komponen | Hasil |
-| --- | --- |
-| Node.js | v24.15.0 |
-| pnpm | 11.24.0 |
-| Java (JDK) | 17.0.12 LTS |
-| Android SDK | `%LOCALAPPDATA%\Android\Sdk`, API 34/35/36, build-tools s.d. 36.1.0 |
-| adb | Berfungsi |
-| Android Studio | `AI-252.28238.7.2523.14688667` (seri 2025.2 / Otter) |
-| `ANDROID_HOME` / `ANDROID_SDK_ROOT` | Kosong, perlu diset (bagian Fajar) |
-| HP fisik terhubung | **Belum** (`adb devices` kosong) |
-
-Verifikasi hasil Bootstrap:
-
 | Pemeriksaan | Hasil |
 | --- | --- |
-| `tsc --noEmit` | Bersih, `strict` penuh termasuk `noUncheckedIndexedAccess` dan `exactOptionalPropertyTypes` |
-| `pnpm test` | 9 tes lulus |
-| `pnpm build` | 223 kB, path aset relatif `./assets/...` |
-| Referensi jaringan di `dist/` | Tidak ada. Hanya `react.dev/errors/`, yaitu teks pesan error React |
-| `pnpm dev` | HTTP 200, alias `@` resolve |
+| `pnpm test` | 155 lulus di 10 berkas |
+| `npx tsc --noEmit` | Bersih, termasuk `noUncheckedIndexedAccess` dan `exactOptionalPropertyTypes` |
+| `pnpm build` | Lolos. Worker ter-bundle, tepat satu berkas `.wasm` |
+| `./gradlew assembleDebug` | BUILD SUCCESSFUL. 2m37s saat pertama, **14 detik** setelah cache hangat |
+| Isi APK | `.wasm` 14 MB dan `worker.js` ada di `assets/public/assets/` |
+| Lingkungan | Node 24.15, pnpm 11.24, Java 17.0.12, SDK API 34/35/36 |
 
 ## Sudah Selesai
 
-- Dokumentasi sistem: `CLAUDE.md`, `docs/` (9 dokumen termasuk `EKSEKUSI.md`),
-  6 ADR di `docs/perubahan/`.
-- `README.md` dikonversi dari UTF-16 ke UTF-8.
-- `AGENTS.md` diberi pointer ke `CLAUDE.md` dan `docs/`.
-- Scaffold, `src/contracts/` (5 berkas + index), mock vision, tes penjaga
-  tabel 15 kelas.
+- Dokumentasi: `CLAUDE.md`, 10 dokumen `docs/`, **8 ADR**.
+- Seluruh lapisan aplikasi (lihat tabel Progress).
+- Rantai build Android terbukti, cache Gradle hangat.
 
 ## Langkah Berikutnya Yang Diusulkan
 
-**Farrel:** `src/core/` (berjalan), lalu `src/vision/` setelah bobot model ada.
-
-**Fajar:** Fase 0 bagiannya — sambungkan HP dengan USB debugging, set
-`ANDROID_HOME`, lalu **`npx cap add android` sebagai prioritas nomor satu**
-karena butuh internet sementara demo berjalan dalam mode pesawat.
+1. **Fajar: `public/model/sudepi.onnx`.** Ini satu-satunya yang memblokir.
+2. Sambungkan HP fisik, `npx cap run android`, verifikasi TalkBack.
+3. `src/data/` — skema 8 object store Dexie (efek `SIMPAN_TRANSAKSI` masih
+   kosong; transaksi berjalan tanpa riwayat).
+4. Render potongan audio ke `public/audio/` (kini memakai cadangan TTS).
+5. Kalibrasi ambang dengan uang lecek sungguhan.
 
 ## Blocker Dan Hal Yang Belum Diketahui
 
-- **HP Android belum terhubung** (`adb devices` kosong). Bagian Fajar. Ini
-  satu-satunya kriteria Bootstrap yang belum lulus.
-- **Bobot model `.pt` hasil training belum ada di repo.** Memblokir `model/`
-  dan `src/vision/`. Inilah sebabnya `src/core/` dikerjakan lebih dulu.
-- **Cache Gradle belum pernah hangat.** Build Android pertama mengunduh
-  dependensi dalam jumlah besar dan membutuhkan internet. Karena demo
-  penjurian berjalan dalam mode pesawat, build pertama harus dilakukan sedini
-  mungkin selagi jaringan tersedia.
+- **Bobot model belum ada.** Seluruh jalur deteksi sudah ditulis dan diuji,
+  tetapi belum pernah dijalankan dengan model sungguhan. `pemindai.ts` akan
+  gagal di `siap()` sampai `public/model/sudepi.onnx` tersedia — dan itu
+  perilaku yang benar.
+- **HP fisik belum pernah terhubung.** `adb devices` masih kosong sejak awal
+  sesi. Tampilan, TalkBack, haptik, senter, dan kamera semuanya belum pernah
+  diverifikasi di perangkat nyata.
+- **Ekstensi browser tidak terhubung**, sehingga uji visual otomatis tidak bisa
+  dilakukan. Verifikasi dialihkan ke tes integrasi `core/alur.test.ts` yang
+  memeriksa urutan ucapan sepanjang transaksi.
+- **Potongan audio belum dirender.** Jalur yang aktif sekarang adalah cadangan
+  `speechSynthesis`, yang bergantung pada paket suara id-ID di perangkat.
 
 ## Keputusan Penting
 
-- **Dua lapis aturan berlaku bersamaan.** `AGENTS.md` / `TASK.md` /
-  `PROJECT_STATE.md` mengatur proses; `CLAUDE.md` + `docs/` mengatur sistem.
-  Pointer dua arah sudah dipasang di kedua sisi.
-- **Pembagian kerja terbagi per nama** di `docs/EKSEKUSI.md`. Farrel memegang
-  `contracts`, `core`, `vision`, `data`, `model`, dan `package.json`; Fajar
-  memegang `ui`, `platform`, `audio`, `capacitor`, dan `android`.
-- **Enam ADR diterima** (`0001`–`0006`). Paling berdampak: ADR-0001
-  (`imgsz=320`), ADR-0003 (audio pra-render), ADR-0005 (input taktil jadi
-  jalur utama, mempersempit klaim perintah suara pada exsum).
-- **ADR-0004 mendapat amandemen bertanggal.** Alasan "syarat perkakas"
-  terbukti tidak berlaku karena Android Studio di mesin ini seri 2025.2.
-  Keputusan tidak berubah; alasan utamanya (edge-to-edge) tetap berlaku.
-- **Versi dikunci berdasarkan verifikasi ke npm, bukan ingatan.** Vite 7.3.6
-  bukan 8 (Vite 8 mengganti bundler ke Rolldown, sementara pemuatan `.wasm`
-  ORT adalah jalur kritis); TypeScript 5.9.3 bukan 7 dengan alasan yang sama;
-  `onnxruntime-web` 1.30.0.
-- **Dua tsconfig digabung jadi satu.** Project reference menuntut `composite`
-  dan hanya menambah hal yang bisa rusak pada proyek sekecil ini.
+- **Delapan ADR diterima.** Paling berdampak: ADR-0001 (`imgsz=320`), ADR-0003
+  (audio pra-render), ADR-0005 (input taktil jadi utama — satu-satunya yang
+  mempersempit klaim exsum), ADR-0007 (8 kelas), ADR-0008 (klik semantik).
+- **Versi dikunci berdasarkan verifikasi npm.** Vite 7.3.6 bukan 8 (Vite 8
+  mengganti bundler ke Rolldown, sementara pemuatan `.wasm` ORT adalah jalur
+  kritis); TypeScript 5.9.3 bukan 7, alasan sama; `onnxruntime-web` 1.30.0.
+- **`wasmPaths` sengaja tidak disetel** dan impor memakai `onnxruntime-web/wasm`.
+  Keduanya mencegah berkas 14 MB terbundel dua kali. Dicatat di
+  `docs/ARSITEKTUR.md`.
+- **Senter lewat Web API, bukan plugin.** Satu plugin native lebih sedikit
+  berarti satu kemungkinan kegagalan Gradle lebih sedikit.
+- **`androidScheme: 'https'`.** WebView memperlakukan http sebagai origin tidak
+  aman dan `getUserMedia` menolak berjalan di sana — kamera mati tanpa pesan.
