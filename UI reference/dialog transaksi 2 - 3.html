@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      tailwind = { config: { corePlugins: { preflight: false } } };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist%3Awght%40100..900&family=Geist+Mono%3Awght%40100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, ::before, ::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+    </style>
+
+    <style>
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body style="background-color: #F7F8FA">
+    <div
+      data-pencil-name="SUDEPI - Dialog Transaksi 2"
+      class="box-border w-[390px] h-[844px] bg-[#F7F8FA] rounded-[28px] overflow-hidden relative"
+    >
+      <svg
+        data-pencil-name="Back Icon"
+        data-icon-name="caret-left"
+        data-icon-set="phosphor"
+        viewBox="0 0 14 14"
+        preserveAspectRatio="xMidYMid meet"
+        xmlns="http://www.w3.org/2000/svg"
+        class="box-border w-[22px] h-[22px] absolute left-[24px] top-[25px] [z-index:0]"
+      >
+        <path
+          d="M8.75 11.8125q-0.16406 0-0.32813-0.10938l-4.375-4.375q-0.10938-0.16406-0.10937-0.32812 0-0.16406 0.10937-0.32813l4.375-4.375q0.16406-0.10938 0.32813-0.08203 0.16406 0.02734 0.27344 0.13672 0.10938 0.10938 0.13672 0.27344 0.02734 0.16406-0.08204 0.32812l-4.10156 4.04688 4.10156 4.04688q0.10938 0.16406 0.10938 0.32812 0 0.16406-0.13672 0.30078-0.13672 0.13672-0.30078 0.13672z"
+          fill="#172131"
+        ></path>
+      </svg>
+      <div
+        data-pencil-name="Step Label"
+        class="text-[12px]/[14px] box-border w-[82px] absolute left-[62px] top-[27px] text-[#0062FF] font-['Geist_Mono',system-ui,sans-serif] font-semibold text-left [z-index:1]"
+      >
+        03 / 04
+      </div>
+      <div
+        data-pencil-name="Dialog Title"
+        class="text-[24px]/[29px] box-border w-[300px] absolute left-[24px] top-[68px] text-[#172131] font-[Geist,system-ui,sans-serif] font-bold text-left [z-index:2]"
+      >
+        Dialog transaksi
+      </div>
+      <div
+        data-pencil-name="Dialog Body"
+        class="text-[14px]/[17px] box-border w-[342px] absolute left-[24px] top-[105px] text-[#536174] font-[Geist,system-ui,sans-serif] font-normal text-left [z-index:3]"
+      >
+        Masukkan nominal total uang yang diberikan agar kembalian dapat diverifikasi.
+      </div>
+      <div
+        data-pencil-name="Step Track Background"
+        class="box-border w-[342px] h-[6px] absolute left-[24px] top-[150px] flex flex-row gap-0 justify-start items-start bg-[#D8DEE7] rounded-[3px] [z-index:4]"
+      ></div>
+      <div
+        data-pencil-name="Step Track Progress"
+        class="box-border w-[342px] h-[6px] absolute left-[24px] top-[150px] flex flex-row gap-0 justify-start items-start bg-[#0062FF] rounded-[3px] [z-index:5]"
+      ></div>
+      <div
+        data-pencil-name="Amount Prompt"
+        class="box-border w-[342px] h-[170px] absolute left-[24px] top-[190px] flex flex-row gap-0 justify-start items-start bg-[#E8F0FF] rounded-[18px] [z-index:6]"
+      ></div>
+      <div
+        data-pencil-name="Prompt Eyebrow"
+        class="text-[11px]/[13px] box-border w-[220px] absolute left-[46px] top-[211px] text-[#0062FF] font-['Geist_Mono',system-ui,sans-serif] font-semibold text-left [z-index:7]"
+      >
+        TOTAL UANG YANG DIBERIKAN
+      </div>
+      <div
+        data-pencil-name="Prompt Question"
+        class="text-[18px]/[22px] box-border w-[308px] absolute left-[44px] top-[246px] text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [z-index:8]"
+      >
+        Berapa total uang yang diberikan?
+      </div>
+      <div
+        data-pencil-name="Amount Value"
+        class="text-[34px]/[41px] box-border w-[284px] absolute left-[44px] top-[278px] text-[#172131] font-['Geist_Mono',system-ui,sans-serif] font-bold text-left [z-index:9]"
+      >
+        Rp30.000
+      </div>
+      <div
+        data-pencil-name="Amount Helper"
+        class="text-[11px]/[13px] box-border w-[284px] absolute left-[44px] top-[319px] text-[#536174] font-[Geist,system-ui,sans-serif] font-medium text-left [z-index:10]"
+      >
+        Ucapkan nominal, lalu ucap "lanjut" untuk konfirmasi total uang yang diberikan.
+      </div>
+      <div
+        data-pencil-name="Key 1"
+        class="box-border w-[104px] h-[56px] absolute left-[24px] top-[376px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:11]"
+      >
+        <div
+          data-pencil-name="Key 1 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          7
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 2"
+        class="box-border w-[104px] h-[56px] absolute left-[143px] top-[376px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:12]"
+      >
+        <div
+          data-pencil-name="Key 2 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          8
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 3"
+        class="box-border w-[104px] h-[56px] absolute left-[262px] top-[376px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:13]"
+      >
+        <div
+          data-pencil-name="Key 3 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          9
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 4"
+        class="box-border w-[104px] h-[56px] absolute left-[24px] top-[440px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:14]"
+      >
+        <div
+          data-pencil-name="Key 4 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          4
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 5"
+        class="box-border w-[104px] h-[56px] absolute left-[143px] top-[440px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:15]"
+      >
+        <div
+          data-pencil-name="Key 5 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          5
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 6"
+        class="box-border w-[104px] h-[56px] absolute left-[262px] top-[440px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:16]"
+      >
+        <div
+          data-pencil-name="Key 6 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          6
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 7"
+        class="box-border w-[104px] h-[56px] absolute left-[24px] top-[504px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:17]"
+      >
+        <div
+          data-pencil-name="Key 7 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          1
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 8"
+        class="box-border w-[104px] h-[56px] absolute left-[143px] top-[504px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:18]"
+      >
+        <div
+          data-pencil-name="Key 8 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          2
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 9"
+        class="box-border w-[104px] h-[56px] absolute left-[262px] top-[504px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:19]"
+      >
+        <div
+          data-pencil-name="Key 9 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          3
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key Delete"
+        class="box-border w-[104px] h-[56px] absolute left-[262px] top-[568px] flex flex-row gap-[6px] justify-center items-center bg-[#fff4d9ff] rounded-[12px] [z-index:20]"
+      >
+        <svg
+          data-pencil-name="Key Delete Icon"
+          data-icon-name="backspace"
+          data-icon-set="phosphor"
+          viewBox="0 0 14 14"
+          preserveAspectRatio="xMidYMid meet"
+          xmlns="http://www.w3.org/2000/svg"
+          class="box-border w-[20px] shrink-0 h-[20px]"
+        >
+          <path
+            d="M11.8125 2.1875l-8.03906 0q-0.54688 0-0.76563 0.4375l-2.51562 4.15625q-0.10938 0.21875 0 0.4375l2.51562 4.15625q0.21875 0.4375 0.76563 0.4375l8.03906 0q0.38281 0 0.62891-0.24609 0.24609-0.24609 0.24609-0.62891l0-7.875q0-0.38281-0.24609-0.62891-0.24609-0.24609-0.62891-0.24609z m-8.42188 8.96875l0.38282-0.21875-0.38282 0.21875z m8.42188-0.21875l-8.03906 0-2.40625-3.9375 2.40625-3.9375 8.03906 0 0 7.875z m-6.01563-2.95313l1.03907-0.98437-1.03907-0.98438q-0.10938-0.16406-0.08203-0.32812 0.02734-0.16406 0.13672-0.27344 0.10938-0.10938 0.27344-0.13672 0.16406-0.02734 0.32812 0.08203l0.98438 1.03907 0.98437-1.03907q0.16406-0.10938 0.32813-0.08203 0.16406 0.02734 0.27344 0.13672 0.10938 0.10938 0.13672 0.27344 0.02734 0.16406-0.08204 0.32812l-1.03906 0.98438 1.03906 0.98437q0.10938 0.16406 0.10938 0.32813 0 0.16406-0.13672 0.30078-0.13672 0.13672-0.30078 0.13672-0.16406 0-0.32813-0.10938l-0.98437-1.03906-0.98438 1.03906q-0.16406 0.10938-0.32812 0.10938-0.16406 0-0.30078-0.13672-0.13672-0.13672-0.13672-0.30078 0-0.16406 0.10937-0.32813z"
+            fill="#9A5A00"
+          ></path>
+        </svg>
+        <div
+          data-pencil-name="Key Delete Label"
+          class="text-[15px]/[normal] box-border text-[#965800ff] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          Hapus
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key 0"
+        class="box-border w-[104px] h-[56px] absolute left-[143px] top-[568px] flex flex-row gap-0 justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:21]"
+      >
+        <div
+          data-pencil-name="Key 0 Label"
+          class="text-[15px]/[normal] box-border text-[#172131] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          0
+        </div>
+      </div>
+      <div
+        data-pencil-name="Key Done"
+        class="box-border w-[104px] h-[56px] absolute left-[24px] top-[568px] flex flex-row gap-[8px] justify-center items-center bg-[#965800] rounded-[12px] [z-index:22]"
+      >
+        <div
+          data-pencil-name="Key Done Label"
+          class="text-[21px]/[normal] box-border w-[53px] shrink-0 text-[#fff4d9] font-[Geist,system-ui,sans-serif] font-bold text-center"
+        >
+          AC
+        </div>
+      </div>
+      <div
+        data-pencil-name="Continue Button"
+        class="box-border w-[342px] h-[56px] absolute left-[24px] top-[688px] flex flex-row gap-[8px] justify-center items-center bg-[#0062FF] rounded-[12px] [z-index:23]"
+      >
+        <svg
+          data-pencil-name="Continue Button Icon"
+          data-icon-name="arrow-right"
+          data-icon-set="phosphor"
+          viewBox="0 0 14 14"
+          preserveAspectRatio="xMidYMid meet"
+          xmlns="http://www.w3.org/2000/svg"
+          class="box-border w-[20px] shrink-0 h-[20px]"
+        >
+          <path
+            d="M12.14063 7.32813l-3.9375 3.9375q-0.16406 0.10938-0.32813 0.10937-0.16406 0-0.30078-0.13672-0.13672-0.13672-0.13672-0.30078 0-0.16406 0.10938-0.32812l3.22656-3.17188-8.58594 0q-0.16406 0-0.30078-0.13672-0.13672-0.13672-0.13672-0.30078 0-0.16406 0.13672-0.30078 0.13672-0.13672 0.30078-0.13672l8.58594 0-3.22657-3.17188q-0.10938-0.16406-0.08203-0.32812 0.02734-0.16406 0.13672-0.27344 0.10938-0.10938 0.27344-0.13672 0.16406-0.02734 0.32812 0.08203l3.9375 3.9375q0.10938 0.16406 0.10938 0.32813 0 0.16406-0.10938 0.32812z"
+            fill="#FFFFFF"
+          ></path>
+        </svg>
+        <div
+          data-pencil-name="Continue Button Label"
+          class="text-[15px]/[normal] box-border text-[#FFFFFF] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          Lanjutkan
+        </div>
+      </div>
+      <div
+        data-pencil-name="Cancel Dialog"
+        class="box-border w-[342px] h-[44px] absolute left-[24px] top-[762px] flex flex-row gap-[8px] justify-center items-center bg-[#FFFFFF] rounded-[12px] [z-index:24]"
+      >
+        <svg
+          data-pencil-name="Cancel Dialog Icon"
+          data-icon-name="caret-left"
+          data-icon-set="phosphor"
+          viewBox="0 0 14 14"
+          preserveAspectRatio="xMidYMid meet"
+          xmlns="http://www.w3.org/2000/svg"
+          class="box-border w-[20px] shrink-0 h-[20px]"
+        >
+          <path
+            d="M8.75 11.8125q-0.16406 0-0.32813-0.10938l-4.375-4.375q-0.10938-0.16406-0.10937-0.32812 0-0.16406 0.10937-0.32813l4.375-4.375q0.16406-0.10938 0.32813-0.08203 0.16406 0.02734 0.27344 0.13672 0.10938 0.10938 0.13672 0.27344 0.02734 0.16406-0.08204 0.32812l-4.10156 4.04688 4.10156 4.04688q0.10938 0.16406 0.10938 0.32812 0 0.16406-0.13672 0.30078-0.13672 0.13672-0.30078 0.13672z"
+            fill="#536174"
+          ></path>
+        </svg>
+        <div
+          data-pencil-name="Cancel Dialog Label"
+          class="text-[15px]/[normal] box-border text-[#536174] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          Kembali
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

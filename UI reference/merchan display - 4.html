@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      tailwind = { config: { corePlugins: { preflight: false } } };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist%3Awght%40100..900&family=Geist+Mono%3Awght%40100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, ::before, ::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+    </style>
+
+    <style>
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body style="background-color: #172230">
+    <div
+      data-pencil-name="SUDEPI - Merchant Display"
+      class="box-border w-[390px] h-[844px] bg-[#172230] rounded-[28px] overflow-hidden relative"
+    >
+      <div
+        data-pencil-name="Merchant Brand"
+        class="text-[24px]/[29px] box-border w-[120px] absolute left-[24px] top-[24px] text-[#F3F7FC] font-[Geist,system-ui,sans-serif] font-bold text-left [z-index:0]"
+      >
+        SUDEPI
+      </div>
+      <div
+        data-pencil-name="Merchant Status"
+        class="text-[14px]/[17px] box-border w-[342px] absolute left-[24px] top-[119px] text-[#9DE4C2] font-[Geist,system-ui,sans-serif] font-semibold text-center [z-index:1]"
+      >
+        Pembayaran terverifikasi
+      </div>
+      <svg
+        data-pencil-name="Merchant Check"
+        data-icon-name="check-circle"
+        data-icon-set="phosphor"
+        viewBox="0 0 14 14"
+        preserveAspectRatio="xMidYMid meet"
+        xmlns="http://www.w3.org/2000/svg"
+        class="box-border w-[55px] h-[55px] absolute left-[167px] top-[147px] [z-index:2]"
+      >
+        <path
+          d="M9.73438 5.35938q0.10938 0.16406 0.10937 0.35546 0 0.19141-0.10937 0.30079l-3.22657 3.0625q-0.10938 0.10938-0.30078 0.10937-0.19141 0-0.30078-0.10937l-1.58594-1.53125q-0.21875-0.16406-0.16406-0.4375 0.05469-0.27344 0.30078-0.32813 0.24609-0.05469 0.41016 0.10938l1.3125 1.25781 2.95312-2.78906q0.10938-0.10938 0.30078-0.10938 0.19141 0 0.30078 0.16406l0-0.05468z m2.95312 1.64062q0 1.53125-0.76563 2.84375-0.76563 1.3125-2.07812 2.07813-1.3125 0.76563-2.84375 0.76562-1.53125 0-2.84375-0.76562-1.3125-0.76563-2.07813-2.07813-0.76563-1.3125-0.76562-2.84375 0-1.53125 0.76562-2.84375 0.76563-1.3125 2.07813-2.07813 1.3125-0.76563 2.84375-0.76562 1.53125 0 2.84375 0.76562 1.3125 0.76563 2.07813 2.07813 0.76563 1.3125 0.76562 2.84375z m-0.875 0q0-1.3125-0.65625-2.40625-0.65625-1.09375-1.75-1.75-1.09375-0.65625-2.40625-0.65625-1.3125 0-2.40625 0.65625-1.09375 0.65625-1.75 1.75-0.65625 1.09375-0.65625 2.40625 0 1.3125 0.65625 2.40625 0.65625 1.09375 1.75 1.75 1.09375 0.65625 2.40625 0.65625 1.3125 0 2.40625-0.65625 1.09375-0.65625 1.75-1.75 0.65625-1.09375 0.65625-2.40625z"
+          fill="#6FD7A2"
+        ></path>
+      </svg>
+      <div
+        data-pencil-name="Paid Label"
+        class="text-[15px]/[18px] box-border w-[342px] absolute left-[24px] top-[265px] text-[#A9B7C8] font-[Geist,system-ui,sans-serif] font-semibold text-center [z-index:3]"
+      >
+        Bayar
+      </div>
+      <div
+        data-pencil-name="Paid Amount"
+        class="text-[28px]/[34px] box-border w-[342px] absolute left-[24px] top-[288px] text-[#F3F7FC] font-['Geist_Mono',system-ui,sans-serif] font-bold text-center [z-index:4]"
+      >
+        Rp30.000
+      </div>
+      <div
+        data-pencil-name="Change Label"
+        class="text-[15px]/[18px] box-border w-[342px] absolute left-[24px] top-[376px] text-[#A9B7C8] font-[Geist,system-ui,sans-serif] font-semibold text-center [z-index:5]"
+      >
+        Kembalian
+      </div>
+      <div
+        data-pencil-name="Change Amount"
+        class="text-[64px]/[77px] box-border w-[342px] absolute left-[24px] top-[392px] text-[#F3F7FC] font-['Geist_Mono',system-ui,sans-serif] font-bold text-center [z-index:6]"
+      >
+        Rp5.000
+      </div>
+      <div
+        data-pencil-name="Escape Hatch"
+        class="box-border w-[342px] h-[56px] absolute left-[24px] top-[759px] flex flex-row gap-[8px] justify-center items-center bg-[#1F2D3A] [outline:1px_solid_#ff8a7d] [outline-offset:-0.5px] rounded-[12px] [z-index:7]"
+      >
+        <svg
+          data-pencil-name="Escape Hatch Icon"
+          data-icon-name="arrow-counter-clockwise"
+          data-icon-set="phosphor"
+          viewBox="0 0 14 14"
+          preserveAspectRatio="xMidYMid meet"
+          xmlns="http://www.w3.org/2000/svg"
+          class="box-border w-[20px] shrink-0 h-[20px]"
+        >
+          <path
+            d="M10.71875 10.71875q-1.03906 0.98438-2.37891 1.33984-1.33984 0.35547-2.67968 0-1.33984-0.35547-2.37891-1.33984-0.10938-0.10938-0.10938-0.30078 0-0.19141 0.10938-0.32813 0.10938-0.13672 0.30078-0.13672 0.19141 0 0.30078 0.16407 0.875 0.82031 1.9961 1.12109 1.12109 0.30078 2.24218 0 1.12109-0.30078 1.96875-1.14844 0.84766-0.84766 1.14844-1.96875 0.30078-1.12109 0-2.24218-0.30078-1.12109-1.14844-1.96875-0.84766-0.84766-1.96875-1.14844-1.12109-0.30078-2.24218 0-1.12109 0.30078-1.9961 1.12109l-1.09375 1.14844 1.58594 0q0.16406 0 0.30078 0.10938 0.13672 0.10938 0.13672 0.30078 0 0.19141-0.13672 0.32812-0.13672 0.13672-0.30078 0.13672l-2.625 0q-0.21875 0-0.32813-0.13672-0.10938-0.13672-0.10937-0.30078l0-2.625q0-0.27344 0.21875-0.41016 0.21875-0.13672 0.4375 0 0.21875 0.13672 0.21875 0.41016l0 1.53125 1.09375-1.09375q1.03906-0.98438 2.37891-1.33984 1.33984-0.35547 2.67968 0 1.33984 0.35547 2.35157 1.36718 1.01172 1.01172 1.36718 2.35157 0.35547 1.33984 0 2.67968-0.35547 1.33984-1.33984 2.37891z"
+            fill="#ff8a7d"
+          ></path>
+        </svg>
+        <div
+          data-pencil-name="Escape Hatch Label"
+          class="text-[15px]/[normal] box-border text-[#ff8a7d] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          Batal &amp; kembali
+        </div>
+      </div>
+      <div
+        data-pencil-name="Hold Hint"
+        class="text-[11px]/[13px] box-border w-[342px] absolute left-[24px] top-[719px] text-[#ff8a7dff] font-[Geist,system-ui,sans-serif] font-medium text-center [z-index:8]"
+      >
+        Ketuk dua kali tahan selama 3 detik di mana saja untuk membatalkan dan kembali
+      </div>
+      <div
+        data-pencil-name="Hold Hint"
+        class="text-[11px]/[13px] box-border w-[342px] absolute left-[24px] top-[614px] text-[#A9B7C8] font-[Geist,system-ui,sans-serif] font-medium text-center [z-index:9]"
+      >
+        Ketuk dua kali di mana saja untuk melanjutkan
+      </div>
+      <svg
+        viewBox="0 0 1 1"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+        class="box-border w-[1px] h-[1px] absolute left-[50px] top-[326.5px] overflow-visible [z-index:10]"
+      >
+        <path
+          d="M0 0"
+          fill="none"
+          stroke="#000000"
+          stroke-width="1"
+          vector-effect="non-scaling-stroke"
+        ></path>
+      </svg>
+      <div
+        class="box-border w-[297px] h-[1px] absolute left-[46px] top-[347px] bg-[#ffffffb3] [z-index:11]"
+      ></div>
+      <div
+        data-pencil-name="Continue Button"
+        class="box-border w-[342px] h-[56px] absolute left-[24px] top-[641px] flex flex-row gap-[8px] justify-center items-center bg-[#0062FF] rounded-[12px] [z-index:12]"
+      >
+        <svg
+          data-pencil-name="Continue Button Icon"
+          data-icon-name="arrow-right"
+          data-icon-set="phosphor"
+          viewBox="0 0 14 14"
+          preserveAspectRatio="xMidYMid meet"
+          xmlns="http://www.w3.org/2000/svg"
+          class="box-border w-[20px] shrink-0 h-[20px]"
+        >
+          <path
+            d="M12.14063 7.32813l-3.9375 3.9375q-0.16406 0.10938-0.32813 0.10937-0.16406 0-0.30078-0.13672-0.13672-0.13672-0.13672-0.30078 0-0.16406 0.10938-0.32812l3.22656-3.17188-8.58594 0q-0.16406 0-0.30078-0.13672-0.13672-0.13672-0.13672-0.30078 0-0.16406 0.13672-0.30078 0.13672-0.13672 0.30078-0.13672l8.58594 0-3.22657-3.17188q-0.10938-0.16406-0.08203-0.32812 0.02734-0.16406 0.13672-0.27344 0.10938-0.10938 0.27344-0.13672 0.16406-0.02734 0.32812 0.08203l3.9375 3.9375q0.10938 0.16406 0.10938 0.32813 0 0.16406-0.10938 0.32812z"
+            fill="#FFFFFF"
+          ></path>
+        </svg>
+        <div
+          data-pencil-name="Continue Button Label"
+          class="text-[15px]/[normal] box-border text-[#FFFFFF] font-[Geist,system-ui,sans-serif] font-semibold text-left [white-space:nowrap]"
+        >
+          Lanjutkan
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
