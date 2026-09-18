@@ -20,7 +20,8 @@ Status: **aktif** · Dipakai pada jam 19 sampai 24
 - [ ] **Model TIRUAN sudah dihapus** dari `public/model/` dan dari HP
       (`model/buat_model_uji.py` menghasilkannya; ia selalu menyebut Rp50.000
       tanpa melihat apa pun)
-- [ ] Overlay metrik sudah dibuang dari pratinjau
+- [x] Overlay metrik — tidak perlu dibuang manual lagi. Ia mati sendiri pada
+      `pnpm cap:sync` biasa, dan hanya menyala lewat `pnpm cap:kalibrasi`.
 - [ ] Uang peraga siap: **kondisi bagus** dan **kondisi lecek**, keduanya
 - [ ] Beberapa keping koin siap
 - [ ] APK tersalin ke flashdisk sebagai cadangan terakhir

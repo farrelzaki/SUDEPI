@@ -74,7 +74,10 @@ Checkpoint dan approval:
 Catatan:
 
 - Model TIRUAN sedang terpasang di HP dan di `public/model/`. Hapus begitu model asli tiba.
-- Overlay metrik (latensi, fps, luma) masih tampil di pratinjau. Berguna untuk kalibrasi, dibuang sebelum penjurian sesuai `docs/DEMO.md`.
+- ~~Overlay metrik dibuang sebelum penjurian.~~ SELESAI — jadi mode build.
+  `pnpm cap:sync` menghasilkan APK tanpa overlay; `pnpm cap:kalibrasi`
+  menyalakannya untuk menyetel ambang. Terverifikasi hilang dari bundel
+  produksi, bukan sekadar tersembunyi.
 
 <!--
 Simpan hanya satu task yang sedang dikerjakan di bagian ini.

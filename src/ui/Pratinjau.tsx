@@ -13,6 +13,24 @@
 import { useEffect, useRef } from 'react';
 import type { HasilPindai } from '@/contracts';
 
+/**
+ * Apakah overlay metrik ditampilkan.
+ *
+ * Dihitung saat build, bukan saat berjalan, sehingga overlay beserta datanya
+ * hilang sepenuhnya dari bundel produksi.
+ *
+ * Nyala di dev server (tempatnya memang berguna) dan pada
+ * `pnpm cap:kalibrasi`. MATI pada `pnpm cap:sync` biasa — yaitu APK yang
+ * dibawa ke penjurian.
+ *
+ * Sebelumnya overlay ini selalu menyala dan hanya ditemani komentar yang
+ * mengingatkan untuk membuangnya sebelum demo. Yang harus diingat manual di
+ * tengah lomba, pada akhirnya terlupa; default yang aman jauh lebih dapat
+ * diandalkan daripada ingatan.
+ */
+const TAMPILKAN_METRIK =
+  import.meta.env.DEV || import.meta.env.VITE_METRIK === '1';
+
 export interface PratinjauProps {
   readonly videoRef: React.RefObject<HTMLVideoElement | null>;
   readonly hasil: HasilPindai | null;
@@ -56,9 +74,8 @@ export function Pratinjau({ videoRef, hasil }: PratinjauProps) {
         style={{ borderColor: warnaStatus(hasil?.status) }}
       />
 
-      {/* Metrik untuk kalibrasi. Berguna saat menyetel ambang dengan uang
-          sungguhan, dan wajib dibuang sebelum demo. */}
-      {hasil && (
+      {/* Metrik kalibrasi. Lihat TAMPILKAN_METRIK di atas. */}
+      {TAMPILKAN_METRIK && hasil && (
         <div className="pointer-events-none absolute left-3 top-3 rounded-lg bg-black/60 px-2 py-1 font-mono text-xs text-white/80">
           {hasil.latensiMs.toFixed(0)}ms · {hasil.fps.toFixed(1)}fps ·{' '}
           luma {hasil.luma.toFixed(2)}

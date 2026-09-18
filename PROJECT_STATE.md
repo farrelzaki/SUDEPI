@@ -80,7 +80,8 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
    kalibrasi ambang memakai sebaran skor yang dilaporkannya → uji layar
    tertutup telapak tangan → gladi bersih `docs/DEMO.md`.
 3. Hapus model tiruan dari `public/model/` dan dari HP.
-4. Buang overlay metrik dari pratinjau sebelum penjurian.
+4. ~~Buang overlay metrik dari pratinjau sebelum penjurian.~~ Tidak perlu lagi:
+   overlay kini mati secara default dan hanya menyala di `pnpm cap:kalibrasi`.
 
 ## ⚠ HUTANG YANG WAJIB DIANGKAT SEBELUM PENJURIAN
 

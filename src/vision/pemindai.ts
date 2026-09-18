@@ -177,6 +177,33 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let lepasVisibilitas: (() => void) | null = null;
+  let kunciLayar: WakeLockSentinel | null = null;
+
+  /**
+   * Menahan layar tetap menyala selama memindai.
+   *
+   * Tanpa ini, Android meredupkan lalu mematikan layar setelah beberapa detik
+   * tanpa sentuhan — dan memindai uang justru berarti TIDAK menyentuh layar,
+   * karena kedua tangan sedang memegang uang di depan kamera.
+   *
+   * Saat layar mati, kamera ikut berhenti dan aplikasi mendadak senyap.
+   * Pengguna yang tidak bisa melihat layar tidak punya cara mengetahui
+   * penyebabnya; yang ia tahu hanya sistemnya berhenti menjawab.
+   */
+  async function ambilKunciLayar(): Promise<void> {
+    try {
+      kunciLayar = await navigator.wakeLock?.request('screen') ?? null;
+    } catch {
+      // Sebagian perangkat menolak, misalnya saat baterai kritis. Bukan alasan
+      // membatalkan pemindaian — hanya berarti layarnya bisa mati sendiri.
+      kunciLayar = null;
+    }
+  }
+
+  function lepasKunciLayar(): void {
+    void kunciLayar?.release().catch(() => {});
+    kunciLayar = null;
+  }
 
   /** Menjadwalkan bingkai berikutnya setelah yang sekarang benar-benar usai. */
   function jadwalkan(): void {
@@ -208,6 +235,7 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
 
       jalan = true;
       jadwalkan();
+      void ambilKunciLayar();
 
       // Berhenti memindai saat aplikasi ditinggalkan.
       //
@@ -222,9 +250,13 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
             timer = null;
           }
           if (senterAktif) void setSenterInternal(false);
+          lepasKunciLayar();
         } else if (!jalan) {
           jalan = true;
           jadwalkan();
+          // Kunci layar HILANG SENDIRI saat aplikasi ditinggalkan, jadi ia
+          // harus diambil ulang, bukan sekadar dianggap masih dipegang.
+          void ambilKunciLayar();
         }
       };
       document.addEventListener('visibilitychange', padaVisibilitas);
@@ -241,6 +273,7 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
       }
       lepasVisibilitas?.();
       lepasVisibilitas = null;
+      lepasKunciLayar();
       if (senterAktif) void setSenterInternal(false);
       for (const jalur of aliran?.getTracks() ?? []) jalur.stop();
       aliran = null;
