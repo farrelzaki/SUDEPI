@@ -48,6 +48,7 @@ Satu-satunya folder yang dipegang berdua, jadi batasnya ditulis per berkas.
 | `periksa_onnx.py` | **Farrel** | Memastikan bentuk keluaran model cocok dengan yang dibaca `src/vision/decode.ts`. |
 | `buat_model_uji.py` | **Farrel** | Model tiruan untuk menguji pipeline sebelum model asli ada. |
 | `uji_model.py` | **Farrel** | Menjalankan model atas foto berlabel: membuktikan urutan kelas benar dan memberi data untuk kalibrasi ambang. |
+| `augmentasi.py` | **Farrel** | Menghasilkan varian kusut, terlipat, dan redup dari foto bersih. Mitigasi risiko nomor 1 Lampiran 8. |
 | `README.md` | **Farrel** | Rancangan pipeline. |
 | **Melatih model** (`latih.ipynb`, `runs/`, `*.pt`) | **Fajar** | Pelaksanaan training dan seluruh hasilnya. |
 | **Dataset** (`dataset/`) | **Fajar** | Unduhan, kurasi, dan pemotretan kelas yang kurang. |
