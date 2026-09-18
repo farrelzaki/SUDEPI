@@ -1,0 +1,151 @@
+# Model SUDEPI
+
+Pemilik pelaksanaan: **Fajar** · Pemilik rancangan pipeline: **Farrel**
+
+> **Ini jalur kritis proyek.** Tanpa model, tidak ada produk. Semua pekerjaan
+> lain punya jalan memutar; yang ini tidak. Kerjakan lebih dulu, dan jalankan
+> trainingnya **sekarang** — sebagian besar waktunya adalah menunggu GPU, dan
+> selama menunggu kamu bebas mengerjakan Capacitor.
+
+---
+
+## Targetnya apa
+
+Satu berkas `sudepi.onnx` (dan `sudepi-int8.onnx` kalau lolos gerbang mutu)
+yang diletakkan di `public/model/`, lalu dimuat ONNX Runtime Web di dalam
+WebView.
+
+| Sifat | Nilai | Kenapa |
+| --- | --- | --- |
+| Arsitektur | YOLOv8-Nano | Paling ringan yang masih akurat untuk CPU ponsel |
+| Kelas | **8** | 7 pecahan + 1 koin. Lihat ADR-0007 |
+| `imgsz` | **320** | Bukan 640. Lihat ADR-0001 |
+| Ekspor | **`nms=False`** | NMS ditulis di TypeScript. Lihat ADR-0002 |
+| Keluaran | `[1, 12, 2100]` | 8 kelas + 4 koordinat = 12 kanal |
+
+Ketiga angka bertanda tebal itu tidak boleh diubah tanpa membaca ADR-nya
+lebih dulu. Semuanya punya alasan yang sudah diverifikasi.
+
+## Urutan kelas — jangan sampai salah
+
+**WAJIB** sama persis dengan `TABEL_DENOMINASI` di `src/contracts/uang.ts`:
+
+```yaml
+names:
+  0: rp1000
+  1: rp2000
+  2: rp5000
+  3: rp10000
+  4: rp20000
+  5: rp50000
+  6: rp100000
+  7: koin
+```
+
+Kalau urutannya bergeser satu saja, SUDEPI akan menyebut nominal yang salah
+**dengan penuh keyakinan**, dan orang yang tidak bisa memeriksa ulang akan
+mempercayainya. Ini kegagalan paling berbahaya yang bisa terjadi pada produk
+ini, dan ia tidak akan tertangkap oleh tes mana pun — hanya oleh uang sungguhan
+di depan kamera.
+
+Periksa ulang `data.yaml` sebelum menekan train.
+
+## Langkah
+
+### 1. Dataset
+
+Mulai dari dataset Rupiah publik di Roboflow Universe, jangan mengumpulkan dari
+nol:
+
+- [Indonesia Rupiah Detection](https://universe.roboflow.com/indonesia-rupiah-currency-dataset/indonesia-rupiah-detection) — ±1.143 citra, pecahan 1.000 sampai 50.000
+- [indonesia banknote 2022](https://universe.roboflow.com/agil-skripsi-3/indonesia-banknote-2022)
+- [Indonesian Banknotes](https://universe.roboflow.com/orbitaibanknotes/indonesian-banknotes)
+
+Unduh dalam format **YOLOv8**, lalu **petakan ulang nama kelasnya** ke skema di
+atas. Dataset publik biasanya memisahkan emisi atau memakai nama berbeda;
+gabungkan ke 7 kelas nominal.
+
+**Dua kelas yang kemungkinan besar tidak tercakup dan harus kita foto sendiri:**
+
+- **Rp100.000** — tidak ada di dataset 1.143 citra itu
+- **koin** — hampir pasti tidak ada di dataset mana pun
+
+Untuk keduanya, potret sekitar 80–150 citra per kelas dengan variasi sudut,
+jarak, latar, dan pencahayaan. Sertakan juga **uang lecek, terlipat, dan
+kondisi redup** — itu justru kasus yang kita klaim kuat di proposal, dan
+dataset publik cenderung berisi uang mulus di latar bersih.
+
+### 2. Training
+
+Jalankan di Google Colab dengan GPU T4 (gratis). Notebook: `latih.ipynb`.
+
+```python
+from ultralytics import YOLO
+
+model = YOLO('yolov8n.pt')
+model.train(
+    data='data.yaml',
+    imgsz=320,          # ADR-0001
+    epochs=100,
+    batch=64,           # 320px ringan, batch besar aman di T4
+    patience=25,
+    degrees=10, shear=5, perspective=0.0005,   # uang dipegang miring
+    hsv_v=0.5,          # lapak pasar temaram
+    fliplr=0.5,
+    mosaic=1.0,
+    close_mosaic=15,
+)
+```
+
+Perkiraan waktu: **30–45 menit** untuk 100 epoch pada imgsz 320 di T4. Pada 640
+angkanya sekitar 2 jam — inilah salah satu keuntungan ADR-0001 yang tidak
+langsung terlihat.
+
+Jangan tunggu selesai sambil menatap layar. Nyalakan, lalu kerjakan Capacitor.
+
+### 3. Ekspor
+
+```bash
+yolo export model=runs/detect/train/weights/best.pt \
+  format=onnx imgsz=320 opset=12 simplify=True nms=False dynamic=False
+```
+
+`nms=False` itu wajib, bukan preferensi. Operator NMS hasil ekspor tidak
+seluruhnya didukung backend WASM, dan kita butuh IoU class-agnostic yang bisa
+dikalibrasi tanpa mengekspor ulang. Lihat ADR-0002.
+
+### 4. Kuantisasi INT8 dan gerbang mutu
+
+```python
+from onnxruntime.quantization import quantize_static, CalibrationDataReader
+# kalibrasi STATIS dengan ~200 citra dari set validasi, bukan dinamis
+```
+
+**Gerbang mutu yang wajib dipatuhi:**
+
+> Ukur mAP@0.5 model INT8 terhadap model FP32 pada set validasi yang sama.
+> **Kalau turun lebih dari 3 poin, buang INT8 dan kirim FP32.**
+
+YOLOv8n FP32 berukuran sekitar 12 MB — masih sangat wajar dibundel dalam APK.
+Angka "~6 MB" di exsum adalah target, bukan janji yang boleh menggerus akurasi.
+Hemat 6 MB tidak sebanding dengan salah menyebut nominal uang orang.
+
+### 5. Serahkan
+
+Letakkan berkas final di `public/model/sudepi.onnx`, lalu bilang ke Farrel.
+Catat juga di `versi_model`: ukuran, checksum, jumlah kelas, dan mAP-nya.
+
+## Kalau waktunya mepet
+
+Urutan prioritas kalau harus memotong:
+
+1. **Model apa pun yang jalan** mengalahkan model sempurna yang belum selesai.
+   Latih pada dataset publik apa adanya dulu, walau tanpa 100.000 dan koin.
+2. Tambahkan **Rp100.000** — pecahan ini terlalu sering dipakai untuk dilewat.
+3. Tambahkan **koin**. Kalau benar-benar tidak sempat, presensi koin masih bisa
+   diturunkan dari selisih di `core/koin.ts` tanpa mendeteksi koin sama sekali;
+   yang hilang hanya konfirmasi visualnya.
+4. Terakhir, perkaya dengan uang lecek.
+
+Sampaikan sejujurnya ke Farrel sampai mana yang sempat dikerjakan, supaya
+ambang keyakinan dikalibrasi sesuai kenyataan — bukan sesuai harapan.

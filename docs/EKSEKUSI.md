@@ -18,7 +18,7 @@ keras, dan pengalaman pengguna).
 
 | | **Farrel** | **Fajar** |
 | --- | --- | --- |
-| Folder | `src/contracts/` · `src/core/` · `src/vision/` · `src/data/` · `model/` | `src/ui/` · `src/platform/` · `src/audio/` |
+| Folder | `src/contracts/` · `src/core/` · `src/vision/` · `src/data/` | `src/ui/` · `src/platform/` · `src/audio/` · `model/` |
 | Berkas akar | `package.json` · `tsconfig*.json` · `vite.config.ts` | `capacitor.config.ts` · `android/` |
 | Sifat kerja | Logika murni, angka, banyak tes. Bisa tanpa HP. | Visual, taktil, native. Butuh HP tertancap. |
 
@@ -175,17 +175,11 @@ Target: **AI mendeteksi uang sungguhan, dan kalkulator kembalian lulus tes.**
 - `kembalian.ts` — kalkulator, tolak bayar < belanja
 - `koin.ts` — turunkan nominal koin dari selisih, abstain kalau selisih ≥ 1.000
 
-`model/`
-- Ekspor `imgsz=320`, `nms=False` (ADR-0001, ADR-0002)
-- Kuantisasi INT8 dengan kalibrasi statis
-- **Gerbang mutu:** bandingkan mAP@0.5 INT8 vs FP32. Turun lebih dari 3 poin →
-  buang INT8, kirim FP32. Akurasi menang atas ukuran berkas.
-
 Tes wajib: `nms.ts`, `kembalian.ts`, `koin.ts`, `mesin.ts` (termasuk transisi
 **tidak sah** yang harus ditolak).
 
 ```bash
-git add src/vision src/core model
+git add src/vision src/core
 git commit -m "vision: pipeline deteksi + NMS; core: FSM dan kalkulator"
 git pull --rebase && git push
 ```
@@ -194,10 +188,21 @@ git pull --rebase && git push
 
 Target: **APK terpasang di HP, dan UI bisa dijalankan pakai mock Farrel.**
 
-**Kerjakan nomor 1 lebih dulu, jangan ditunda.** Build Gradle pertama mengunduh
-ratusan MB dan butuh internet. Demo nanti berjalan dalam mode pesawat — kalau
-cache Gradle baru dihangatkan saat dibutuhkan dan jaringan bermasalah, tidak
-ada APK sama sekali.
+**Nyalakan training LEBIH DULU, sebelum apa pun.** Ia berjalan 30–45 menit di
+GPU Colab tanpa perlu ditunggui, jadi setiap menit penundaan adalah menit yang
+hilang percuma. Baru setelah itu kerjakan Capacitor selagi GPU bekerja.
+
+Nomor 1 dan 2 sama-sama butuh internet, sementara demo nanti berjalan dalam
+mode pesawat. Selesaikan keduanya selagi jaringan masih ada.
+
+0. **Training model — JALUR KRITIS PROYEK**
+   Baca `model/README.md`, ikuti langkahnya. Ringkasnya: unduh dataset Rupiah
+   publik dari Roboflow, petakan ke 8 kelas sesuai `src/contracts/uang.ts`,
+   latih YOLOv8n `imgsz=320` di Colab T4, ekspor `nms=False`, kuantisasi INT8
+   dengan gerbang mutu mAP.
+   **Periksa ulang urutan kelas di `data.yaml` sebelum menekan train.** Kalau
+   bergeser satu saja, sistem menyebut nominal yang salah dengan penuh
+   keyakinan, dan tidak ada tes yang bisa menangkapnya.
 
 1. **Capacitor + APK pertama**
    ```bash

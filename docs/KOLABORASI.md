@@ -27,8 +27,8 @@ tugas per fase. Ringkasnya:
 | Folder | Pemilik |
 | --- | --- |
 | `src/contracts/` | **Farrel** (beku — ubah hanya setelah sepakat) |
-| `src/core/`, `src/vision/`, `src/data/`, `model/` | **Farrel** |
-| `src/ui/`, `src/platform/`, `src/audio/` | **Fajar** |
+| `src/core/`, `src/vision/`, `src/data/` | **Farrel** |
+| `src/ui/`, `src/platform/`, `src/audio/`, `model/` | **Fajar** |
 | `package.json`, `tsconfig*.json`, `vite.config.ts` | **Farrel** |
 | `capacitor.config.ts`, `android/` | **Fajar** |
 | `docs/` | Siapa saja, umumkan lisan dulu |
