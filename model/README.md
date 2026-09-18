@@ -205,6 +205,44 @@ terjadi pada produk ini.
 Periksa ulang berkas itu sebelum menekan train, lalu periksa sekali lagi
 sesudahnya.
 
+### Berkas bantu yang sudah disiapkan Farrel
+
+Tiga berkas di folder ini dipegang Farrel, bukan kamu. Pakai apa adanya; kalau
+terasa ada yang salah, bilang, jangan perbaiki sendiri.
+
+| Berkas | Gunanya |
+| --- | --- |
+| `data.yaml` | Konfigurasi dataset dengan urutan 8 kelas yang benar |
+| `periksa_kelas.py` | Memastikan `data.yaml` cocok dengan kontrak aplikasi |
+| `petakan_dataset.py` | Memetakan nama kelas dataset publik ke skema kita |
+
+**Alur pemakaiannya:**
+
+```bash
+# 1. Lihat dulu apa yang akan dipetakan. Tidak mengubah apa pun.
+python model/petakan_dataset.py dataset/
+
+# 2. Kalau laporannya benar, baru terapkan. Label lama dicadangkan otomatis.
+python model/petakan_dataset.py dataset/ --terapkan
+
+# 3. WAJIB, sebelum menekan train.
+python model/periksa_kelas.py
+```
+
+`periksa_kelas.py` keluar dengan kode 1 kalau urutannya tidak cocok, jadi bisa
+dipasang sebagai syarat di notebook-mu. Ia sudah diuji menangkap pertukaran
+20.000 dengan 50.000.
+
+`petakan_dataset.py` sengaja **menolak menebak**. Nama kelas yang tidak
+dikenali membuatnya berhenti dengan exit 1 tanpa menyentuh satu berkas pun,
+dan memintamu menambahkan polanya. Kelas yang salah dipetakan tidak
+menghasilkan galat apa pun — training tetap jalan, mAP tetap bagus, lalu
+aplikasi menyebut nominal yang salah dengan penuh keyakinan.
+
+Skrip itu juga melaporkan **kelas yang tidak punya satu pun contoh**. Pada
+dataset publik biasanya `koin` dan `rp100000` kosong — itu yang harus kita
+foto sendiri.
+
 ### Cara cepat memastikan modelmu benar
 
 Setelah ekspor, jalankan ini:

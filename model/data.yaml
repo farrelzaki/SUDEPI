@@ -1,0 +1,38 @@
+# Konfigurasi dataset YOLOv8 untuk SUDEPI.
+#
+# PEMILIK BERKAS INI: Farrel. Jangan menulis ulang tanpa bilang lebih dulu.
+#
+# ================================ PERINGATAN ================================
+#
+# Urutan `names` di bawah WAJIB sama persis dengan TABEL_DENOMINASI di
+# `src/contracts/uang.ts`. Indeks di sini adalah indeks keluaran model, dan
+# aplikasi memetakannya langsung ke nominal Rupiah.
+#
+# Kalau bergeser satu saja, SUDEPI akan menyebut nominal yang SALAH dengan
+# penuh keyakinan kepada orang yang tidak bisa memeriksa ulang jawabannya.
+# Tidak ada satu pun dari 204 tes yang bisa menangkap ini — hanya uang
+# sungguhan di depan kamera.
+#
+# Periksa dengan: python model/periksa_kelas.py
+#
+# ============================================================================
+
+# Sesuaikan dengan lokasi dataset hasil unduhan.
+path: ./dataset
+train: images/train
+val: images/val
+
+# 8 kelas. Lihat ADR-0007 soal kenapa tahun emisi TIDAK dipisahkan:
+# emisi tidak pernah diucapkan ke pengguna, jadi memisahkannya hanya membelah
+# data latih tanpa menambah kemampuan apa pun.
+nc: 8
+
+names:
+  0: rp1000
+  1: rp2000
+  2: rp5000
+  3: rp10000
+  4: rp20000
+  5: rp50000
+  6: rp100000
+  7: koin
