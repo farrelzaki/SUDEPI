@@ -153,10 +153,20 @@ describe('dekode', () => {
   });
 
   it('skor tepat di ambang keyakinan diloloskan', () => {
+    // Skornya menempuh Float32Array lebih dulu, dan tidak semua pecahan
+    // desimal bertahan utuh di sana: 0,70 menjadi 0,699999988, yang JATUH DI
+    // BAWAH ambangnya sendiri. Karena itu batasnya dibandingkan dalam presisi
+    // yang sama dengan tempat angka itu benar-benar hidup.
+    //
+    // Ini tidak melonggarkan apa pun — gating tetap `>=` terhadap ambang yang
+    // sama. Yang diperbaiki hanya anggapan bahwa nilai desimal selamat dari
+    // perjalanan ke float32. Selama ambangnya 0,85 anggapan itu kebetulan
+    // benar, dan ADR-0010 menyingkapnya.
+    const ambang32 = Math.fround(AMBANG_KEYAKINAN);
     const data = buatTensor([
-      { cx: 160, cy: 160, w: 80, h: 80, kelas: 5, skor: AMBANG_KEYAKINAN },
+      { cx: 160, cy: 160, w: 80, h: 80, kelas: 5, skor: ambang32 },
     ]);
-    expect(dekode(data, lbPersegi, AMBANG_KEYAKINAN).lolos).toHaveLength(1);
+    expect(dekode(data, lbPersegi, ambang32).lolos).toHaveLength(1);
   });
 
   it('tensor kosong tidak menghasilkan error', () => {

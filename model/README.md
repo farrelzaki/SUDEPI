@@ -350,7 +350,7 @@ latih.
 
 **Sebaran skor keyakinan per kelas.** Ini yang dibutuhkan untuk menyetel ambang
 secara terukur alih-alih menebak. Kalau uang lecek konsisten di 0,78 sementara
-ambang kita 0,85, sistem akan abstain terus-menerus — lebih baik kita tahu dari
+ambang kita 0,70, sistem akan abstain terus-menerus — lebih baik kita tahu dari
 angka daripada dari juri.
 
 Prapemrosesannya sengaja meniru `src/vision/worker.ts` persis (letterbox

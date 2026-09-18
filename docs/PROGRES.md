@@ -205,7 +205,7 @@ terpenuhi dengan tidak menulis kode gestur sama sekali.
 
 Empat saringan berurutan sebelum sebuah nominal boleh diucapkan:
 
-1. **Confidence gating** — skor minimal 0,85
+1. **Confidence gating** — skor minimal 0,70 (dikalibrasi, ADR-0010)
 2. **NMS class-agnostic, IoU > 0,40** — mencegah lembaran bertumpuk terhitung ganda
 3. **Voting temporal, 3 dari 5 bingkai** — membunuh kedipan akibat guncangan tangan
 4. **Konfirmasi pengguna** — nominal dikunci hanya setelah disetujui

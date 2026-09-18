@@ -133,7 +133,11 @@ describe('gating', () => {
   it('membuang yang di bawah ambang, menahan yang tepat di ambang', () => {
     const hasil = gating(
       [
-        d(1, 0.84, kotak(0, 0, 0.2, 0.2)),
+        // Diturunkan DARI ambang, bukan ditulis mati. Versi sebelumnya
+        // menulis 0,84 — angka yang hanya "di bawah ambang" selama ambangnya
+        // kebetulan 0,85, dan langsung menjadi salah saat ADR-0010
+        // menurunkannya ke 0,70.
+        d(1, AMBANG_KEYAKINAN - 0.01, kotak(0, 0, 0.2, 0.2)),
         d(2, AMBANG_KEYAKINAN, kotak(0, 0, 0.2, 0.2)),
         d(3, 0.99, kotak(0, 0, 0.2, 0.2)),
       ],

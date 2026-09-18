@@ -80,7 +80,7 @@ export interface PemindaiKamera {
 /* ---------------------------------------------------------------------------
  * Tetapan bersama.
  *
- * Angka-angka ini HANYA boleh hidup di sini. Jangan pernah menulis 0.85
+ * Angka-angka ini HANYA boleh hidup di sini. Jangan pernah menulis 0.70
  * sebagai literal di tempat lain — saat kalibrasi dengan uang lecek nanti,
  * kita harus bisa mengubahnya di satu tempat.
  * ------------------------------------------------------------------------- */

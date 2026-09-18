@@ -46,7 +46,8 @@ Sumber kebutuhan: `docs/Exsum_IFEST2026_PenungguTokenReset.docx`.
 1. **Luring mutlak.** Dilarang `fetch`, `XMLHttpRequest`, CDN, Google Fonts,
    atau URL absolut ke host mana pun di kode produksi. Seluruh aset dibundel.
    Kriteria lulus: aplikasi berjalan penuh dengan HP dalam **mode pesawat**.
-2. **Lebih baik diam daripada salah sebut.** Kalau keyakinan deteksi < 0,85 atau
+2. **Lebih baik diam daripada salah sebut.** Kalau keyakinan deteksi di bawah
+   `AMBANG_KEYAKINAN` (0,70 sejak ADR-0010 — jangan tulis angkanya di tempat lain) atau
    hasil tidak stabil, sistem **wajib** abstain dan minta pindai ulang.
    Menebak nominal = kerugian uang nyata bagi pengguna. Ini bukan bug biasa.
 3. **Tidak ada layar yang butuh mata.** Setiap aksi harus bisa diselesaikan

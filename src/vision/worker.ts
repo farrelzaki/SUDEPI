@@ -15,6 +15,7 @@
  */
 
 import * as ort from 'onnxruntime-web/wasm';
+import { AMBANG_IOU, AMBANG_KEYAKINAN, UKURAN_MASUKAN } from '@/contracts';
 import { dekode } from './decode';
 import { gating, nms } from './nms';
 import type { PesanDariWorker, PesanKeWorker } from './protokolWorker';
@@ -22,9 +23,12 @@ import type { PesanDariWorker, PesanKeWorker } from './protokolWorker';
 const diri = self as unknown as DedicatedWorkerGlobalScope;
 
 let sesi: ort.InferenceSession | null = null;
-let ambangKeyakinan = 0.85;
-let ambangIoU = 0.4;
-let ukuranMasukan = 320;
+// Nilai awal sebelum pesan `init` tiba. Diambil dari kontrak, bukan ditulis
+// ulang — menulisnya mati membuat satu angka ambang hidup di dua tempat, dan
+// yang di sini tidak ikut berubah saat kalibrasi.
+let ambangKeyakinan = AMBANG_KEYAKINAN;
+let ambangIoU = AMBANG_IOU;
+let ukuranMasukan = UKURAN_MASUKAN;
 
 /** Kanvas dan buffer dipakai ulang antar bingkai supaya tidak memicu GC. */
 let kanvas: OffscreenCanvas | null = null;

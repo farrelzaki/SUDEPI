@@ -74,7 +74,7 @@ def buat_keluaran() -> np.ndarray:
         keluar[0, 1, jangkar] = cy
         keluar[0, 2, jangkar] = lebar
         keluar[0, 3, jangkar] = tinggi
-        # Skor jauh di atas AMBANG_KEYAKINAN (0,85) supaya lolos gating dan
+        # Skor jauh di atas AMBANG_KEYAKINAN (0,70) supaya lolos gating dan
         # voting temporal dengan cepat.
         keluar[0, 4 + kelas, jangkar] = 0.97
 

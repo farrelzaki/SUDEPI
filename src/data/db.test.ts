@@ -9,7 +9,7 @@
 
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { JUMLAH_KELAS, STATE_AWAL, type Deteksi } from '@/contracts';
+import { AMBANG_KEYAKINAN, JUMLAH_KELAS, STATE_AWAL, type Deteksi } from '@/contracts';
 import { bacaPengaturan, DbSudepi, siapkanDb, tulisPengaturan } from './db';
 import { buatRepositori } from './repositori';
 import { buatPenyangga } from './penyangga';
@@ -62,7 +62,7 @@ describe('skema', () => {
 describe('pengaturan', () => {
   it('terisi nilai bawaan saat pertama dibuat', async () => {
     const p = await bacaPengaturan(db);
-    expect(p.ambangKeyakinan).toBe(0.85);
+    expect(p.ambangKeyakinan).toBe(AMBANG_KEYAKINAN);
     expect(p.modeInput).toBe('taktil');
   });
 

@@ -92,7 +92,7 @@ inti dari memilih jalur ini.
 Ini mekanisme inti produk, bukan detail implementasi. Sebuah deteksi harus
 lolos **empat** saringan berurutan sebelum boleh diucapkan:
 
-1. **Confidence gating** — skor minimal 0,85. Di bawah itu, kotak dibuang.
+1. **Confidence gating** — skor minimal 0,70 (ADR-0010). Di bawah itu, kotak dibuang.
 2. **NMS class-agnostic, IoU di atas 0,40** — mencegah satu lembar yang
    tertangkap dua kali, atau dua lembar bertumpuk, dihitung ganda.
 3. **Voting temporal** — himpunan deteksi yang sama harus muncul di **3 dari 5**

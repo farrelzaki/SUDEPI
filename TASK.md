@@ -44,7 +44,7 @@ Kriteria selesai:
 
 - [x] `python model/periksa_onnx.py public/model/sudepi.onnx` lolos (3.1 MB, [1, 3, 320, 320] -> [1, 12, 2100])
 - [x] Ketujuh pecahan dikenali benar satu per satu dengan uang sungguhan (terverifikasi Farrel di M32, 18 Sept 2026)
-- [ ] Kalibrasi ambang keyakinan (0.85 -> 0.70) untuk multi-lembar & presensi koin
+- [x] Kalibrasi ambang keyakinan (0.85 -> 0.70) untuk multi-lembar & presensi koin — ADR-0010
 - [ ] Latensi inferensi terukur di bawah 250 ms di Galaxy M32
 - [ ] Satu transaksi utuh berhasil dengan uang sungguhan
 - [ ] Seluruh alur berjalan dalam mode pesawat

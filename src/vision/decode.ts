@@ -27,7 +27,7 @@ export const JUMLAH_KANAL = 4 + JUMLAH_KELAS;
 /**
  * Ambang "ada sesuatu di sana, tapi saya tidak yakin".
  *
- * Bukan ambang keputusan — ambang keputusan adalah `AMBANG_KEYAKINAN` (0,85).
+ * Bukan ambang keputusan — ambang keputusan adalah `AMBANG_KEYAKINAN` (0,70).
  * Nilai ini hanya dipakai untuk MENGHITUNG berapa banyak objek yang terlihat
  * namun gagal lolos, sehingga sistem bisa membedakan dua keadaan yang sangat
  * berbeda bagi pengguna:

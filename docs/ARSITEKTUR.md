@@ -57,7 +57,7 @@ video ──► createImageBitmap(resize 320)
       │  ort.InferenceSession.run()             │
       │  keluaran mentah [1, 12, 2100]          │
       │  decode kotak + skor                    │
-      │  saring skor < 0.85                     │
+      │  saring skor < AMBANG_KEYAKINAN (0,70)  │
       │  NMS class-agnostic, IoU > 0.40         │
       └─────────────┬───────────────────────────┘
                     ▼

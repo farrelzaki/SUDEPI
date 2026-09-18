@@ -25,7 +25,7 @@ konsisten, dan tercatat.
 BONUS: KALIBRASI AMBANG. Skrip ini juga melaporkan sebaran skor keyakinan per
 kelas. Itu yang dibutuhkan untuk menyetel `AMBANG_KEYAKINAN` secara terukur
 alih-alih menebak. Kalau uang lecek konsisten berada di 0,78 sementara ambang
-kita 0,85, sistem akan abstain terus-menerus — dan lebih baik mengetahuinya
+kita 0,70, sistem akan abstain terus-menerus — dan lebih baik mengetahuinya
 dari angka daripada dari juri.
 
 Prapemrosesan di sini SENGAJA meniru `src/vision/worker.ts` persis: letterbox
