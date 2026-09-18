@@ -94,6 +94,17 @@ pnpm cap:sync            # build + salin web ke proyek Android
 pnpm cap:run             # pasang & jalankan di HP terhubung
 ```
 
+**Kalau build Gradle gagal dengan `The filename, directory name, or volume
+label syntax is incorrect`:** itu `android/local.properties` memakai separator
+campur — Git Bash menghasilkan path setengah backslash setengah garis miring,
+dan Gradle tidak bisa membacanya. Tulis ulang dengan garis miring maju semua:
+
+```bash
+printf 'sdk.dir=%s\n' "$(cygpath -m "$LOCALAPPDATA/Android/Sdk")" > android/local.properties
+```
+
+`android/` tidak masuk git, jadi setiap mesin akan menabrak ini sekali.
+
 **Kalau `pnpm install` keluar dengan `ERR_PNPM_IGNORED_BUILDS`:** itu esbuild
 yang butuh izin menjalankan postinstall-nya. Keputusannya sudah ditulis di
 `pnpm-workspace.yaml`, tapi pnpm menyimpan status lama di
