@@ -29,8 +29,9 @@ export type NamaPotongan = Klip | IdFrasa;
 export interface ManifesAudio {
   readonly suara: string;
   readonly kecepatan: string;
-  /** Nama potongan yang tersedia sebagai berkas `<nama>.mp3`. */
+  /** Nama potongan yang tersedia sebagai berkas `<nama>.wav`. */
   readonly potongan: readonly string[];
+  readonly format?: string;
 }
 
 /** Meratakan `Ucapan` menjadi daftar potongan yang harus diputar berurutan. */
@@ -120,7 +121,7 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
     await Promise.all(
       m.potongan.map(async (nama) => {
         try {
-          const r = await fetch(`${dasar}${nama}.mp3`);
+          const r = await fetch(`${dasar}${nama}.wav`);
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           buffer.set(nama, await ctx.decodeAudioData(await r.arrayBuffer()));
         } catch (e) {
@@ -129,6 +130,10 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
         }
       }),
     );
+    // Ringkasan pemuatan SENGAJA dipertahankan di produksi. Kalau suara
+    // bermasalah saat demo, satu baris ini di logcat langsung membedakan
+    // "klip tidak termuat" dari "klip termuat tapi tidak terdengar" — dua
+    // penyebab yang sangat berbeda dan mustahil dibedakan dari luar.
     console.log(
       `[AUDIO] termuat=${buffer.size} gagal=${gagal} konteks=${ctx.state}` +
         (pesanGagal ? ` contoh=${pesanGagal}` : ''),
@@ -191,10 +196,6 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
         selesai();
       };
       sumberAktif = sumber;
-      console.log(
-        `[AUDIO] putar ${nama} dur=${buf.duration.toFixed(2)}s ` +
-          `ctx=${ctx.state} gain=${tujuan.gain.value.toFixed(2)}`,
-      );
       sumber.start();
     });
   }

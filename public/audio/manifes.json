@@ -1,6 +1,7 @@
 {
   "suara": "id-ID-ArdiNeural",
   "kecepatan": "-5%",
+  "format": "wav",
   "potongan": [
     "arahkan_kamera",
     "belas",

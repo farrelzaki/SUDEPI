@@ -17,10 +17,18 @@ perkakas tambahan (ffmpeg, yang tidak tersedia di mesin pengembangan kami), dan
 perhitungan offset milidetik adalah sumber kesalahan yang tidak akan terdengar
 sampai satu kata terpotong di tengah kalimat.
 
-Hasil akhirnya: **34 potongan, total 415 KB**, dirender dengan suara neural
+Hasil akhirnya: **34 potongan WAV, total 3,3 MB**, dirender dengan suara neural
 `id-ID-ArdiNeural` pada kecepatan −5%. Skripnya ada di
 `scripts/render_audio.py` dan dijalankan sekali oleh pengembang, bukan saat
 aplikasi berjalan.
+
+Formatnya WAV, bukan MP3, meski MP3 hanya 415 KB dan sudah terbukti berjalan di
+WebView Galaxy M32. Alasannya menghapus satu variabel, bukan memperbaiki
+kegagalan yang teramati: edge-tts menghasilkan MPEG-2 Layer III 24 kHz, varian
+yang tidak umum, dan WebView di HP juri bisa versi lain. Kalau codec-nya
+bermasalah di sana, gejalanya adalah aplikasi MEMBISU tanpa pesan apa pun —
+kegagalan yang paling mahal bagi produk ini. WAV/PCM tidak melibatkan codec
+sama sekali, dan 3 MB tambahan tidak berarti di samping runtime WASM 14 MB.
 
 Kecepatan sedikit di bawah normal itu disengaja: pengguna mendengar nominal
 SEKALI, sambil memegang uang dan menghadapi kasir yang menunggu, tanpa

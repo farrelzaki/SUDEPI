@@ -26,12 +26,18 @@ pertama kali dipasangi aplikasi kami — misalnya HP juri.
 import asyncio
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 try:
     import edge_tts
 except ImportError:
     sys.exit("Butuh edge-tts. Jalankan: python -m pip install edge-tts")
+
+try:
+    import miniaudio
+except ImportError:
+    sys.exit("Butuh miniaudio. Jalankan: python -m pip install miniaudio")
 
 # Ardi terdengar lebih tenang dan rendah, lebih mudah ditangkap di tengah
 # kebisingan pasar dibanding suara bernada tinggi.
@@ -43,6 +49,18 @@ SUARA = "id-ID-ArdiNeural"
 KECEPATAN = "-5%"
 
 KELUARAN = Path(__file__).resolve().parent.parent / "public" / "audio"
+
+# Hasil akhir disimpan sebagai WAV, bukan MP3.
+#
+# edge-tts hanya menghasilkan MPEG-2 Layer III 24 kHz — varian MP3 yang tidak
+# umum. Versi MP3 sudah terbukti berjalan di WebView Galaxy M32, jadi ini bukan
+# perbaikan atas kegagalan yang teramati, melainkan penghapusan satu variabel:
+# WebView di HP juri bisa versi lain, dan kalau codec-nya bermasalah gejalanya
+# adalah aplikasi MEMBISU tanpa pesan apa pun.
+#
+# WAV/PCM tidak melibatkan codec sama sekali. Biayanya 3,3 MB dibanding 415 KB,
+# yang tidak berarti di samping runtime WASM 14 MB — dan murah untuk menukar
+# satu kemungkinan gagal-senyap dengan kepastian.
 
 # Potongan bilangan. Naskahnya ditulis apa adanya supaya edge-tts melafalkannya
 # sebagai kata, bukan sebagai angka.
@@ -93,9 +111,25 @@ SEMUA = {**KLIP_BILANGAN, **KLIP_FRASA}
 
 
 async def render(nama: str, teks: str) -> int:
-    berkas = KELUARAN / f"{nama}.mp3"
-    komunikasi = edge_tts.Communicate(teks, SUARA, rate=KECEPATAN)
-    await komunikasi.save(str(berkas))
+    berkas = KELUARAN / f"{nama}.wav"
+
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as sementara:
+        jalur_mp3 = Path(sementara.name)
+
+    try:
+        komunikasi = edge_tts.Communicate(teks, SUARA, rate=KECEPATAN)
+        await komunikasi.save(str(jalur_mp3))
+
+        pcm = miniaudio.decode_file(
+            str(jalur_mp3),
+            output_format=miniaudio.SampleFormat.SIGNED16,
+            nchannels=1,
+            sample_rate=24000,
+        )
+        miniaudio.wav_write_file(str(berkas), pcm)
+    finally:
+        jalur_mp3.unlink(missing_ok=True)
+
     return berkas.stat().st_size
 
 
@@ -113,6 +147,7 @@ async def main() -> None:
     manifes = {
         "suara": SUARA,
         "kecepatan": KECEPATAN,
+        "format": "wav",
         "potongan": sorted(SEMUA.keys()),
     }
     (KELUARAN / "manifes.json").write_text(
