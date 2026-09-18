@@ -99,6 +99,27 @@ adalah target, bukan janji yang boleh menggerus akurasi.
 Bobot dan checksum-nya dicatat di store `versi_model`, supaya setiap hasil
 deteksi bisa ditelusuri ke versi model yang memproduksinya.
 
+## Ukuran APK dan pemuatan WASM
+
+Runtime WASM ONNX Runtime berukuran **14 MB**. Ditambah bobot model, APK akan
+berada di kisaran 25–30 MB. Wajar untuk aplikasi yang membawa seluruh AI-nya
+sendiri, tapi ada dua jebakan yang sudah kami tabrak dan selesaikan:
+
+**Jangan menyetel `ort.env.wasm.wasmPaths`.** ORT merujuk berkas `.wasm`-nya
+lewat `new URL(..., import.meta.url)`, sehingga Vite memancarkannya sendiri ke
+`dist/assets/` dengan path relatif yang benar. Menyetel `wasmPaths` ke salinan
+terpisah di `public/` membuat **dua** berkas 14 MB yang identik ikut dibundel.
+Kami sempat melakukannya sebelum menyadari duplikasinya.
+
+**Impor dari `onnxruntime-web/wasm`, bukan `onnxruntime-web`.** Paketnya memuat
+empat varian WASM: `.wasm` biasa (14 MB), `.jspi` (16 MB), `.asyncify` (26 MB),
+dan `.jsep` untuk WebGPU (28 MB). Subpath `/wasm` hanya menarik yang pertama.
+Mengimpor paket utama berisiko menyeret varian yang tidak kami pakai sama
+sekali.
+
+Verifikasi: setelah `pnpm build`, `find dist -name "*.wasm"` harus memberi
+**tepat satu** berkas.
+
 ## Kamera dan senter
 
 Keduanya dipakai **langsung dari Web API**, tanpa plugin Capacitor:
