@@ -215,6 +215,9 @@ terasa ada yang salah, bilang, jangan perbaiki sendiri.
 | `data.yaml` | Konfigurasi dataset dengan urutan 8 kelas yang benar |
 | `periksa_kelas.py` | Memastikan `data.yaml` cocok dengan kontrak aplikasi |
 | `petakan_dataset.py` | Memetakan nama kelas dataset publik ke skema kita |
+| `ekspor.py` | Ekspor ONNX + kuantisasi INT8 + gerbang mutu mAP, sekali jalan |
+| `periksa_onnx.py` | Memastikan bentuk keluaran cocok dengan aplikasi |
+| `buat_model_uji.py` | Model tiruan untuk menguji pipeline sebelum modelmu ada |
 
 **Alur pemakaiannya:**
 
@@ -227,7 +230,20 @@ python model/petakan_dataset.py dataset/ --terapkan
 
 # 3. WAJIB, sebelum menekan train.
 python model/periksa_kelas.py
+
+# 4. Sesudah training selesai — satu perintah untuk semuanya.
+python model/ekspor.py runs/detect/train/weights/best.pt
 ```
+
+Langkah 4 mengurus seluruh sisanya: memeriksa urutan kelas sekali lagi,
+mengekspor dengan `imgsz=320` dan `nms=False` (parameternya dikunci di dalam
+skrip supaya tidak bisa salah ketik), mengukur mAP FP32 dan INT8, memilih yang
+terbaik, lalu memeriksa bentuk keluarannya. Hasilnya langsung mendarat di
+`public/model/sudepi.onnx`.
+
+**Gerbang mutu INT8 sudah otomatis.** Kalau kuantisasi menurunkan mAP lebih
+dari 3 poin, skrip menolak INT8 dan memakai FP32 tanpa bertanya. Hemat beberapa
+MB tidak sepadan dengan salah menyebut nominal uang orang.
 
 `periksa_kelas.py` keluar dengan kode 1 kalau urutannya tidak cocok, jadi bisa
 dipasang sebagai syarat di notebook-mu. Ia sudah diuji menangkap pertukaran
@@ -242,6 +258,18 @@ aplikasi menyebut nominal yang salah dengan penuh keyakinan.
 Skrip itu juga melaporkan **kelas yang tidak punya satu pun contoh**. Pada
 dataset publik biasanya `koin` dan `rp100000` kosong — itu yang harus kita
 foto sendiri.
+
+### Kabar baik: pipeline-nya sudah terbukti
+
+Seluruh rantai aplikasi sudah diuji utuh di Galaxy M32 memakai model tiruan
+(`buat_model_uji.py`), dari Mode Siaga sampai layar Transaksi Selesai —
+termasuk kamera, decode, NMS, voting temporal, suara Indonesia, Merchant
+Display, penurunan nilai koin, dan penyimpanan riwayat.
+
+Artinya begitu bobot aslimu masuk ke `public/model/sudepi.onnx`, ia seharusnya
+langsung bekerja. Yang belum bisa diketahui sama sekali sebelum modelmu ada
+hanyalah **akurasi sesungguhnya** — dan itu memang hanya bisa diukur dengan
+uang sungguhan di depan kamera.
 
 ### Cara cepat memastikan modelmu benar
 

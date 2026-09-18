@@ -9,93 +9,96 @@ Perbarui saat memulai sesi, melewati checkpoint, membuat keputusan penting, mene
 - Terakhir diperbarui: 2026-09-18
 - Mode kerja: `competition`
 - Status sesi: Berjalan
-- Task aktif: Aplikasi utuh Fase 1–4 (selesai), menunggu bobot model
-- Fase aktif: Verification
-- Checkpoint terakhir: Verification
-- Konfirmasi pengguna terakhir: Farrel ambil alih seluruh kode; Fajar fokus model
+- Task aktif: Berkas bantu model untuk Fajar
+- Fase aktif: Implementation
+- Checkpoint terakhir: Verification (pipeline utuh terbukti di perangkat)
+- Konfirmasi pengguna terakhir: Farrel kerjakan bagian Fajar, perbarui pembagian tiap kali
 
 ## Scope Yang Disetujui
 
-**Pembagian berubah 18 September 2026.** Fajar fokus penuh ke `model/`
-(dataset, training, ekspor, kuantisasi). Farrel mengambil alih seluruh `src/`
-dan berkas akar. Tercatat di `docs/EKSEKUSI.md` dengan blok peringatan bagi
-agen AI Fajar.
+Farrel memegang seluruh `src/` dan berkas bantu di `model/` yang harus cocok
+dengan kode aplikasi. Fajar memegang dataset, training, dan hasilnya.
+Pembagian per berkas ada di `docs/EKSEKUSI.md`.
 
 ## Tujuan Saat Ini
 
-Aplikasi sudah utuh dan teruji. Yang tersisa hanyalah menyambungkan model
-sungguhan, lalu memverifikasi di HP fisik.
+Aplikasi sudah lengkap dan terbukti berjalan utuh di perangkat. Yang tersisa:
+model sungguhan dari Fajar, lalu kalibrasi dengan uang asli.
 
 ## Progress
 
-Selesai dan terverifikasi:
+**SELURUH ALUR FASE 1–4 TERBUKTI DI GALAXY M32** memakai model tiruan:
 
-| Bagian | Isi |
-| --- | --- |
-| `src/contracts/` | 8 kelas, tipe lintas-modul, beku |
-| `src/core/` | Reducer FSM, kalkulator kembalian, presensi koin |
-| `src/vision/` | Decode, NMS, voting temporal, worker ONNX, pemindai kamera |
-| `src/audio/` | Penyusun bilangan Indonesia, pengucap sprite + cadangan TTS |
-| `src/platform/` | Pembungkus Capacitor (haptik, preferensi) + mock |
-| `src/ui/` | Pola dua tombol, roda taktil, Merchant Display, Fase 1–4 |
-| Capacitor | `cap init` + `cap add android`, APK terbentuk |
+```
+Siaga -> "Uang terdeteksi. Lanjut ke kalkulator."
+      -> Kalkulator (8 tombol pecahan berlabel Indonesia)
+      -> Layar kasir (3 angka, kontras tinggi, kembalian disorot)
+      -> "Kembalian cocok. Selesaikan transaksi."
+      -> "Transaksi selesai. Kembali ke mode siaga."
+```
 
-**155 tes lulus, `tsc --noEmit` bersih dengan `strict` penuh, `pnpm build`
-lolos, APK 8,7 MB terbentuk dalam 14 detik.**
+Rantai yang tervalidasi: kamera → Web Worker → ONNX Runtime → decode →
+confidence gating → NMS → voting temporal → state machine → audio Indonesia →
+haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
 
 ## Bukti Yang Sudah Diperiksa
 
 | Pemeriksaan | Hasil |
 | --- | --- |
-| `pnpm test` | 155 lulus di 10 berkas |
-| `npx tsc --noEmit` | Bersih, termasuk `noUncheckedIndexedAccess` dan `exactOptionalPropertyTypes` |
-| `pnpm build` | Lolos. Worker ter-bundle, tepat satu berkas `.wasm` |
-| `./gradlew assembleDebug` | BUILD SUCCESSFUL. 2m37s saat pertama, **14 detik** setelah cache hangat |
-| Isi APK | `.wasm` 14 MB dan `worker.js` ada di `assets/public/assets/` |
-| Lingkungan | Node 24.15, pnpm 11.24, Java 17.0.12, SDK API 34/35/36 |
+| `pnpm test` | **204 lulus** di 13 berkas |
+| `npx tsc --noEmit` | Bersih, `strict` penuh |
+| `pnpm build` | Lolos, tepat satu berkas `.wasm` |
+| `./gradlew assembleDebug` | BUILD SUCCESSFUL, 14 detik (cache hangat) |
+| APK di Galaxy M32 | Terpasang, 12,1 MB, berjalan |
+| Kamera | Menyala, pratinjau tampil dengan uang sungguhan |
+| Audio | `termuat=34 gagal=0`, WAV, terdengar |
+| TalkBack | Membacakan label, ketuk ganda berpindah fase (ADR-0008 terbukti) |
+| Riwayat di IndexedDB | `selesai` ×16, `dibatalkan` ×34, `det_` ×29, agregat harian |
+| `periksa_kelas.py` | Menangkap pertukaran 20.000↔50.000, exit 1 |
+| `periksa_onnx.py` | Menangkap imgsz 640 + 15 kelas, menebak imgsz asli |
+| `petakan_dataset.py` | Memetakan benar, menolak nama asing tanpa menyentuh berkas |
 
 ## Sudah Selesai
 
-- Dokumentasi: `CLAUDE.md`, 10 dokumen `docs/`, **8 ADR**.
-- Seluruh lapisan aplikasi (lihat tabel Progress).
-- Rantai build Android terbukti, cache Gradle hangat.
+- Seluruh `src/`: contracts, core, vision, audio, platform, ui, data.
+- Capacitor + rantai build Android, cache Gradle hangat.
+- 34 potongan audio Indonesia (WAV) dibundel ke APK.
+- Berkas bantu model: `data.yaml`, `periksa_kelas.py`, `petakan_dataset.py`,
+  `periksa_onnx.py`, `buat_model_uji.py`.
+- Dokumentasi: `CLAUDE.md`, 9 dokumen `docs/`, **8 ADR**.
 
 ## Langkah Berikutnya Yang Diusulkan
 
-1. **Fajar: `public/model/sudepi.onnx`.** Ini satu-satunya yang memblokir.
-2. Sambungkan HP fisik, `npx cap run android`, verifikasi TalkBack.
-3. `src/data/` — skema 8 object store Dexie (efek `SIMPAN_TRANSAKSI` masih
-   kosong; transaksi berjalan tanpa riwayat).
-4. Render potongan audio ke `public/audio/` (kini memakai cadangan TTS).
-5. Kalibrasi ambang dengan uang lecek sungguhan.
+1. **Fajar: `public/model/sudepi.onnx`.** Satu-satunya blocker nyata.
+2. `model/ekspor.py` — ekspor + kuantisasi INT8 + gerbang mutu mAP.
+3. Dokumentasi progres 24 jam untuk juri.
+4. Setelah model asli ada: kalibrasi ambang dengan uang lecek, uji mode
+   pesawat, gladi bersih `docs/DEMO.md`.
 
 ## Blocker Dan Hal Yang Belum Diketahui
 
-- **Bobot model belum ada.** Seluruh jalur deteksi sudah ditulis dan diuji,
-  tetapi belum pernah dijalankan dengan model sungguhan. `pemindai.ts` akan
-  gagal di `siap()` sampai `public/model/sudepi.onnx` tersedia — dan itu
-  perilaku yang benar.
-- **HP fisik belum pernah terhubung.** `adb devices` masih kosong sejak awal
-  sesi. Tampilan, TalkBack, haptik, senter, dan kamera semuanya belum pernah
-  diverifikasi di perangkat nyata.
-- **Ekstensi browser tidak terhubung**, sehingga uji visual otomatis tidak bisa
-  dilakukan. Verifikasi dialihkan ke tes integrasi `core/alur.test.ts` yang
-  memeriksa urutan ucapan sepanjang transaksi.
-- **Potongan audio belum dirender.** Jalur yang aktif sekarang adalah cadangan
-  `speechSynthesis`, yang bergantung pada paket suara id-ID di perangkat.
+- **Model sungguhan belum ada.** Pipeline sudah terbukti memakai model tiruan,
+  jadi begitu bobot asli masuk seharusnya langsung jalan. Yang belum bisa
+  diketahui sama sekali: akurasi sesungguhnya.
+- **MODEL TIRUAN SEDANG TERPASANG DI HP.** `public/model/sudepi.onnx` saat ini
+  adalah keluaran `model/buat_model_uji.py`. Ia TIDAK melihat apa pun dan
+  selalu menyebut Rp50.000 ditambah koin. **Jangan dipakai demo.** Hapus
+  berkasnya begitu model asli tersedia.
+- **Uji mode pesawat belum dijalankan** — menunggu model asli.
+- **Uji layar tertutup telapak tangan belum dijalankan** — menunggu model asli.
 
 ## Keputusan Penting
 
 - **Delapan ADR diterima.** Paling berdampak: ADR-0001 (`imgsz=320`), ADR-0003
-  (audio pra-render), ADR-0005 (input taktil jadi utama — satu-satunya yang
-  mempersempit klaim exsum), ADR-0007 (8 kelas), ADR-0008 (klik semantik).
-- **Versi dikunci berdasarkan verifikasi npm.** Vite 7.3.6 bukan 8 (Vite 8
-  mengganti bundler ke Rolldown, sementara pemuatan `.wasm` ORT adalah jalur
-  kritis); TypeScript 5.9.3 bukan 7, alasan sama; `onnxruntime-web` 1.30.0.
-- **`wasmPaths` sengaja tidak disetel** dan impor memakai `onnxruntime-web/wasm`.
-  Keduanya mencegah berkas 14 MB terbundel dua kali. Dicatat di
-  `docs/ARSITEKTUR.md`.
-- **Senter lewat Web API, bukan plugin.** Satu plugin native lebih sedikit
-  berarti satu kemungkinan kegagalan Gradle lebih sedikit.
-- **`androidScheme: 'https'`.** WebView memperlakukan http sebagai origin tidak
-  aman dan `getUserMedia` menolak berjalan di sana — kamera mati tanpa pesan.
+  (audio pra-render, diamandemen jadi berkas terpisah WAV), ADR-0005 (input
+  taktil jadi utama — satu-satunya yang mempersempit klaim exsum), ADR-0007
+  (8 kelas), ADR-0008 (klik semantik).
+- **Lima bug ditemukan lewat penelusuran antarmuka, bukan tes**: ketukan
+  ditolak setelah nominal diucapkan, tombol bersarang mengunci nominal salah,
+  label menjanjikan yang ditolak, path model salah di worker, label bertabrakan
+  dengan TalkBack.
+- **Tiga bug ditemukan lewat uji dengar**: aplikasi meredam dirinya sendiri,
+  suara terlalu pelan, label mengulang nominal.
+- **Satu diagnosis salah dan sudah dikoreksi**: MP3 disangka ditolak Chrome,
+  ternyata browser mengembalikan 204 untuk berkas media. Alasan yang salah
+  sudah diperbaiki di kode dan ADR-0003.
