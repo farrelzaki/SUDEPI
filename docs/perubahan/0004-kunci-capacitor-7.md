@@ -1,8 +1,26 @@
 # ADR-0004: Kunci Capacitor di versi 7, jangan pakai 8
 
-- **Status:** Diterima
+- **Status:** Diterima, dengan amandemen 2026-09-18
 - **Tanggal:** 2026-09-18
 - **Rujukan exsum:** Bab III bagian 3.3 (Wadah Native) — tidak menyebut versi
+
+## Amandemen 2026-09-18
+
+Saat verifikasi lingkungan, ditemukan bahwa **alasan kedua di bawah ("syarat
+perkakas") tidak berlaku pada mesin pengembangan kami.** Android Studio yang
+terpasang adalah build `AI-252.28238.7.2523.14688667`, yaitu seri 2025.2
+(Otter), sehingga syarat Capacitor 8 sebenarnya sudah terpenuhi.
+
+Keputusannya **tidak berubah**, karena alasan pertama (edge-to-edge otomatis)
+tetap berlaku sepenuhnya dan merupakan pertimbangan utama. Ditambah satu alasan
+baru yang ditemukan belakangan: **Capacitor 7.6.9 adalah versi yang kompatibel
+dengan `@capacitor-community/speech-recognition` 7.0.1** yang kami butuhkan
+untuk ADR-0005.
+
+Catatan ini ditulis terpisah dan tidak menyunting teks asli, sesuai aturan di
+`docs/PERUBAHAN.md`: ADR yang sudah diterima tidak pernah diubah diam-diam.
+Perbedaan antara apa yang kami yakini saat memutuskan dan apa yang kemudian
+terbukti adalah bagian dari catatan itu sendiri.
 
 ## Konteks
 
@@ -22,6 +40,8 @@ disadari oleh tim yang mengujinya dengan mata.
 (2025.2.1) atau lebih baru. Bila salah satu laptop tim memakai versi lebih
 lama, build akan gagal di jam pertama, dan memperbarui Android Studio di lokasi
 lomba berarti mengunduh beberapa gigabyte lewat jaringan bersama.
+
+> **Dikoreksi:** alasan ini terbukti tidak berlaku. Lihat Amandemen di atas.
 
 Capacitor 7.6.x sudah matang, dan sebagai keuntungan tambahan, jauh lebih
 banyak terwakili di dalam contoh kode dan dokumentasi yang menjadi acuan agen

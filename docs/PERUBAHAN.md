@@ -44,7 +44,7 @@ bisa dihapus bukan riwayat.
 | [0001](perubahan/0001-ukuran-masukan-model-320.md) | Ukuran masukan model 320, bukan 640 | Diterima | Memperkuat target latensi di Bab II |
 | [0002](perubahan/0002-ekspor-onnx-tanpa-nms.md) | Ekspor ONNX tanpa NMS, NMS ditulis di TypeScript | Diterima | Detail implementasi filter IoU Bab III |
 | [0003](perubahan/0003-audio-pra-render.md) | Audio pra-render menggantikan text-to-speech langsung | Diterima | Mengubah cara "Voice" pada judul diwujudkan |
-| [0004](perubahan/0004-kunci-capacitor-7.md) | Capacitor dikunci di versi 7, bukan 8 | Diterima | Tidak mengubah klaim exsum |
+| [0004](perubahan/0004-kunci-capacitor-7.md) | Capacitor dikunci di versi 7, bukan 8 | Diterima + amandemen | Tidak mengubah klaim exsum |
 | [0005](perubahan/0005-input-taktil-utama.md) | Input taktil jadi jalur utama, perintah suara jadi opsional | Diterima | **Mengubah klaim "voice command" Bab III Fase 2** |
 | [0006](perubahan/0006-tombol-batal-permanen.md) | Tombol batal permanen mendampingi gestur tahan 2 detik | Diterima | Melengkapi Escape-Hatch Bab III Fase 3 |
 

@@ -31,6 +31,7 @@ Sumber kebutuhan: `docs/Exsum_IFEST2026_PenungguTokenReset.docx`.
 
 | Saya mau…                                        | Buka                    |
 | ------------------------------------------------ | ----------------------- |
+| **Tahu apa yang harus SAYA kerjakan sekarang**    | `docs/EKSEKUSI.md`      |
 | Tahu stack, alasannya, dan jadwal 24 jam          | `docs/PLAN.md`          |
 | Tahu bentuk arsitektur & alur data                | `docs/ARSITEKTUR.md`    |
 | **Menulis kode yang menyentuh modul lain**        | `docs/KONTRAK.md`       |
@@ -110,13 +111,18 @@ pnpm cap:run             # pasang & jalankan di HP terhubung
 
 Jangan naikkan versi mayor di tengah lomba, sekalipun ada yang lebih baru.
 
-| Paket              | Versi   | Kenapa dikunci                                       |
-| ------------------ | ------- | ---------------------------------------------------- |
-| `@capacitor/*`     | 7.6.x   | Cap 8 memaksa edge-to-edge; merusak tata letak kamera layar penuh. Lihat ADR-0004. |
-| `onnxruntime-web`  | 1.23.x  | Perilaku WASM berubah antar minor; sudah dikalibrasi. |
-| `tailwindcss`      | 4.x     | Pakai `@import "tailwindcss"` + `@theme` di CSS. **Tidak ada `tailwind.config.js`.** |
-| `react`            | 19.x    | —                                                    |
-| `dexie`            | 4.x     | —                                                    |
+Versi di bawah sudah **diverifikasi ke npm**, bukan dari ingatan.
+
+| Paket                  | Versi  | Kenapa dikunci                                       |
+| ---------------------- | ------ | ---------------------------------------------------- |
+| `vite`                 | 7.3.6  | Vite 8 mengganti bundler ke Rolldown. Pemuatan `.wasm` ORT dan bundling Web Worker adalah jalur kritis kita; jalur Rollup sudah teruji untuk itu. |
+| `@vitejs/plugin-react` | 5.2.0  | Versi 6 hanya menerima Vite 8.                       |
+| `vitest`               | 4.1.11 | Pasangan Vite 7. Vitest 5 mengarah ke Vite 8.        |
+| `@capacitor/*`         | 7.6.9  | Cap 8 memaksa edge-to-edge; merusak tata letak kamera layar penuh. Lihat ADR-0004. |
+| `onnxruntime-web`      | 1.30.x | Perilaku WASM berubah antar minor; kalibrasi ambang terikat ke versi ini. |
+| `tailwindcss`          | 4.3.x  | Pakai `@import "tailwindcss"` + `@theme` di CSS. **Tidak ada `tailwind.config.js`.** |
+| `react`                | 19.3.x | —                                                    |
+| `dexie`                | 4.4.x  | —                                                    |
 
 ## Kalau kamu agen AI
 

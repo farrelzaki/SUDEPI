@@ -19,27 +19,27 @@ ada waktu untuk menyelesaikannya.
 Seluruh aturan di bawah ini turun dari satu gagasan: **buat tabrakan menjadi
 mustahil secara struktural, bukan mengandalkan kehati-hatian.**
 
-## Papan klaim
+## Pembagian wilayah
 
-Sebelum mulai bekerja, tulis namamu di sini. Setelah selesai, kosongkan.
-Ini satu-satunya berkas yang memang dimaksudkan untuk sering diubah bersama,
-dan konfliknya sepele diselesaikan.
+Pembagian tetap ada di **[`docs/EKSEKUSI.md`](EKSEKUSI.md)**, lengkap dengan
+tugas per fase. Ringkasnya:
 
-| Folder | Diklaim oleh | Sejak jam | Sedang mengerjakan |
-| --- | --- | --- | --- |
-| `src/contracts/` | — | — | *(bersama, saat awal saja)* |
-| `src/vision/` | — | — | |
-| `src/core/` | — | — | |
-| `src/audio/` | — | — | |
-| `src/data/` | — | — | |
-| `src/ui/` | — | — | |
-| `src/platform/` | — | — | |
-| `model/` | — | — | |
-| `docs/` | — | — | |
+| Folder | Pemilik |
+| --- | --- |
+| `src/contracts/` | **Farrel** (beku — ubah hanya setelah sepakat) |
+| `src/core/`, `src/vision/`, `src/data/`, `model/` | **Farrel** |
+| `src/ui/`, `src/platform/`, `src/audio/` | **Fajar** |
+| `package.json`, `tsconfig*.json`, `vite.config.ts` | **Farrel** |
+| `capacitor.config.ts`, `android/` | **Fajar** |
+| `docs/` | Siapa saja, umumkan lisan dulu |
 
-**Aturannya satu kalimat: jangan menyunting berkas di folder yang diklaim
-orang lain.** Kalau kamu butuh perubahan di sana, minta orangnya. Perlu sepuluh
-detik, dan menyelamatkan setengah jam penyelesaian konflik.
+**Aturannya satu kalimat: jangan menyunting berkas di folder orang lain.**
+Kalau kamu butuh perubahan di sana, minta orangnya — dia duduk di sebelahmu.
+Perlu sepuluh detik, dan menyelamatkan setengah jam penyelesaian konflik.
+
+Kalau ada yang menyimpang dari pembagian ini untuk sementara (misalnya satu
+orang menalangi pekerjaan yang lain karena terhambat), cukup sepakati lisan,
+lalu tulis di pesan commit siapa yang mengerjakan apa.
 
 ## Untuk agen AI
 
