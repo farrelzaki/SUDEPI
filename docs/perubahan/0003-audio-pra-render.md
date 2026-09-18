@@ -1,8 +1,30 @@
 # ADR-0003: Pakai audio pra-render, bukan text-to-speech saat berjalan
 
-- **Status:** Diterima
+- **Status:** Diterima, dengan amandemen 2026-09-18
 - **Tanggal:** 2026-09-18
 - **Rujukan exsum:** Judul ("Voice Interaction"), Bab III bagian 3.3 (Audio Ducking)
+
+## Amandemen 2026-09-18
+
+Keputusan pra-render **tidak berubah**, tetapi bentuk penyimpanannya berubah:
+potongan disimpan sebagai **berkas terpisah**, bukan digabung jadi satu sprite
+dengan berkas indeks offset seperti tertulis di bawah.
+
+Alasan sprite pada umumnya adalah menghemat permintaan jaringan. Di sini tidak
+ada jaringan sama sekali — seluruhnya aset lokal di dalam APK — sehingga
+keuntungannya hilang, sementara biayanya tetap: menggabung audio membutuhkan
+perkakas tambahan (ffmpeg, yang tidak tersedia di mesin pengembangan kami), dan
+perhitungan offset milidetik adalah sumber kesalahan yang tidak akan terdengar
+sampai satu kata terpotong di tengah kalimat.
+
+Hasil akhirnya: **34 potongan, total 415 KB**, dirender dengan suara neural
+`id-ID-ArdiNeural` pada kecepatan −5%. Skripnya ada di
+`scripts/render_audio.py` dan dijalankan sekali oleh pengembang, bukan saat
+aplikasi berjalan.
+
+Kecepatan sedikit di bawah normal itu disengaja: pengguna mendengar nominal
+SEKALI, sambil memegang uang dan menghadapi kasir yang menunggu, tanpa
+kesempatan mengulang.
 
 ## Konteks
 

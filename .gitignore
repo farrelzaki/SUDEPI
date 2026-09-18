@@ -21,3 +21,6 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Klip audio hasil render TETAP di-commit (kecil, ~415 KB) supaya tim tidak
+# perlu menjalankan ulang scripts/render_audio.py dan mendapat suara berbeda.

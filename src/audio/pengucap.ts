@@ -3,8 +3,8 @@
  *
  * Dua strategi, dipilih otomatis:
  *
- *   1. Audio sprite pra-render lewat Web Audio API — JALUR UTAMA.
- *   2. `speechSynthesis` — CADANGAN, hanya kalau sprite gagal dimuat.
+ *   1. Potongan audio pra-render lewat Web Audio API — JALUR UTAMA.
+ *   2. `speechSynthesis` — CADANGAN, hanya kalau potongan gagal dimuat.
  *
  * Kenapa bukan `speechSynthesis` saja, yang jauh lebih sedikit kodenya: di
  * dalam WebView Android ia meneruskan permintaan ke mesin TTS sistem, yang
@@ -23,14 +23,14 @@ import type { IdFrasa, Pengucap, Ucapan } from '@/contracts';
 import { rupiahKeKlip, type Klip } from './angka';
 import { TEKS_FRASA } from './frasa';
 
-/** Nama potongan di dalam sprite: klip bilangan atau frasa sistem. */
+/** Nama potongan: klip bilangan atau frasa sistem. */
 export type NamaPotongan = Klip | IdFrasa;
 
-export interface ManifesSprite {
-  /** Lokasi berkas audio, relatif terhadap bundel. */
-  readonly berkas: string;
-  /** Detik mulai dan durasi tiap potongan. */
-  readonly potongan: Readonly<Record<string, { mulai: number; durasi: number }>>;
+export interface ManifesAudio {
+  readonly suara: string;
+  readonly kecepatan: string;
+  /** Nama potongan yang tersedia sebagai berkas `<nama>.mp3`. */
+  readonly potongan: readonly string[];
 }
 
 /** Meratakan `Ucapan` menjadi daftar potongan yang harus diputar berurutan. */
@@ -60,36 +60,60 @@ export interface OpsiPengucap {
 }
 
 /**
- * Membuat pengucap, mencoba sprite lebih dulu lalu jatuh ke TTS.
+ * Potongan disimpan sebagai berkas terpisah, BUKAN satu sprite dengan offset.
  *
- * `siap()` tidak pernah melempar error. Kegagalan memuat sprite adalah keadaan
- * yang diantisipasi, bukan kesalahan — dan aplikasi harus tetap bersuara.
+ * Alasan sprite pada umumnya adalah menghemat permintaan jaringan. Di sini
+ * tidak ada jaringan sama sekali — seluruhnya aset lokal di dalam APK —
+ * sehingga keuntungannya hilang, sementara biayanya tetap: menggabung audio
+ * butuh perkakas tambahan, dan perhitungan offset milidetik adalah sumber
+ * kesalahan yang tidak akan terdengar sampai satu kata terpotong di tengah
+ * kalimat. Lihat amandemen pada ADR-0003.
+ */
+
+/**
+ * Membuat pengucap, mencoba potongan pra-render lebih dulu lalu jatuh ke TTS.
+ *
+ * `siap()` tidak pernah melempar error. Kegagalan memuat potongan adalah
+ * keadaan yang diantisipasi, bukan kesalahan — dan aplikasi harus tetap
+ * bersuara.
  */
 export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
-  const urlManifes = opsi.urlManifes ?? './audio/sprite.json';
+  // Diselesaikan jadi mutlak terhadap halaman, pelajaran yang sama dengan
+  // pemuatan model: path relatif bisa diselesaikan terhadap berkas lain dan
+  // gagal diam-diam.
+  const urlManifes = new URL(
+    opsi.urlManifes ?? './audio/manifes.json',
+    globalThis.location.href,
+  ).href;
   const kecepatan = opsi.kecepatan ?? 1;
 
   let konteks: AudioContext | null = null;
   let penguat: GainNode | null = null;
-  let bufferSprite: AudioBuffer | null = null;
-  let manifes: ManifesSprite | null = null;
   let sumberAktif: AudioBufferSourceNode | null = null;
   let dibatalkan = false;
+  const buffer = new Map<string, AudioBuffer>();
 
-  async function muatSprite(): Promise<void> {
+  async function muatKlip(): Promise<void> {
     // fetch di sini menyasar aset di dalam bundel, bukan host luar. Ia tetap
     // berfungsi dalam mode pesawat.
-    const resManifes = await fetch(urlManifes);
-    if (!resManifes.ok) throw new Error(`Manifes sprite tidak ada: ${urlManifes}`);
-    const m = (await resManifes.json()) as ManifesSprite;
+    const res = await fetch(urlManifes);
+    if (!res.ok) throw new Error(`Manifes audio tidak ada: ${urlManifes}`);
+    const m = (await res.json()) as ManifesAudio;
 
     const dasar = urlManifes.slice(0, urlManifes.lastIndexOf('/') + 1);
-    const resAudio = await fetch(dasar + m.berkas);
-    if (!resAudio.ok) throw new Error(`Berkas audio tidak ada: ${m.berkas}`);
-
     const ctx = ambilKonteks();
-    bufferSprite = await ctx.decodeAudioData(await resAudio.arrayBuffer());
-    manifes = m;
+
+    // Dimuat paralel. Semuanya aset lokal, jadi yang memakan waktu adalah
+    // decode, bukan pengambilan berkas.
+    await Promise.all(
+      m.potongan.map(async (nama) => {
+        const r = await fetch(`${dasar}${nama}.mp3`);
+        if (!r.ok) return;
+        buffer.set(nama, await ctx.decodeAudioData(await r.arrayBuffer()));
+      }),
+    );
+
+    if (buffer.size === 0) throw new Error('Tidak ada potongan audio yang termuat');
   }
 
   function ambilKonteks(): AudioContext {
@@ -103,17 +127,17 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
 
   function putarPotongan(nama: NamaPotongan): Promise<void> {
     const ctx = ambilKonteks();
-    const p = manifes?.potongan[nama];
-    if (!bufferSprite || !p || !penguat) return Promise.resolve();
+    const buf = buffer.get(nama);
+    // Potongan yang belum dirender dilewati diam-diam. Lebih baik satu kata
+    // hilang daripada seluruh kalimat berhenti di tengah.
+    if (!buf || !penguat) return Promise.resolve();
 
-    // Disalin ke const lokal: penyempitan tipe hilang di dalam closure di
-    // bawah, karena keduanya variabel yang bisa berubah antar pemanggilan.
+    // Disalin ke const lokal: penyempitan tipe hilang di dalam closure.
     const tujuan = penguat;
-    const buffer = bufferSprite;
 
     return new Promise<void>((selesai) => {
       const sumber = ctx.createBufferSource();
-      sumber.buffer = buffer;
+      sumber.buffer = buf;
       sumber.playbackRate.value = kecepatan;
       sumber.connect(tujuan);
       sumber.onended = () => {
@@ -121,7 +145,7 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
         selesai();
       };
       sumberAktif = sumber;
-      sumber.start(0, p.mulai, p.durasi);
+      sumber.start();
     });
   }
 
@@ -144,21 +168,20 @@ export function buatPengucap(opsi: OpsiPengucap = {}): Pengucap {
   return {
     async siap() {
       try {
-        await muatSprite();
+        await muatKlip();
       } catch {
-        // Sengaja ditelan. Sprite hilang berarti kita memakai TTS, bukan
-        // berarti aplikasi gagal. Perbedaan ini penting: melempar error di
-        // sini akan menghentikan seluruh aplikasi hanya karena suara tidak
-        // seideal yang direncanakan.
-        bufferSprite = null;
-        manifes = null;
+        // Sengaja ditelan. Klip hilang berarti kita memakai TTS, bukan berarti
+        // aplikasi gagal. Perbedaan ini penting: melempar error di sini akan
+        // menghentikan seluruh aplikasi hanya karena suara tidak seideal yang
+        // direncanakan.
+        buffer.clear();
       }
     },
 
     async ucap(ucapan: Ucapan) {
       dibatalkan = false;
 
-      if (bufferSprite && manifes) {
+      if (buffer.size > 0) {
         for (const potongan of keUrutanPotongan(ucapan)) {
           if (dibatalkan) return;
           await putarPotongan(potongan);
