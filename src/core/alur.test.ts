@@ -287,3 +287,100 @@ describe('urutan efek perangkat', () => {
     expect(efek.filter((e) => e.jenis === 'SIMPAN_TRANSAKSI')).toHaveLength(1);
   });
 });
+
+describe('peringatan lembaran bertumpuk (Lampiran 8 risiko nomor 2)', () => {
+  /** Hasil pindai stabil dengan iouMaks yang bisa diatur. */
+  function pindaiBerdempetan(nominal: readonly number[], iouMaks: number): HasilPindai {
+    return {
+      status: 'stabil',
+      deteksi: nominal.map((n, i) => ({
+        kodeKelas: i,
+        nominal: n as never,
+        koin: false,
+        skor: 0.95,
+        kotak: { x: 0, y: i * 0.1, w: 0.5, h: 0.2 },
+        iouMaks,
+      })),
+      totalKertas: nominal.reduce((a, b) => a + b, 0),
+      adaKoin: false,
+      latensiMs: 120,
+      fps: 8,
+      luma: 0.6,
+      senterAktif: false,
+    };
+  }
+
+  it('meminta merenggangkan saat lembaran terlalu berdempetan', () => {
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000, 50_000], 0.35) },
+    );
+    expect(ucapan.at(-1)).toContain('Renggangkan lembarannya');
+  });
+
+  it('TIDAK meminta apa-apa saat lembaran sudah terpisah', () => {
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000, 20_000], 0.05) },
+    );
+    expect(ucapan.at(-1)).not.toContain('Renggangkan');
+  });
+
+  it('nominal disebut LEBIH DULU, peringatan menyusul di akhir', () => {
+    // Kalau peringatan di depan, pengguna mendengar instruksi sebelum tahu
+    // angkanya, dan harus menunggu seluruh kalimat selesai untuk tahu apakah
+    // perlu bertindak.
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000, 50_000], 0.5) },
+    );
+    const kalimat = ucapan.at(-1) ?? '';
+    expect(kalimat.indexOf('seratus ribu rupiah')).toBeLessThan(
+      kalimat.indexOf('Renggangkan'),
+    );
+  });
+
+  it('tetap memperingatkan walau kotaknya sudah disaring NMS', () => {
+    // iouMaks di atas AMBANG_IOU berarti satu kotak memang sudah dibuang.
+    // Justru di sinilah ambiguitasnya paling besar: satu lembar terbaca dua
+    // kali, atau dua lembar bertumpuk? Sistem tidak boleh menebak.
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindaiBerdempetan([50_000], 0.72) },
+    );
+    expect(ucapan.at(-1)).toContain('Renggangkan lembarannya');
+  });
+});
+
+describe('kembali ke Mode Siaga', () => {
+  it('mengumumkan siap memindai setelah transaksi selesai', () => {
+    // Tanpa ini pengguna hanya mendengar kesunyian setelah menekan, dan tidak
+    // punya cara mengetahui apakah aplikasi siap atau tersangkut.
+    const { state, ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'SET_BELANJA', nilai: 50_000 },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', []) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'KONFIRMASI' },
+    );
+    expect(state).toEqual(STATE_AWAL);
+    expect(ucapan.at(-1)).toBe('Siap memindai');
+  });
+
+  it('pembatalan TIDAK ikut mengucapkan siap memindai', () => {
+    // "Transaksi dibatalkan" sudah cukup menyatakan kembali ke awal. Dua
+    // pengumuman berturut-turut hanya memperlambat pengguna yang sedang
+    // berdiri di depan kasir.
+    const { ucapan } = jalankanAlur(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
+      { jenis: 'KONFIRMASI' },
+      { jenis: 'BATAL' },
+    );
+    expect(ucapan.at(-1)).toBe('Transaksi dibatalkan');
+  });
+});

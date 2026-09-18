@@ -59,6 +59,12 @@ bisa dipahami sama sekali — ia hanya mengetuk, dan tidak terjadi apa-apa.
 | 6 | Aplikasi meredam suaranya sendiri | Suara nyaris tak terdengar tepat saat bicara | Uji dengar |
 | 7 | Tingkat suara terlalu rendah | Tenggelam pada volume HP yang wajar | Uji dengar |
 | 8 | Label mengulang nominal yang sudah diucapkan | Mendengar angka sama dua kali, dari dua suara | Uji dengar |
+| 9 | Layar Selesai justru memulai transaksi baru | Label menjanjikan kembali ke siaga, kamera malah menyala lagi | Menelusuri di perangkat |
+
+Nomor 9 ditemukan lewat audit kecil: kami memeriksa frasa suara mana yang
+dideklarasikan tetapi tidak pernah diucapkan. Dua di antaranya ternyata bukan
+sisa kode, melainkan **fitur yang hilang** — salah satunya mitigasi risiko
+nomor 2 di Lampiran 8 yang belum pernah diimplementasikan.
 
 Nomor 2 dan 4 layak disorot.
 
@@ -139,6 +145,14 @@ masih di depan kamera. Yang dituntut bukan keyakinan tinggi sesaat, melainkan
 Gagal di tahap mana pun berarti Abstain: sistem berkata "belum yakin, coba
 pindai lagi" dan mencatat kejadiannya. Abstain adalah keluaran yang sah, bukan
 kegagalan.
+
+Ada satu keadaan yang tidak bisa diselesaikan sistem sendiri, dan di situ ia
+meminta bantuan. Ketika dua kotak deteksi bertumpang tindih berat, muncul
+pertanyaan yang mustahil dijawab dari satu bingkai: itu satu lembar yang
+terbaca dua kali, atau dua lembar yang bertumpuk? Sistem tidak menebak — ia
+menyebut nominalnya lebih dulu, lalu berkata **"renggangkan lembarannya"**.
+Pengguna menyelesaikannya dalam satu detik. Ini mitigasi risiko nomor 2 pada
+Lampiran 8.
 
 ## Yang belum selesai
 

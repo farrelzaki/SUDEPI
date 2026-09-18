@@ -107,10 +107,18 @@ export function Aplikasi() {
   }, [state.fase]);
 
   function tindakanUtama(): void {
-    if (state.fase === 'SIAGA' || state.fase === 'SELESAI') {
+    if (state.fase === 'SIAGA') {
       mulai();
       return;
     }
+    // Dari SELESAI kita kembali ke Mode Siaga, BUKAN langsung memulai
+    // transaksi baru. Dua alasan: labelnya memang menjanjikan itu, dan exsum
+    // Bab III Fase 4 menyebutnya ("aplikasi kembali ke Mode Siaga").
+    //
+    // Langsung menyalakan kamera lagi juga salah secara praktis — begitu
+    // transaksi beres, pengguna sedang memasukkan uang ke dompet dan bicara
+    // dengan pedagang, bukan bersiap memindai. Kamera yang menyala sendiri
+    // memboroskan baterai tanpa ada yang menyadarinya.
     if (state.fase === 'KALKULATOR') {
       kirim({ jenis: 'SET_BELANJA', nilai: nilaiKolom });
       kirim({ jenis: 'KONFIRMASI' });

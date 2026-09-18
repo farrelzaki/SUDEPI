@@ -17,6 +17,7 @@
  */
 
 import {
+  AMBANG_BERDEMPETAN,
   frasa,
   rupiah,
   urutan,
@@ -55,6 +56,20 @@ function batalkan(alasanUcap: boolean): HasilReduksi {
   return { state: STATE_AWAL, efek };
 }
 
+/**
+ * Apakah ada lembaran yang terlalu berdempetan.
+ *
+ * Mitigasi risiko nomor 2 pada Lampiran 8. `iouMaks` adalah tumpang tindih
+ * tertinggi sebuah kotak terhadap kotak lain SEBELUM penyaringan, jadi nilai
+ * tinggi berarti dua hal yang tidak bisa dibedakan dari satu bingkai: satu
+ * lembar yang terbaca dua kali, atau dua lembar yang bertumpuk.
+ *
+ * Sistem tidak bisa menjawabnya. Pengguna bisa, dalam satu detik.
+ */
+function adaYangBerdempetan(hasil: HasilPindai): boolean {
+  return hasil.deteksi.some((d) => d.iouMaks > AMBANG_BERDEMPETAN);
+}
+
 /** Menyusun ucapan hasil pindai Fase 1: tiap lembar, total, lalu koin. */
 function ucapkanHasilPindai(hasil: HasilPindai): Efek[] {
   const bernominal = hasil.deteksi.filter((d) => d.nominal !== null);
@@ -69,6 +84,10 @@ function ucapkanHasilPindai(hasil: HasilPindai): Efek[] {
     frasa('total'),
     rupiah(hasil.totalKertas),
     ...(hasil.adaKoin ? [frasa('ditambah_koin')] : []),
+    // Peringatan ditaruh di AKHIR, setelah nominalnya disebut. Kalau ditaruh
+    // di depan, pengguna mendengar instruksi sebelum tahu angkanya, dan harus
+    // menunggu seluruh kalimat selesai untuk tahu apakah perlu bertindak.
+    ...(adaYangBerdempetan(hasil) ? [frasa('renggangkan_lembaran')] : []),
   ];
 
   return [
@@ -323,7 +342,18 @@ export function reduksi(
     case 'SELESAI': {
       // Kembali ke Mode Siaga tanpa mengucapkan "dibatalkan" — transaksinya
       // berhasil, bukan dibatalkan.
-      if (peristiwa.jenis === 'KONFIRMASI') return batalkan(false);
+      //
+      // Tetapi TETAP mengucapkan "siap memindai". Tanpa itu, pengguna yang
+      // tidak bisa melihat layar hanya mendengar kesunyian setelah menekan,
+      // dan tidak punya cara mengetahui apakah aplikasi sudah siap untuk
+      // transaksi berikutnya atau justru tersangkut.
+      if (peristiwa.jenis === 'KONFIRMASI') {
+        const hasil = batalkan(false);
+        return {
+          state: hasil.state,
+          efek: [...hasil.efek, { jenis: 'UCAP', ucapan: frasa('mode_siaga') }],
+        };
+      }
       if (peristiwa.jenis === 'MULAI') {
         return {
           state: { ...STATE_AWAL, fase: 'PINDAI_BAYAR', mulaiPadaMs: peristiwa.padaMs },
