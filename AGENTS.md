@@ -11,6 +11,15 @@ Workflow harus mendalam, berbasis bukti, aman, dapat dilacak, dan tetap efisien.
 - `TASK.md`: task, scope, kriteria selesai, risiko, dan status persetujuan.
 - `PROJECT_STATE.md`: kondisi terbaru, fase aktif, keputusan, dan handoff sesi.
 
+Tiga file di atas mengatur **proses kerja**. Keputusan **teknis sistem** berada di:
+
+- `CLAUDE.md`: penunjuk arah singkat, struktur kode, versi yang dikunci, aturan wajib.
+- `docs/KONTRAK.md`: tipe dan antarmuka lintas-modul. **Beku**; ubah hanya setelah disepakati.
+- `docs/PLAN.md`, `docs/ARSITEKTUR.md`, `docs/AKSESIBILITAS.md`: stack, arsitektur, dan standar aksesibilitas.
+- `docs/PERUBAHAN.md`: setiap penyimpangan dari executive summary **wajib** dicatat sebagai ADR di sini. Panitia menilai ini.
+
+Keduanya berlaku sekaligus: ikuti checkpoint di file ini, dan patuhi keputusan teknis di `docs/`.
+
 Jangan mencampur daftar task ke `PROJECT_STATE.md` atau aturan permanen ke `TASK.md`.
 Jika isi file berbeda dengan kondisi nyata proyek, laporkan perbedaannya dan jangan mengarang.
 
