@@ -16,7 +16,7 @@ begitu bobot asli masuk, ia langsung bekerja.
 
 | Ukuran | Angka |
 | --- | --- |
-| Tes otomatis | **204 lulus** |
+| Tes otomatis | **210 lulus** |
 | Berkas TypeScript | `strict` penuh, `tsc --noEmit` bersih |
 | Keputusan terdokumentasi (ADR) | **8** |
 | Potongan suara Indonesia | 34, dibundel dalam APK |
@@ -35,12 +35,12 @@ Yang diperiksa langsung di perangkat, bukan disimpulkan dari kode:
 - 34 potongan suara termuat (`termuat=34 gagal=0`)
 - TalkBack membacakan label, dan ketuk ganda berpindah fase
 - Riwayat tersimpan di IndexedDB perangkat (`selesai` ×16, agregat harian)
-- Alur Fase 1 → 4 berjalan sampai layar Transaksi Selesai
+- Siklus penuh Siaga → Pindai → Kalkulator → Kasir → Kembalian → Selesai → Siaga
 
-Cara ini mahal, tetapi ia menemukan delapan kesalahan yang **tidak satu pun**
-tertangkap oleh 204 tes otomatis. Bagian berikutnya menjelaskannya.
+Cara ini mahal, tetapi ia menemukan sembilan kesalahan yang **tidak satu pun**
+tertangkap oleh 210 tes otomatis. Bagian berikutnya menjelaskannya.
 
-## Delapan kesalahan yang hanya ditemukan dengan menjalankan
+## Sembilan kesalahan yang hanya ditemukan dengan menjalankan
 
 Ini bagian yang paling ingin kami sampaikan, karena ia menjelaskan mengapa
 verifikasi di perangkat tidak bisa digantikan tes.
@@ -175,7 +175,7 @@ dan itu memang hanya bisa diukur dengan uang sungguhan di depan kamera.
 
 ```bash
 pnpm install
-pnpm test          # 204 tes
+pnpm test          # 210 tes
 pnpm typecheck     # tsc --noEmit
 pnpm build         # bundel produksi
 pnpm cap:run       # pasang ke HP Android terhubung
