@@ -39,6 +39,7 @@ Sumber kebutuhan: `docs/Exsum_IFEST2026_PenungguTokenReset.docx`.
 | Tahu aturan main antar-anggota / antar-agen       | `docs/KOLABORASI.md`    |
 | Menyentuh UI, gestur, warna, atau teks yang dibaca| `docs/AKSESIBILITAS.md` |
 | Menyiapkan demo di depan juri                     | `docs/DEMO.md`          |
+| Melihat capaian & bukti verifikasi (untuk juri)   | `docs/PROGRES.md`       |
 
 ## Empat aturan yang tidak boleh dilanggar
 

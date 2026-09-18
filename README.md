@@ -41,6 +41,7 @@ manusia maupun agen AI, yang baru masuk ke repo ini.
 | [`docs/AKSESIBILITAS.md`](docs/AKSESIBILITAS.md) | WCAG 2.2 AA dan kompatibilitas TalkBack |
 | [`docs/KOLABORASI.md`](docs/KOLABORASI.md) | Aturan main tim dan antar agen AI |
 | [`docs/DEMO.md`](docs/DEMO.md) | Skenario demo dan daftar periksa penjurian |
+| [`docs/PROGRES.md`](docs/PROGRES.md) | Catatan progres teknis beserta buktinya, untuk juri |
 | [`AGENTS.md`](AGENTS.md) | Alur kerja agen: checkpoint, persetujuan, pelaporan |
 
 ## Stack
