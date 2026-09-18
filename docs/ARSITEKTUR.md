@@ -165,14 +165,22 @@ stateDiagram-v2
     KALKULATOR --> PINDAI_KEMBALIAN: LEWATI_LAYAR_KASIR
     LAYAR_KASIR --> PINDAI_KEMBALIAN: KONFIRMASI
     PINDAI_KEMBALIAN --> PINDAI_KEMBALIAN: HASIL_PINDAI (belum stabil / abstain)
-    PINDAI_KEMBALIAN --> SELESAI: KONFIRMASI (hasil stabil)
-    SELESAI --> SIAGA: MULAI
+    PINDAI_KEMBALIAN --> SELESAI: KONFIRMASI (stabil + koin terturunkan)
+    SELESAI --> SIAGA: KONFIRMASI
+    SELESAI --> PINDAI_BAYAR: MULAI
 
     PINDAI_BAYAR --> SIAGA: BATAL
     KALKULATOR --> SIAGA: BATAL
     LAYAR_KASIR --> SIAGA: BATAL
     PINDAI_KEMBALIAN --> SIAGA: BATAL
 ```
+
+Dua sifat dari `SELESAI` yang perlu disebut. Pertama, `KONFIRMASI` di sana
+mengembalikan ke Mode Siaga **tanpa** mengucapkan "transaksi dibatalkan" —
+transaksinya berhasil, bukan gagal, dan mengucapkan kata yang salah kepada
+orang yang hanya punya suara sebagai umpan balik akan membingungkan. Kedua,
+`MULAI` langsung membuka transaksi baru, supaya pengguna yang berbelanja di
+dua lapak berturut-turut tidak perlu melewati Mode Siaga lebih dulu.
 
 Dua sifat yang harus dijaga, dan keduanya punya tes:
 

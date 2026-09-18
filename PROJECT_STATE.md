@@ -9,97 +9,110 @@ Perbarui saat memulai sesi, melewati checkpoint, membuat keputusan penting, mene
 - Terakhir diperbarui: 2026-09-18
 - Mode kerja: `competition`
 - Status sesi: Berjalan
-- Task aktif: Bootstrap proyek SUDEPI
-- Fase aktif: Discovery (selesai, menunggu konfirmasi)
-- Checkpoint terakhir: Discovery
-- Konfirmasi pengguna terakhir: Scope disetujui
+- Task aktif: Logika inti transaksi (`src/core/`)
+- Fase aktif: Implementation
+- Checkpoint terakhir: Verification (task Bootstrap diterima)
+- Konfirmasi pengguna terakhir: Fase 0 diterima, lanjut `core/` lebih dulu
 
 ## Scope Yang Disetujui
 
-Bootstrap proyek SUDEPI: menghapus sisa scaffold, membuat kerangka
-Vite + React + TypeScript strict + Tailwind, struktur folder `src/` sesuai
-`CLAUDE.md`, menurunkan `docs/KONTRAK.md` menjadi `src/contracts/*.ts` beserta
-mock wajibnya, menyiapkan Capacitor 7.6.x, dan membuktikan APK terpasang di HP
-fisik.
+**Task sebelumnya — Bootstrap proyek SUDEPI: SELESAI** (commit `0fca155`).
 
-Non-goals: model ONNX, pipeline kamera, state machine, UI sungguhan, audio
-sprite, skema Dexie. Semuanya task berikutnya.
+**Task aktif — Logika inti transaksi.** Menulis `src/core/` sesuai Fase 1
+bagian Farrel di `docs/EKSEKUSI.md`:
+
+- `mesin.ts` — reducer murni state machine transaksi beserta `Efek[]`
+- `kembalian.ts` — kalkulator kembalian, menolak bayar kurang dari belanja
+- `koin.ts` — penurunan nominal koin dari selisih
+- Tes Vitest untuk ketiganya, termasuk transisi yang **tidak sah**
+
+Non-goals: `src/vision/`, ekspor model, skema Dexie, UI.
 
 ## Tujuan Saat Ini
 
-Mengubah repo dari "hanya dokumentasi" menjadi kerangka yang bisa langsung
-dipakai dua orang secara paralel, dengan rantai build Android yang sudah
-terbukti berjalan, bukan sekadar diasumsikan berjalan.
+Menyediakan otak transaksi yang sudah teruji penuh, sehingga saat pipeline
+deteksi dan UI menyusul, keduanya tinggal disambungkan ke logika yang sudah
+terbukti benar. Dikerjakan lebih dulu karena logika murni tidak bergantung
+pada model, kamera, maupun HP.
 
 ## Progress
 
-- Lapisan dokumentasi selesai dan sudah di-push (commit `743858b`).
-- Checkpoint Scope disetujui pengguna.
-- Checkpoint Discovery selesai; lingkungan sudah diverifikasi langsung, bukan
-  diasumsikan. Hasilnya di bawah.
+- Lapisan dokumentasi selesai (`743858b`, `1d5b13c`).
+- **Fase 0 Bootstrap selesai dan terverifikasi** (`0fca155`): scaffold Vite 7 +
+  React 19 + TS strict, `src/contracts/` lengkap, mock vision, 9 tes lulus,
+  build bersih tanpa referensi jaringan.
+- Sedang berjalan: `src/core/`.
 
 ## Bukti Yang Sudah Diperiksa
 
-Diverifikasi dengan menjalankan perintahnya, bukan dari asumsi:
+Lingkungan, diverifikasi dengan menjalankan perintahnya:
 
 | Komponen | Hasil |
 | --- | --- |
-| Node.js | v24.15.0 — siap |
-| pnpm | 11.24.0 — siap |
-| Java (JDK) | 17.0.12 LTS — siap untuk Gradle |
-| Android SDK | Ada di `%LOCALAPPDATA%\Android\Sdk` |
-| Android platforms | API 34, 35, 36 — cukup |
-| Build-tools | 34.0.0, 35.0.0, 36.0.0, 36.1.0 — cukup |
-| adb | Berfungsi (`platform-tools/adb.exe`) |
-| Android Studio | Build `AI-252.28238.7.2523.14688667` (seri 2025.2 / Otter) |
-| `ANDROID_HOME` | **Kosong** — perlu diset |
-| `ANDROID_SDK_ROOT` | **Kosong** — perlu diset |
-| adb di PATH | **Tidak** — perlu ditambahkan |
-| HP fisik terhubung | **Tidak ada** (`adb devices` kosong) |
+| Node.js | v24.15.0 |
+| pnpm | 11.24.0 |
+| Java (JDK) | 17.0.12 LTS |
+| Android SDK | `%LOCALAPPDATA%\Android\Sdk`, API 34/35/36, build-tools s.d. 36.1.0 |
+| adb | Berfungsi |
+| Android Studio | `AI-252.28238.7.2523.14688667` (seri 2025.2 / Otter) |
+| `ANDROID_HOME` / `ANDROID_SDK_ROOT` | Kosong, perlu diset (bagian Fajar) |
+| HP fisik terhubung | **Belum** (`adb devices` kosong) |
+
+Verifikasi hasil Bootstrap:
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `tsc --noEmit` | Bersih, `strict` penuh termasuk `noUncheckedIndexedAccess` dan `exactOptionalPropertyTypes` |
+| `pnpm test` | 9 tes lulus |
+| `pnpm build` | 223 kB, path aset relatif `./assets/...` |
+| Referensi jaringan di `dist/` | Tidak ada. Hanya `react.dev/errors/`, yaitu teks pesan error React |
+| `pnpm dev` | HTTP 200, alias `@` resolve |
 
 ## Sudah Selesai
 
-- Dokumentasi sistem lengkap: `CLAUDE.md`, `docs/` (8 dokumen), 6 ADR di
-  `docs/perubahan/`, sudah di-commit dan di-push.
+- Dokumentasi sistem: `CLAUDE.md`, `docs/` (9 dokumen termasuk `EKSEKUSI.md`),
+  6 ADR di `docs/perubahan/`.
 - `README.md` dikonversi dari UTF-16 ke UTF-8.
-- `AGENTS.md` diberi pointer ke `CLAUDE.md` dan `docs/` (aditif, 7 baris),
-  disetujui pengguna.
+- `AGENTS.md` diberi pointer ke `CLAUDE.md` dan `docs/`.
+- Scaffold, `src/contracts/` (5 berkas + index), mock vision, tes penjaga
+  tabel 15 kelas.
 
 ## Langkah Berikutnya Yang Diusulkan
 
-1. Set `ANDROID_HOME` dan `ANDROID_SDK_ROOT`, tambahkan `platform-tools` ke PATH.
-2. Scaffold Vite + React 19 + TypeScript strict + Tailwind 4.
-3. Turunkan `docs/KONTRAK.md` menjadi `src/contracts/*.ts` beserta mock wajib.
-4. Pasang Capacitor 7.6.x, jalankan build Android pertama **selagi ada internet**
-   agar cache Gradle hangat.
-5. Sambungkan HP fisik, verifikasi APK terpasang.
+**Farrel:** `src/core/` (berjalan), lalu `src/vision/` setelah bobot model ada.
 
-Langkah berikutnya hanya dijalankan setelah checkpoint yang diperlukan disetujui pengguna.
+**Fajar:** Fase 0 bagiannya — sambungkan HP dengan USB debugging, set
+`ANDROID_HOME`, lalu **`npx cap add android` sebagai prioritas nomor satu**
+karena butuh internet sementara demo berjalan dalam mode pesawat.
 
 ## Blocker Dan Hal Yang Belum Diketahui
 
-- **Belum ada HP Android terhubung.** Kriteria selesai "APK terpasang di HP
-  fisik" belum dapat dipenuhi. Butuh HP dengan USB debugging aktif. Seluruh
-  langkah lain dapat berjalan lebih dulu.
+- **HP Android belum terhubung** (`adb devices` kosong). Bagian Fajar. Ini
+  satu-satunya kriteria Bootstrap yang belum lulus.
+- **Bobot model `.pt` hasil training belum ada di repo.** Memblokir `model/`
+  dan `src/vision/`. Inilah sebabnya `src/core/` dikerjakan lebih dulu.
 - **Cache Gradle belum pernah hangat.** Build Android pertama mengunduh
-  dependensi dalam jumlah besar dan **membutuhkan internet**. Karena demo
-  penjurian berjalan dalam mode pesawat, build pertama ini harus dilakukan
-  sedini mungkin selagi jaringan tersedia.
+  dependensi dalam jumlah besar dan membutuhkan internet. Karena demo
+  penjurian berjalan dalam mode pesawat, build pertama harus dilakukan sedini
+  mungkin selagi jaringan tersedia.
 
 ## Keputusan Penting
 
 - **Dua lapis aturan berlaku bersamaan.** `AGENTS.md` / `TASK.md` /
   `PROJECT_STATE.md` mengatur proses; `CLAUDE.md` + `docs/` mengatur sistem.
   Pointer dua arah sudah dipasang di kedua sisi.
-- **Enam ADR diterima** (`docs/perubahan/0001`–`0006`). Yang paling berdampak:
-  ADR-0001 (`imgsz=320`), ADR-0003 (audio pra-render), ADR-0005 (input taktil
-  jadi jalur utama, mempersempit klaim perintah suara pada exsum).
-- **Scaffold dikerjakan satu orang saja**, yaitu Farrel, sudah dikoordinasikan
-  dengan rekan tim. Alasannya: scaffold menyentuh akar repo (`package.json`,
-  `vite.config.ts`, `tsconfig.json`), berbeda dengan kerja per folder yang aman
-  dilakukan paralel.
-- **Temuan yang menyentuh ADR-0004.** Android Studio di mesin ini seri 2025.2
-  (Otter), sehingga syarat perkakas Capacitor 8 sebenarnya terpenuhi. Salah satu
-  alasan pada ADR-0004 karena itu tidak berlaku di sini dan perlu diamandemen
-  agar catatan tetap akurat. Alasan utamanya, yaitu edge-to-edge otomatis yang
-  mengganggu tata letak kamera layar penuh, tetap berlaku.
+- **Pembagian kerja terbagi per nama** di `docs/EKSEKUSI.md`. Farrel memegang
+  `contracts`, `core`, `vision`, `data`, `model`, dan `package.json`; Fajar
+  memegang `ui`, `platform`, `audio`, `capacitor`, dan `android`.
+- **Enam ADR diterima** (`0001`–`0006`). Paling berdampak: ADR-0001
+  (`imgsz=320`), ADR-0003 (audio pra-render), ADR-0005 (input taktil jadi
+  jalur utama, mempersempit klaim perintah suara pada exsum).
+- **ADR-0004 mendapat amandemen bertanggal.** Alasan "syarat perkakas"
+  terbukti tidak berlaku karena Android Studio di mesin ini seri 2025.2.
+  Keputusan tidak berubah; alasan utamanya (edge-to-edge) tetap berlaku.
+- **Versi dikunci berdasarkan verifikasi ke npm, bukan ingatan.** Vite 7.3.6
+  bukan 8 (Vite 8 mengganti bundler ke Rolldown, sementara pemuatan `.wasm`
+  ORT adalah jalur kritis); TypeScript 5.9.3 bukan 7 dengan alasan yang sama;
+  `onnxruntime-web` 1.30.0.
+- **Dua tsconfig digabung jadi satu.** Project reference menuntut `composite`
+  dan hanya menambah hal yang bisa rusak pada proyek sekecil ini.
