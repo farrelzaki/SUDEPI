@@ -143,6 +143,65 @@ describe('abstain — sistem boleh berkata tidak tahu', () => {
     expect(jenisEfek(efek)).toEqual(['UCAP', 'GETAR']);
   });
 
+  it('memperingatkan SEKALI, bukan tiap bingkai, selama abstain berlanjut', () => {
+    // Uang terlipat membuat keyakinan bertahan lama tepat di bawah ambang,
+    // sehingga bingkai abstain berdatangan beruntun. Kalimat peringatannya
+    // lebih panjang daripada jeda antar bingkai, jadi mengucapkannya setiap
+    // kali membuat ucapan memotong dirinya sendiri di tengah kata.
+    let state = jalankan({ jenis: 'MULAI', padaMs: 1000 });
+    const diucapkan: number[] = [];
+
+    for (let i = 0; i < 5; i++) {
+      const hasil = reduksi(state, {
+        jenis: 'HASIL_PINDAI',
+        muatan: pindai('abstain'),
+      });
+      state = hasil.state;
+      diucapkan.push(hasil.efek.filter((e) => e.jenis === 'UCAP').length);
+    }
+
+    expect(diucapkan).toEqual([1, 0, 0, 0, 0]);
+  });
+
+  it('kedipan belum-stabil di tengah abstain tidak memicu peringatan ulang', () => {
+    let state = reduksi(jalankan({ jenis: 'MULAI', padaMs: 1000 }), {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('abstain'),
+    }).state;
+
+    state = reduksi(state, {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('belum-stabil'),
+    }).state;
+
+    const { efek } = reduksi(state, {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('abstain'),
+    });
+    expect(efek).toHaveLength(0);
+  });
+
+  it('memperingatkan lagi setelah uang disingkirkan dari depan kamera', () => {
+    // Percobaan BARU berhak mendapat peringatan baru. Kalau tidak, pengguna
+    // yang mencoba ulang dengan lembar lain hanya mendapat kesenyapan.
+    let state = reduksi(jalankan({ jenis: 'MULAI', padaMs: 1000 }), {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('abstain'),
+    }).state;
+
+    state = reduksi(state, {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('tidak-ada-objek'),
+    }).state;
+    expect(state.alasanAbstain).toBeNull();
+
+    const { efek } = reduksi(state, {
+      jenis: 'HASIL_PINDAI',
+      muatan: pindai('abstain'),
+    });
+    expect(jenisEfek(efek)).toEqual(['UCAP', 'GETAR']);
+  });
+
   it('diam saat hasil belum stabil — tidak bicara setengah matang', () => {
     const { efek } = reduksi(jalankan({ jenis: 'MULAI', padaMs: 1000 }), {
       jenis: 'HASIL_PINDAI',

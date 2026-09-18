@@ -124,6 +124,37 @@ const EFEK_ABSTAIN: readonly Efek[] = [
   { jenis: 'GETAR', pola: 'gagal' },
 ];
 
+/**
+ * Abstain diberitahukan SEKALI per kejadian, bukan sekali per bingkai.
+ *
+ * Bingkai berdatangan sekitar sekali per 0,85 detik, dan versi pertama
+ * mengucapkan "belum yakin, coba pindai lagi" pada setiap bingkai abstain.
+ * Kalimatnya sendiri lebih panjang dari jeda itu, sehingga ucapan berikutnya
+ * memotong yang sebelumnya di tengah kata — terdengar sebagai suku kata yang
+ * terus mengulang dan tidak pernah selesai. Terjadi paling parah pada uang
+ * TERLIPAT, karena keyakinannya bertahan lama tepat di bawah ambang.
+ *
+ * Yang menjengkelkan bagi orang awas, melumpuhkan bagi pengguna kami: satu-
+ * satunya saluran keluaran kami adalah suara, dan saluran itu jadi tersumbat
+ * oleh peringatan yang sama berulang kali. Pengguna tidak bisa mendengar
+ * kalimat utuhnya, jadi ia bahkan tidak tahu apa yang diminta sistem.
+ *
+ * `alasanAbstain` dipakai sebagai kuncinya — ia sudah ada di kontrak dan sudah
+ * dibersihkan setiap kali hasil stabil tiba, sehingga tidak perlu menambah
+ * bidang baru ke `src/contracts/`.
+ */
+function tanggapiAbstain(
+  state: StateTransaksi,
+  dasar: StateTransaksi,
+  alasan: string,
+): HasilReduksi {
+  const sudahDiberitahu = state.alasanAbstain !== null;
+  return {
+    state: { ...dasar, alasanAbstain: alasan },
+    efek: sudahDiberitahu ? [] : [...EFEK_ABSTAIN],
+  };
+}
+
 export function reduksi(
   state: StateTransaksi,
   peristiwa: Peristiwa,
@@ -186,18 +217,28 @@ export function reduksi(
           }
 
           if (hasil.status === 'abstain') {
-            return {
-              state: {
-                ...state,
-                hasilPindaiTerakhir: hasil,
-                alasanAbstain: 'keyakinan di bawah ambang',
-              },
-              efek: [...EFEK_ABSTAIN],
-            };
+            return tanggapiAbstain(
+              state,
+              { ...state, hasilPindaiTerakhir: hasil },
+              'keyakinan di bawah ambang',
+            );
           }
 
           // 'belum-stabil' dan 'tidak-ada-objek': simpan, jangan bicara.
-          return { state: { ...state, hasilPindaiTerakhir: hasil }, efek: [] };
+          //
+          // Bedanya, 'tidak-ada-objek' MENGAKHIRI kejadian abstain: uangnya
+          // sudah disingkirkan dari depan kamera, jadi percobaan berikutnya
+          // berhak mendapat peringatan lagi. 'belum-stabil' tidak, karena ia
+          // hanya kedipan di tengah percobaan yang sama.
+          return {
+            state: {
+              ...state,
+              hasilPindaiTerakhir: hasil,
+              alasanAbstain:
+                hasil.status === 'tidak-ada-objek' ? null : state.alasanAbstain,
+            },
+            efek: [],
+          };
         }
 
         case 'KONFIRMASI': {
@@ -297,12 +338,21 @@ export function reduksi(
             if (state.hasilPindaiTerakhir?.status === 'stabil') {
               return diam(state);
             }
-            return hasil.status === 'abstain'
-              ? {
-                  state: { ...dasar, alasanAbstain: 'keyakinan di bawah ambang' },
-                  efek: [...EFEK_ABSTAIN],
-                }
-              : { state: dasar, efek: [] };
+            if (hasil.status === 'abstain') {
+              return tanggapiAbstain(
+                state,
+                dasar,
+                'keyakinan di bawah ambang',
+              );
+            }
+            return {
+              state: {
+                ...dasar,
+                alasanAbstain:
+                  hasil.status === 'tidak-ada-objek' ? null : state.alasanAbstain,
+              },
+              efek: [],
+            };
           }
 
           if (state.kembalianWajib === null) return diam(state);
@@ -315,10 +365,11 @@ export function reduksi(
           const koin = turunkanKoin(state.kembalianWajib, hasil.totalKertas);
           if (!koin.ok) {
             // Selisih tidak masuk akal sebagai koin. Jangan menebak.
-            return {
-              state: { ...dasar, nominalKoin: null, alasanAbstain: koin.alasan },
-              efek: [...EFEK_ABSTAIN],
-            };
+            return tanggapiAbstain(
+              state,
+              { ...dasar, nominalKoin: null },
+              koin.alasan,
+            );
           }
 
           return {
