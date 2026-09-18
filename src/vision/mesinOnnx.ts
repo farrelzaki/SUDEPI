@@ -35,7 +35,21 @@ export interface MesinOnnx extends MesinInferensi {
 }
 
 export function buatMesinOnnx(opsi: OpsiMesinOnnx = {}): MesinOnnx {
-  const urlModel = opsi.urlModel ?? './model/sudepi.onnx';
+  // Diselesaikan menjadi URL mutlak DI SINI, di utas utama, sebelum dikirim ke
+  // worker.
+  //
+  // Alasannya ditemukan saat menjalankan APK di HP sungguhan. Path relatif
+  // seperti './model/sudepi.onnx' diselesaikan relatif terhadap berkas yang
+  // memakainya — dan yang memakainya adalah worker, yang tinggal di
+  // `assets/worker-xxxx.js`. Hasilnya ONNX Runtime mencari model di
+  // `/assets/model/sudepi.onnx`, padahal berkasnya ada di `/model/`.
+  //
+  // Kegagalannya tidak kentara: model tidak pernah ditemukan, pemindai gagal
+  // diam-diam, dan pesan galatnya hanya muncul di logcat.
+  const urlModel = new URL(
+    opsi.urlModel ?? './model/sudepi.onnx',
+    globalThis.location.href,
+  ).href;
 
   let worker: Worker | null = null;
   let idBerikut = 1;
