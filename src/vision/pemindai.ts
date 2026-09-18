@@ -34,7 +34,21 @@ export interface OpsiPemindai {
 export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
   const { video } = opsi;
   const mesin = opsi.mesin ?? buatMesinOnnx();
-  const jedaMs = 1000 / (opsi.targetFps ?? FPS_MAKS);
+  /**
+   * Jeda ISTIRAHAT antar bingkai, bukan periode timer.
+   *
+   * Versi pertama memakai setInterval dengan jeda 100 ms dan penjaga "sibuk".
+   * Karena inferensi memakan sekitar 700 ms, timer menyala tujuh kali selama
+   * satu inferensi — semuanya dilewati penjaga — lalu menyala lagi SEKETIKA
+   * bingkai sebelumnya selesai. Hasilnya CPU bekerja beruntun tanpa jeda sama
+   * sekali, dan HP menjadi panas dalam hitungan menit.
+   *
+   * Sekarang bingkai berikutnya dijadwalkan SETELAH yang sekarang selesai,
+   * dengan jeda nyata di antaranya. Laju bingkai turun sedikit, suhu turun
+   * banyak — dan pada 1,4 fps, satu bingkai lebih atau kurang tidak mengubah
+   * apa pun yang dirasakan pengguna.
+   */
+  const jedaMs = Math.max(120, 1000 / (opsi.targetFps ?? FPS_MAKS));
   const senterOtomatis = opsi.senterOtomatis ?? true;
 
   const pendengar = new Set<(h: HasilPindai) => void>();
@@ -154,14 +168,23 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
         senterAktif,
       });
     } catch {
-      // Satu bingkai gagal bukan alasan menghentikan pemindaian. Bingkai
-      // berikutnya datang 100 ms lagi.
+      // Satu bingkai gagal bukan alasan menghentikan pemindaian. Penjadwalan
+      // berikutnya tetap berjalan lewat blok finally di `jadwalkan`.
     } finally {
       sibuk = false;
     }
   }
 
-  let timer: ReturnType<typeof setInterval> | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let lepasVisibilitas: (() => void) | null = null;
+
+  /** Menjadwalkan bingkai berikutnya setelah yang sekarang benar-benar usai. */
+  function jadwalkan(): void {
+    if (!jalan) return;
+    timer = setTimeout(() => {
+      void prosesBingkai().finally(jadwalkan);
+    }, jedaMs);
+  }
 
   return {
     async mulai(_fase: FasePindai) {
@@ -184,15 +207,40 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
       await mesin.siap();
 
       jalan = true;
-      timer = setInterval(() => void prosesBingkai(), jedaMs);
+      jadwalkan();
+
+      // Berhenti memindai saat aplikasi ditinggalkan.
+      //
+      // Tanpa ini, kamera dan inferensi terus berjalan di latar belakang:
+      // baterai terkuras dan HP memanas tanpa ada yang menyadarinya — dan
+      // pengguna yang tidak bisa melihat layar paling tidak mungkin menyadari.
+      const padaVisibilitas = (): void => {
+        if (document.hidden) {
+          jalan = false;
+          if (timer !== null) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          if (senterAktif) void setSenterInternal(false);
+        } else if (!jalan) {
+          jalan = true;
+          jadwalkan();
+        }
+      };
+      document.addEventListener('visibilitychange', padaVisibilitas);
+      lepasVisibilitas = () => {
+        document.removeEventListener('visibilitychange', padaVisibilitas);
+      };
     },
 
     berhenti() {
       jalan = false;
       if (timer !== null) {
-        clearInterval(timer);
+        clearTimeout(timer);
         timer = null;
       }
+      lepasVisibilitas?.();
+      lepasVisibilitas = null;
       if (senterAktif) void setSenterInternal(false);
       for (const jalur of aliran?.getTracks() ?? []) jalur.stop();
       aliran = null;

@@ -64,6 +64,25 @@ quantize dan dequantize di WASM memakan hampir seluruh keuntungannya.
 Bahkan pada 192 — resolusi yang sudah terlalu kecil untuk membedakan pecahan
 dengan aman — targetnya masih terlewat. Menurunkan resolusi bukan jalan keluar.
 
+### Akibat sampingan: perangkat memanas
+
+Selama pengujian, HP menjadi panas dalam hitungan menit. Penyebabnya bukan
+inferensi itu sendiri melainkan **tidak adanya jeda di antaranya**: pemindai
+memakai `setInterval` 100 ms dengan penjaga "sibuk", sehingga bingkai
+berikutnya dimulai SEKETIKA bingkai sebelumnya selesai. CPU bekerja beruntun
+tanpa istirahat sama sekali.
+
+Sudah diperbaiki di luar keputusan ini, karena benar apa pun pilihan yang
+nanti diambil: bingkai berikutnya kini dijadwalkan setelah yang sekarang usai,
+dengan jeda nyata di antaranya. Ditemukan juga bahwa pemindaian **tidak
+berhenti saat aplikasi ditinggalkan** — baterai terkuras dan HP memanas tanpa
+ada yang menyadarinya, dan pengguna yang tidak bisa melihat layar paling tidak
+mungkin menyadarinya. Itu pun sudah ditangani.
+
+Panas juga penting bagi keputusan di bawah: pada perangkat yang memanas,
+Android menurunkan frekuensi CPU, sehingga latensi **memburuk seiring waktu
+pemakaian**. Angka ~700 ms adalah angka perangkat dingin.
+
 ## Keputusan
 
 **Ditunda, 18 September 2026.** Sistem dipertahankan apa adanya untuk sekarang;
