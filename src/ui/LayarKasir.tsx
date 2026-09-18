@@ -6,18 +6,19 @@
  * meter, sering di bawah cahaya lapak yang buruk, oleh orang yang belum pernah
  * melihat aplikasi ini dan tidak akan diberi penjelasan.
  *
- * Karena itu tiga angka saja, masing-masing berlabel, tanpa ikon dekoratif dan
- * tanpa penjelasan. Apa pun yang ditambahkan di sini memperlambat pembacaan
- * sekilas, dan itulah satu-satunya hal yang perlu layar ini lakukan.
+ * Karena itu setiap keputusan di sini tunduk pada satu pertanyaan: apakah ini
+ * mempercepat atau memperlambat satu kali lirikan?
  *
- * Yang membedakannya dari tiga angka biasa: KEMBALIAN disorot kuning dan
- * dibuat paling besar. Pedagang hampir selalu hanya perlu satu angka itu, dan
- * dua angka lain ada untuk membuatnya bisa diperiksa, bukan untuk dibaca lebih
- * dulu.
+ * Belanja dan Dibayar berdampingan dalam ukuran kecil — keduanya ada supaya
+ * angka ketiga bisa DIPERIKSA, bukan untuk dibaca lebih dulu. Kembalian berdiri
+ * sendiri, jauh lebih besar, dan satu-satunya yang berwarna. Pedagang hampir
+ * selalu hanya perlu angka itu.
  *
  * Inilah bagian "Provider" dari tema Receiver and Provider: pedagang bisa
  * memverifikasi sendiri, sehingga kepercayaan tidak bergantung pada satu pihak.
  */
+
+import { KodeTunanetra } from './Kerangka';
 
 export interface LayarKasirProps {
   readonly totalBelanja: number;
@@ -25,32 +26,28 @@ export interface LayarKasirProps {
   readonly kembalian: number;
 }
 
-function Baris({
+function rp(n: number): string {
+  return n.toLocaleString('id-ID');
+}
+
+function Pendukung({
   label,
   nilai,
-  utama = false,
 }: {
   readonly label: string;
   readonly nilai: number;
-  readonly utama?: boolean;
 }) {
   return (
-    <div className="flex w-full flex-col items-center">
-      <div
-        className="text-lg font-semibold uppercase tracking-[0.18em]"
-        style={{ color: 'var(--color-kasir-redup)' }}
-      >
+    <div className="flex flex-col gap-1.5">
+      <span className="eyebrow" style={{ color: 'var(--color-kasir-redup)' }}>
         {label}
-      </div>
-      <div
-        className="font-extrabold leading-none tracking-tight"
-        style={{
-          fontSize: utama ? 'var(--text-kasir)' : 'calc(var(--text-kasir) * 0.62)',
-          color: utama ? 'var(--color-kasir-sorot)' : 'var(--color-kasir-teks)',
-        }}
+      </span>
+      <span
+        className="nominal text-[1.75rem]"
+        style={{ color: 'var(--color-kasir-teks)' }}
       >
-        Rp{nilai.toLocaleString('id-ID')}
-      </div>
+        Rp{rp(nilai)}
+      </span>
     </div>
   );
 }
@@ -62,19 +59,50 @@ export function LayarKasir({
 }: LayarKasirProps) {
   return (
     <div
-      className="flex h-full w-full flex-col items-center justify-center gap-5 rounded-3xl px-4 py-6"
+      className="flex h-full w-full flex-col justify-center gap-7 rounded-[1.75rem] px-7 py-7"
       style={{ backgroundColor: 'var(--color-kasir-panel)' }}
     >
-      <Baris label="Belanja" nilai={totalBelanja} />
-      <Baris label="Dibayar" nilai={uangDibayar} />
+      <div className="grid grid-cols-2 gap-4">
+        <Pendukung label="Belanja" nilai={totalBelanja} />
+        <Pendukung label="Dibayar" nilai={uangDibayar} />
+      </div>
 
       <div
-        className="h-1 w-4/5 rounded-full"
-        style={{ backgroundColor: 'var(--color-kasir-teks)' }}
+        className="h-px w-full"
+        style={{ backgroundColor: 'rgb(255 255 255 / 0.12)' }}
         role="presentation"
       />
 
-      <Baris label="Kembalian" nilai={kembalian} utama />
+      <div className="flex flex-col items-center gap-2 py-2">
+        <span className="eyebrow" style={{ color: 'var(--color-kasir-redup)' }}>
+          Kembalian
+        </span>
+        <div className="flex items-baseline gap-2">
+          <span
+            className="text-3xl font-bold"
+            style={{ color: 'rgb(255 214 10 / 0.55)' }}
+          >
+            Rp
+          </span>
+          <span
+            className="nominal"
+            style={{
+              fontSize: 'var(--text-kasir)',
+              color: 'var(--color-kasir-sorot)',
+            }}
+          >
+            {rp(kembalian)}
+          </span>
+        </div>
+      </div>
+
+      <div
+        className="flex items-center justify-center gap-2.5"
+        style={{ color: 'var(--color-kasir-redup)' }}
+      >
+        <KodeTunanetra jumlah={3} warna="currentColor" ukuran={9} />
+        <span className="eyebrow">Dihitung SUDEPI</span>
+      </div>
     </div>
   );
 }

@@ -24,7 +24,7 @@ import { DbSudepi, siapkanDb } from '@/data/db';
 import { buatRepositori, type Repositori } from '@/data/repositori';
 import { buatPemindai } from '@/vision/pemindai';
 import { buatMockPemindai } from '@/vision/mockPemindai';
-import { Kerangka, LapisanKetuk, Tombol } from './Kerangka';
+import { Kerangka, KodeTunanetra, LapisanKetuk, Tombol } from './Kerangka';
 import { LayarKasir } from './LayarKasir';
 import { PapanAngka } from './PapanAngka';
 import { Pratinjau } from './Pratinjau';
@@ -129,13 +129,23 @@ export function Aplikasi() {
   }
 
   const batal = (): void => kirim({ jenis: 'BATAL' });
+  const tombolBatalGelap = (
+    <Tombol
+      label="Batalkan transaksi dan kembali ke awal"
+      ragam="hantu"
+      gelap
+      onAktif={batal}
+    >
+      Batal dan kembali
+    </Tombol>
+  );
   const label = labelUtama(state.fase, hasilPindai, state);
 
   /** Tombol batal, hadir di setiap fase kecuali Siaga dan Selesai. */
   const tombolBatal = (
     <Tombol
       label="Batalkan transaksi dan kembali ke awal"
-      ragam="bahaya"
+      ragam="hantu"
       onAktif={batal}
     >
       Batal dan kembali
@@ -173,12 +183,44 @@ export function Aplikasi() {
             }
           >
             <LapisanKetuk onAktif={tindakanUtama} />
-            <div className="pointer-events-none flex h-full flex-col items-center justify-center gap-3 text-center">
-              <LogoDompet />
-              <p className="max-w-xs text-lg leading-snug text-[var(--color-tinta-redup)]">
-                Pindai uang, hitung kembalian, lalu periksa kembaliannya —
-                seluruhnya tanpa internet.
+            <div className="pointer-events-none flex h-full flex-col justify-center gap-6">
+              <p className="max-w-[30ch] text-[1.0625rem] leading-relaxed text-[var(--color-tinta-redup)]">
+                Kenali nominal uang, hitung kembalian, lalu periksa kembalian
+                yang kamu terima.
               </p>
+
+              <ol className="flex flex-col gap-2.5">
+                {[
+                  'Pindai uang yang kamu bayarkan',
+                  'Masukkan total belanja',
+                  'Tunjukkan layar ke pedagang',
+                  'Periksa kembalian dari pedagang',
+                ].map((teks, i) => (
+                  <li
+                    key={teks}
+                    className="flex items-center gap-3.5 rounded-2xl bg-[var(--color-kartu)] px-4 py-3.5"
+                    style={{ boxShadow: 'var(--shadow-kartu)' }}
+                  >
+                    <span
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full font-mono text-sm font-bold"
+                      style={{
+                        backgroundColor: 'var(--color-primer-tipis)',
+                        color: 'var(--color-primer)',
+                      }}
+                    >
+                      {i + 1}
+                    </span>
+                    <span className="text-[0.9375rem] font-semibold">{teks}</span>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="flex items-center gap-2.5 text-[var(--color-tinta-samar)]">
+                <IkonLuring />
+                <span className="text-[0.8125rem] font-semibold">
+                  Bekerja sepenuhnya tanpa internet
+                </span>
+              </div>
             </div>
           </Kerangka>
         );
@@ -204,7 +246,6 @@ export function Aplikasi() {
             <Pratinjau
               videoRef={videoRef}
               hasil={hasilPindai}
-              judulBilah="Pindai uang rupiah di sini"
               onSenter={(n) => void pemindai.setSenter(n)}
             />
           </Kerangka>
@@ -254,7 +295,7 @@ export function Aplikasi() {
                 <Tombol label={label} onAktif={tindakanUtama}>
                   Periksa kembalian
                 </Tombol>
-                {tombolBatal}
+                {tombolBatalGelap}
               </>
             }
           >
@@ -290,7 +331,6 @@ export function Aplikasi() {
             <Pratinjau
               videoRef={videoRef}
               hasil={hasilPindai}
-              judulBilah="Pindai kembalian kamu"
               onSenter={(n) => void pemindai.setSenter(n)}
             />
           </Kerangka>
@@ -310,27 +350,48 @@ export function Aplikasi() {
             }
           >
             <LapisanKetuk onAktif={tindakanUtama} />
-            <div className="pointer-events-none flex h-full flex-col items-center justify-center gap-4 text-center">
+            <div className="pointer-events-none flex h-full flex-col items-center justify-center gap-7">
               <LencanaCentang />
-              <div
-                className="text-2xl font-bold"
-                style={{ color: 'var(--color-sukses)' }}
-              >
-                Transaksi selesai
-              </div>
-              <div>
-                <div
-                  className="text-lg font-semibold"
+
+              <div className="flex flex-col items-center gap-2">
+                <span className="eyebrow" style={{ color: 'var(--color-sukses-terang)' }}>
+                  Transaksi selesai
+                </span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-white/45">Rp</span>
+                  <span className="nominal text-[3.5rem] text-white">
+                    {(state.kembalianWajib ?? 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
+                <span
+                  className="text-[0.9375rem] font-medium"
                   style={{ color: 'var(--color-kasir-redup)' }}
                 >
-                  Kembalian kamu
-                </div>
-                <div
-                  className="text-6xl font-extrabold tracking-tight"
-                  style={{ color: 'var(--color-kasir-teks)' }}
-                >
-                  Rp{(state.kembalianWajib ?? 0).toLocaleString('id-ID')}
-                </div>
+                  kembalian yang kamu terima
+                </span>
+              </div>
+
+              <div
+                className="flex w-full items-center justify-between rounded-2xl px-5 py-4"
+                style={{ backgroundColor: 'rgb(255 255 255 / 0.06)' }}
+              >
+                {[
+                  ['Belanja', state.totalBelanja ?? 0],
+                  ['Dibayar', state.uangDibayar ?? 0],
+                ].map(([teks, nilai]) => (
+                  <div key={String(teks)} className="flex flex-col gap-1">
+                    <span className="eyebrow" style={{ color: 'var(--color-kasir-redup)' }}>
+                      {teks}
+                    </span>
+                    <span
+                      className="nominal text-xl"
+                      style={{ color: 'var(--color-kasir-teks)' }}
+                    >
+                      Rp{Number(nilai).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                ))}
+                <KodeTunanetra jumlah={3} warna="var(--color-kasir-redup)" ukuran={9} />
               </div>
             </div>
           </Kerangka>
@@ -339,38 +400,25 @@ export function Aplikasi() {
   }
 }
 
-function LogoDompet() {
+function IkonLuring() {
   return (
-    <svg viewBox="0 0 24 24" className="size-24" fill="none" aria-hidden="true">
-      <rect
-        x="2.5"
-        y="5.5"
-        width="19"
-        height="14"
-        rx="3.5"
-        stroke="var(--color-primer)"
-        strokeWidth="1.8"
-      />
+    <svg viewBox="0 0 24 24" className="size-5" fill="none" aria-hidden="true">
       <path
-        d="M2.5 10h19"
-        stroke="var(--color-primer)"
+        d="M2 8.5a15 15 0 0 1 20 0M5.5 12.5a10 10 0 0 1 13 0M9 16.5a5 5 0 0 1 6 0"
+        stroke="currentColor"
         strokeWidth="1.8"
+        strokeLinecap="round"
       />
-      <circle cx="17" cy="15" r="1.8" fill="var(--color-primer)" />
+      <path d="M3 3l18 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
 
 function LencanaCentang() {
   return (
-    <svg viewBox="0 0 24 24" className="size-24" fill="none" aria-hidden="true">
-      <circle
-        cx="12"
-        cy="12"
-        r="9.5"
-        stroke="var(--color-sukses)"
-        strokeWidth="1.6"
-      />
+    <svg viewBox="0 0 24 24" className="size-20" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="10.25" fill="rgb(23 185 120 / 0.14)" />
+      <circle cx="12" cy="12" r="9.5" stroke="var(--color-sukses)" strokeWidth="1.4" />
       <path
         d="m7.8 12.3 2.9 2.9 5.6-6"
         stroke="var(--color-sukses)"

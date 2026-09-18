@@ -1,38 +1,66 @@
 /**
- * Kerangka layar dan tombol.
+ * Kerangka layar, tombol, dan motif.
  *
- * Mengikuti struktur prototipe Fajar di `UI reference/`: bilah atas berisi
+ * Susunannya mengikuti prototipe Fajar di `UI reference/`: bilah atas berisi
  * tombol kembali, penghitung langkah, judul, dan batang kemajuan; lalu isi;
- * lalu area aksi di bawah. Itu juga pola baku aplikasi Android berlangkah,
- * dan kemiripan itu disengaja — pengguna tunanetra kami sudah memakai Android
- * setiap hari, jadi hal paling ramah yang bisa kami lakukan adalah berperilaku
- * seperti aplikasi Android lain, bukan menciptakan tata cara sendiri.
+ * lalu area aksi di bawah. Itu juga pola baku aplikasi Android berlangkah, dan
+ * kemiripan itu disengaja — pengguna tunanetra kami memakai Android setiap
+ * hari, jadi hal paling ramah yang bisa kami lakukan adalah berperilaku seperti
+ * aplikasi Android lain, bukan menciptakan tata cara sendiri.
  *
  * KETUK DI MANA SAJA TETAP HIDUP. Prototipe Fajar mempertahankannya dan itu
- * keputusan yang tepat, jadi ia tetap ada di sini sebagai `LapisanKetuk`:
- * seluruh layar adalah sasaran tindakan utama, sementara tombol yang terlihat
- * melakukan hal yang sama untuk orang yang bisa melihatnya.
- *
- * Lapisan itu `aria-hidden`. Tanpa itu TalkBack akan menemukan DUA kendali
- * yang mengerjakan satu hal, dan pengguna harus menebak mana yang benar.
- * Sekarang pembagiannya bersih: TalkBack menelusuri tombol yang berlabel,
- * sentuhan biasa mengenai seluruh layar.
+ * keputusan yang tepat, jadi ia tetap ada sebagai `LapisanKetuk`: seluruh layar
+ * adalah sasaran tindakan utama, sementara tombol yang terlihat melakukan hal
+ * yang sama untuk orang yang bisa melihatnya. Lapisan itu `aria-hidden`, sebab
+ * tanpa itu TalkBack menemukan DUA kendali yang mengerjakan satu pekerjaan dan
+ * pengguna harus menebak mana yang benar.
  */
 
 import type { ReactNode } from 'react';
 
-/* ------------------------------------------------------------------ tombol */
+/* -------------------------------------------------------------------- motif */
 
-type Ragam = 'primer' | 'sekunder' | 'bahaya' | 'sukses';
+/**
+ * Kode tunanetra pada uang kertas Rupiah.
+ *
+ * Setiap lembar Rupiah punya sepasang tanda timbul di tepinya — jumlah
+ * pasangannya menunjukkan pecahan, dan itu dibaca dengan meraba. Motif inilah
+ * yang dipakai sebagai tanda struktural di seluruh aplikasi.
+ *
+ * Bukan hiasan yang dipilih karena terlihat bagus. Ia adalah instrumen
+ * aksesibilitas milik uang itu sendiri, sudah ada jauh sebelum aplikasi ini,
+ * dan memakainya sebagai lambang berarti mengakui bahwa kami meneruskan
+ * sesuatu, bukan menemukannya.
+ */
+export function KodeTunanetra({
+  jumlah = 3,
+  warna = 'currentColor',
+  ukuran = 10,
+}: {
+  readonly jumlah?: number;
+  readonly warna?: string;
+  readonly ukuran?: number;
+}) {
+  return (
+    <span className="inline-flex items-center gap-[3px]" aria-hidden="true">
+      {Array.from({ length: jumlah }, (_, i) => (
+        <span
+          key={i}
+          className="block rounded-[2px]"
+          style={{
+            width: ukuran,
+            height: ukuran / 2.5,
+            backgroundColor: warna,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
 
-const GAYA: Record<Ragam, string> = {
-  primer: 'bg-[var(--color-primer)] text-white active:bg-[var(--color-primer-tekan)]',
-  sekunder:
-    'bg-[var(--color-kartu)] text-[var(--color-tinta-redup)] border-2 border-[var(--color-garis)] active:bg-[var(--color-ground)]',
-  bahaya:
-    'bg-transparent text-[var(--color-bahaya)] border-2 border-[var(--color-bahaya)] active:bg-[var(--color-bahaya)]/15',
-  sukses: 'bg-[var(--color-primer)] text-white active:bg-[var(--color-primer-tekan)]',
-};
+/* ------------------------------------------------------------------- tombol */
+
+type Ragam = 'primer' | 'sekunder' | 'hantu';
 
 export interface TombolProps {
   /**
@@ -46,6 +74,7 @@ export interface TombolProps {
   readonly onAktif: () => void;
   readonly ragam?: Ragam;
   readonly nonaktif?: boolean;
+  readonly gelap?: boolean;
   readonly children: ReactNode;
 }
 
@@ -54,15 +83,30 @@ export function Tombol({
   onAktif,
   ragam = 'primer',
   nonaktif = false,
+  gelap = false,
   children,
 }: TombolProps) {
+  const dasar =
+    'flex min-h-[var(--spacing-sentuh)] w-full items-center justify-center gap-2.5 rounded-[1.25rem] px-5 text-xl font-bold transition-[transform,background-color] duration-100 active:scale-[0.985] disabled:opacity-40';
+
+  const gaya: Record<Ragam, string> = {
+    primer:
+      'bg-[var(--color-primer)] text-white shadow-[var(--shadow-primer)] active:bg-[var(--color-primer-tekan)]',
+    sekunder: gelap
+      ? 'bg-white/10 text-[var(--color-kasir-teks)] active:bg-white/20'
+      : 'bg-[var(--color-kartu)] text-[var(--color-tinta)] shadow-[var(--shadow-kartu)] active:bg-[var(--color-kertas)]',
+    hantu: gelap
+      ? 'text-[var(--color-kasir-redup)] active:bg-white/10'
+      : 'text-[var(--color-tinta-redup)] active:bg-black/5',
+  };
+
   return (
     <button
       type="button"
       aria-label={label}
       disabled={nonaktif}
       onClick={onAktif}
-      className={`flex min-h-[var(--spacing-sentuh)] w-full items-center justify-center gap-3 rounded-2xl px-5 text-2xl font-bold disabled:opacity-50 ${GAYA[ragam]}`}
+      className={`${dasar} ${gaya[ragam]}`}
     >
       {children}
     </button>
@@ -90,7 +134,9 @@ export function LapisanKetuk({ onAktif }: { readonly onAktif: () => void }) {
   );
 }
 
-/* ---------------------------------------------------------------- kerangka */
+/* ----------------------------------------------------------------- kerangka */
+
+export const TOTAL_LANGKAH = 4;
 
 export interface KerangkaProps {
   /** 1..4, menghasilkan "01 / 04" dan batang kemajuan. Null menyembunyikannya. */
@@ -98,19 +144,16 @@ export interface KerangkaProps {
   readonly judul: string;
   readonly subjudul?: string;
   readonly onKembali?: () => void;
-  /** Isi layar. */
   readonly children: ReactNode;
   /** Area aksi di bawah, biasanya satu atau dua tombol. */
   readonly aksi: ReactNode;
   /** Kalimat kecil di atas area aksi, seperti pada prototipe. */
   readonly petunjuk?: string;
-  /** Layar pedagang memakai ground gelap. */
+  /** Layar pedagang dan layar selesai memakai ground gelap. */
   readonly gelap?: boolean;
   /** Isi menempel penuh tanpa bantalan — dipakai layar kamera. */
   readonly isiPenuh?: boolean;
 }
-
-export const TOTAL_LANGKAH = 4;
 
 export function Kerangka({
   langkah,
@@ -128,79 +171,108 @@ export function Kerangka({
 
   return (
     <div
-      className="flex h-dvh w-full flex-col overflow-hidden"
+      /* Dibatasi lebarnya dan dipusatkan. Aplikasi ini hidup di layar ponsel;
+         batas ini hanya berlaku di layar lebar, dan membuat pratinjau di
+         browser desktop mewakili apa yang sebenarnya dilihat pengguna. */
+      className="mx-auto flex h-dvh w-full max-w-[480px] flex-col overflow-hidden"
       style={{
-        backgroundColor: gelap ? 'var(--color-kasir-latar)' : 'var(--color-ground)',
+        backgroundColor: gelap
+          ? 'var(--color-kasir-latar)'
+          : 'var(--color-kertas)',
       }}
     >
-      <header className="shrink-0 px-5 pt-3 pb-2" style={{ color: tinta }}>
-        <div className="flex items-center gap-3">
+      <header className="relative z-10 shrink-0 px-6 pt-4 pb-3">
+        <div className="flex h-11 items-center gap-3">
           {onKembali ? (
             <button
               type="button"
               aria-label="Kembali ke langkah sebelumnya"
               onClick={onKembali}
-              className="-ml-2 flex size-12 shrink-0 items-center justify-center rounded-full active:bg-black/10"
-              style={{ color: tinta }}
+              className="-ml-1.5 flex size-11 shrink-0 items-center justify-center rounded-full border transition-colors"
+              style={{
+                color: tinta,
+                borderColor: gelap ? 'rgb(255 255 255 / 0.14)' : 'var(--color-garis)',
+                backgroundColor: gelap ? 'rgb(255 255 255 / 0.05)' : 'var(--color-kartu)',
+              }}
             >
               <PanahKiri />
             </button>
           ) : (
-            <div className="size-12 shrink-0" />
+            <KodeTunanetra jumlah={3} warna="var(--color-primer)" ukuran={13} />
           )}
 
           {langkah !== null && (
             <div
-              className="font-mono text-lg tracking-widest"
-              style={{ color: redup }}
-              /* Dibacakan sebagai kalimat, bukan sebagai "nol dua garis miring
-                 nol empat" — TalkBack membaca teks apa adanya. */
+              className="ml-auto rounded-full px-3 py-1.5 font-mono text-sm font-semibold tracking-[0.16em]"
+              style={{
+                color: gelap ? 'var(--color-kasir-teks)' : 'var(--color-primer)',
+                backgroundColor: gelap
+                  ? 'rgb(255 255 255 / 0.08)'
+                  : 'var(--color-primer-tipis)',
+              }}
               aria-label={`Langkah ${langkah} dari ${TOTAL_LANGKAH}`}
             >
               <span aria-hidden="true">
-                {String(langkah).padStart(2, '0')} / {String(TOTAL_LANGKAH).padStart(2, '0')}
+                {String(langkah).padStart(2, '0')}
+                <span style={{ opacity: 0.45 }}>
+                  {' / '}
+                  {String(TOTAL_LANGKAH).padStart(2, '0')}
+                </span>
               </span>
             </div>
           )}
         </div>
 
-        <h1 className="mt-1 text-3xl font-extrabold tracking-tight" style={{ color: tinta }}>
+        <h1
+          className="mt-3 text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] text-balance"
+          style={{ color: tinta }}
+        >
           {judul}
         </h1>
         {subjudul && (
-          <p className="mt-1 text-base leading-snug" style={{ color: redup }}>
+          <p
+            className="mt-1.5 max-w-[34ch] text-[0.9375rem] leading-relaxed"
+            style={{ color: redup }}
+          >
             {subjudul}
           </p>
         )}
 
         {langkah !== null && (
           <div
-            className="mt-3 h-1.5 w-full overflow-hidden rounded-full"
-            style={{ backgroundColor: gelap ? '#2b3a4a' : 'var(--color-garis)' }}
+            className="mt-4 flex gap-1.5"
             role="presentation"
+            aria-hidden="true"
           >
-            <div
-              className="h-full rounded-full transition-[width] duration-300"
-              style={{
-                width: `${(langkah / TOTAL_LANGKAH) * 100}%`,
-                backgroundColor: 'var(--color-primer)',
-              }}
-            />
+            {Array.from({ length: TOTAL_LANGKAH }, (_, i) => (
+              <span
+                key={i}
+                className="h-1 flex-1 rounded-full transition-colors duration-300"
+                style={{
+                  backgroundColor:
+                    i < langkah
+                      ? 'var(--color-primer)'
+                      : gelap
+                        ? 'rgb(255 255 255 / 0.12)'
+                        : 'var(--color-garis)',
+                }}
+              />
+            ))}
           </div>
         )}
       </header>
 
       <main
-        className={`relative z-10 min-h-0 flex-1 ${isiPenuh ? '' : 'px-5 py-3'}`}
+        className={`relative z-10 min-h-0 flex-1 ${isiPenuh ? 'px-3 pb-1' : 'px-6 py-3'}`}
       >
         {children}
       </main>
 
-      <footer className="relative z-10 shrink-0 px-5 pt-2 pb-5">
+      <footer className="relative z-10 shrink-0 px-6 pt-3 pb-6">
         {petunjuk && (
           <p
-            className="mb-2 text-center text-sm leading-snug"
-            style={{ color: redup }}
+            className="mb-3 text-center text-[0.8125rem] leading-snug"
+            style={{ color: gelap ? 'var(--color-kasir-redup)' : 'var(--color-tinta-samar)' }}
             /* Sudah disuarakan pengucap dan tercermin di label tombol.
                Membiarkan TalkBack ikut membacanya berarti pengguna mendengar
                kalimat yang sama tiga kali. */
@@ -217,7 +289,7 @@ export function Kerangka({
 
 function PanahKiri() {
   return (
-    <svg viewBox="0 0 24 24" className="size-8" fill="none" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
       <path
         d="M15 5 8 12l7 7"
         stroke="currentColor"
