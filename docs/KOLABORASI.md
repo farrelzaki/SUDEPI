@@ -109,21 +109,16 @@ gerbang periksa di `PLAN.md`.
 Kalau muncul konflik, itu tandanya ada aturan yang terlewat. Jangan langsung
 menyelesaikan sendiri — tanya dulu siapa yang menyentuh berkas itu.
 
-Pengecualian: `package.json`, `pnpm-lock.yaml`, dan papan klaim di atas.
-Ketiganya memang dipakai bersama; selesaikan saja dengan mempertahankan kedua
-sisi.
+Pengecualian: `package.json` dan `pnpm-lock.yaml`. Keduanya memang dipakai
+bersama; selesaikan dengan mempertahankan kedua sisi, lalu jalankan
+`pnpm install` sekali lagi.
 
-## Pembagian yang disarankan
+## Kalau salah satu terhambat
 
-Pembagian kami cair, jadi ini saran awal, bukan penugasan. Yang penting bukan
-siapa mengerjakan apa, melainkan **tidak ada dua orang di satu folder pada
-waktu yang sama.**
+Yang paling tidak bergantung pada apa pun adalah `src/core/` dan `src/data/`:
+logika murni, banyak tes, tidak butuh HP, model, maupun kamera. Kalau ada yang
+menganggur karena menunggu sesuatu, di sinilah tempat paling aman untuk
+membantu.
 
-| Jalur | Folder | Sifat pekerjaan |
-| --- | --- | --- |
-| A — Penglihatan | `src/vision/`, `model/` | Banyak angka, perlu HP dan uang fisik untuk kalibrasi. |
-| B — Inti | `src/core/`, `src/data/`, `src/audio/` | Logika murni, banyak tes, bisa dikerjakan tanpa HP. |
-| C — Antarmuka | `src/ui/`, `src/platform/` | Visual dan taktil, perlu HP dan TalkBack untuk verifikasi. |
-
-Jalur B adalah yang paling tidak bergantung pada apa pun. Kalau satu orang
-terhambat, di sinilah tempat paling aman untuk membantu.
+Yang paling **tidak** boleh dikerjakan bersamaan adalah `package.json` dan
+`src/contracts/`. Keduanya menyentuh semua orang sekaligus.
