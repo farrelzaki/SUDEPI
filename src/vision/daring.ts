@@ -26,11 +26,38 @@ import {
 } from '@/contracts';
 import { KUNCI_GEMINI } from '@/platform/mode';
 
-const MODEL = 'gemini-3.6-flash';
-const ALAMAT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+/**
+ * Rantai model, dicoba berurutan.
+ *
+ * KENAPA BERANTAI, dan ini pelajaran mahal yang didapat di perangkat: kuota
+ * gratis Gemini dihitung **per model per hari**, dan untuk `gemini-3.6-flash`
+ * angkanya hanya DUA PULUH permintaan sehari. Saat diuji, jatah itu habis
+ * dalam beberapa menit dan seluruh fitur tampak rusak — padahal kodenya tidak
+ * salah sedikit pun.
+ *
+ * Karena kuotanya per model, berpindah model berarti mendapat jatah baru.
+ * Yang ringan didahulukan: ia lebih cepat, lebih murah kuotanya, dan untuk
+ * membaca angka besar pada uang kertas, kemampuannya sudah lebih dari cukup.
+ */
+const MODEL: readonly string[] = [
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash-lite',
+  'gemini-2.5-flash',
+  'gemini-3.6-flash',
+];
 
-/** Lebar gambar yang dikirim. Lebih besar hanya menambah waktu tunggu. */
-const LEBAR_KIRIM = 768;
+const alamat = (model: string): string =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+/**
+ * Lebar gambar yang dikirim.
+ *
+ * Dinaikkan dari 768 setelah pengujian di perangkat: pada 768, model sering
+ * menjawab "tidak yakin" untuk foto yang sebenarnya jelas bagi mata manusia.
+ * Angka nominal pada uang kertas Rupiah dicetak kecil, dan ketika lebar
+ * gambarnya dipangkas, angka itulah yang pertama hilang.
+ */
+const LEBAR_KIRIM = 1024;
 
 /** Batas menunggu jaringan. Lebih lama dari ini, pengguna sudah menyerah. */
 const BATAS_MS = 12_000;
@@ -44,12 +71,17 @@ Aturan yang WAJIB dipatuhi:
 - "lembar" berisi satu angka untuk SETIAP lembar fisik yang terlihat.
   Dua lembar dua puluh ribu ditulis [20000, 20000].
 - "koin" bernilai true bila ada uang logam terlihat, berapa pun nilainya.
-- "yakin" bernilai FALSE bila gambarnya buram, terpotong, gelap, bukan uang,
-  atau kamu ragu pada salah satu pecahannya.
+- Hitung SETIAP lembar fisik, walaupun sebagian tertutup lembar lain, asalkan
+  pecahannya masih bisa kamu kenali dari warna, ukuran, atau angka yang terlihat.
+- "yakin" bernilai TRUE bila kamu bisa mengenali pecahan setiap lembar yang
+  kamu laporkan. Foto yang sedikit miring, kurang tajam, atau terpotong di
+  pinggir TIDAK membuatmu harus menjawab tidak yakin.
+- "yakin" bernilai FALSE hanya bila kamu benar-benar tidak bisa memastikan
+  pecahannya, atau yang terlihat memang bukan uang Rupiah.
 
-Menjawab "tidak yakin" SELALU lebih baik daripada menebak. Orang yang membaca
-jawabanmu tidak bisa memeriksanya, dan tebakan yang salah membuatnya kehilangan
-uang sungguhan.`;
+Menebak nominal yang salah membuat orang kehilangan uang sungguhan, jadi jangan
+menebak. Tetapi menjawab "tidak yakin" untuk uang yang sebenarnya terbaca juga
+merugikan — ia membuat orang mengulang-ulang tanpa pernah mendapat jawaban.`;
 
 /** Bentuk jawaban yang diminta. Dipaksakan lewat skema, bukan diharapkan. */
 const SKEMA = {
@@ -150,8 +182,9 @@ function abstain(): HasilPindai {
 /**
  * Mengambil satu bingkai dari elemen video menjadi JPEG base64.
  *
- * Dikecilkan lebih dulu. Mengirim bingkai penuh 1280 piksel hanya menambah
- * waktu tunggu dan kuota, sementara uang kertas tetap terbaca jelas pada 768.
+ * Dikecilkan seperlunya saja. Memangkas terlalu jauh menghemat waktu kirim
+ * tetapi menghapus justru bagian yang paling menentukan: angka nominal pada
+ * uang kertas Rupiah dicetak kecil, dan itulah yang pertama hilang.
  */
 export function ambilBingkai(video: HTMLVideoElement): string | null {
   const lebarAsli = video.videoWidth;
@@ -186,11 +219,49 @@ export class GalatDaring extends Error {}
 export async function bacaUangDaring(jpegBase64: string): Promise<HasilPindai> {
   if (KUNCI_GEMINI.length === 0) throw new GalatDaring('KUNCI_KOSONG');
 
+  let galatTerakhir: GalatDaring = new GalatDaring('JARINGAN_GAGAL');
+
+  for (const model of MODEL) {
+    try {
+      const teks = await tanyaSatuModel(model, jpegBase64);
+      console.log(`[DARING] dijawab oleh ${model}`);
+      return uraiJawaban(teks);
+    } catch (galat) {
+      galatTerakhir =
+        galat instanceof GalatDaring ? galat : new GalatDaring('JARINGAN_GAGAL');
+
+      // Kuota model ini habis untuk hari ini. Model berikutnya punya jatahnya
+      // sendiri, jadi pindah SEGERA — mencoba ulang model yang sama hanya
+      // membuang waktu pengguna yang sedang menunggu jawaban.
+      if (galatTerakhir.message === 'HTTP_429') continue;
+
+      // Jaringan putus atau kunci bermasalah: berpindah model tidak akan
+      // menolong, dan setiap percobaan menambah waktu tunggu.
+      if (
+        galatTerakhir.message === 'JARINGAN_GAGAL' ||
+        galatTerakhir.message === 'TERLALU_LAMA' ||
+        galatTerakhir.message === 'HTTP_400' ||
+        galatTerakhir.message === 'HTTP_403'
+      ) {
+        throw galatTerakhir;
+      }
+      // Sisanya, termasuk 503 karena server penuh, layak dicoba ke model lain.
+    }
+  }
+
+  throw galatTerakhir;
+}
+
+/** Satu permintaan ke satu model. Melempar `GalatDaring` pada kegagalan apa pun. */
+async function tanyaSatuModel(
+  model: string,
+  jpegBase64: string,
+): Promise<string> {
   const batal = new AbortController();
   const pewaktu = setTimeout(() => batal.abort(), BATAS_MS);
 
   try {
-    const jawab = await fetch(`${ALAMAT}?key=${KUNCI_GEMINI}`, {
+    const jawab = await fetch(`${alamat(model)}?key=${KUNCI_GEMINI}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: batal.signal,
@@ -220,8 +291,7 @@ export async function bacaUangDaring(jpegBase64: string): Promise<HasilPindai> {
     };
     const teks = isi.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text;
     if (!teks) throw new GalatDaring('JAWABAN_KOSONG');
-
-    return uraiJawaban(teks);
+    return teks;
   } catch (galat) {
     if (galat instanceof GalatDaring) throw galat;
     throw new GalatDaring(
