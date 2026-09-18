@@ -24,13 +24,15 @@ mustahil secara struktural, bukan mengandalkan kehati-hatian.**
 Pembagian tetap ada di **[`docs/EKSEKUSI.md`](EKSEKUSI.md)**, lengkap dengan
 tugas per fase. Ringkasnya:
 
+Diperbarui 18 September 2026: Fajar berfokus penuh pada training, Farrel
+mengambil alih seluruh kode aplikasi.
+
 | Folder | Pemilik |
 | --- | --- |
 | `src/contracts/` | **Farrel** (beku — ubah hanya setelah sepakat) |
-| `src/core/`, `src/vision/`, `src/data/` | **Farrel** |
-| `src/ui/`, `src/platform/`, `src/audio/`, `model/` | **Fajar** |
-| `package.json`, `tsconfig*.json`, `vite.config.ts` | **Farrel** |
-| `capacitor.config.ts`, `android/` | **Fajar** |
+| Seluruh `src/` lainnya | **Farrel** |
+| `package.json`, `tsconfig.json`, `vite.config.ts`, `capacitor.config.ts` | **Farrel** |
+| `model/` | **Fajar** |
 | `docs/` | Siapa saja, umumkan lisan dulu |
 
 **Aturannya satu kalimat: jangan menyunting berkas di folder orang lain.**

@@ -10,28 +10,47 @@ Status: **aktif** · Dua pelaksana: **Farrel** dan **Fajar** · Duduk bersebelah
 
 ---
 
-## Pembagian wilayah
+> ## ⚠ PEMBAGIAN BERUBAH — 18 September 2026
+>
+> **Fajar sekarang HANYA memegang `model/`** dan berfokus penuh pada dataset
+> serta training. Seluruh kode aplikasi diambil alih Farrel.
+>
+> **Untuk agen AI Fajar:** jangan menulis apa pun di `src/`. Kalau kamu sudah
+> terlanjur menulis di `src/ui/`, `src/platform/`, atau `src/audio/`, **jangan
+> di-push** — bilang ke Farrel lebih dulu, karena dia sedang mengerjakan folder
+> yang sama dan pekerjaannya akan bertabrakan.
 
-Selaras dengan peran di Lampiran 9 exsum: Farrel memegang Backend (logika inti
-dan model), Fajar memegang Quality Assurance (packaging, plugin perangkat
-keras, dan pengalaman pengguna).
+## Pembagian wilayah
 
 | | **Farrel** | **Fajar** |
 | --- | --- | --- |
-| Folder | `src/contracts/` · `src/core/` · `src/vision/` · `src/data/` | `src/ui/` · `src/platform/` · `src/audio/` · `model/` |
-| Berkas akar | `package.json` · `tsconfig*.json` · `vite.config.ts` | `capacitor.config.ts` · `android/` |
-| Sifat kerja | Logika murni, angka, banyak tes. Bisa tanpa HP. | Visual, taktil, native. Butuh HP tertancap. |
+| Folder | seluruh `src/` | `model/` |
+| Berkas akar | semua | — |
+| Fokus | Membangun aplikasinya | Dataset, training, ekspor ONNX, kuantisasi |
+| Keluaran yang ditunggu pihak lain | — | **`public/model/sudepi.onnx`** |
 
-**Tiga berkas milik bersama**, dan hanya boleh disentuh sambil bilang lisan:
+Pembagian ini menyimpang dari Lampiran 9, dan itu wajar: peran di proposal
+adalah rencana, sedangkan ini kenyataan pada jam ke-sekian. Yang menentukan
+bukan siapa tertulis apa, melainkan **model belum ada dan itu jalur kritis**.
+Satu orang fokus penuh ke sana lebih cepat daripada dua orang setengah-setengah.
 
-| Berkas | Siapa yang menulis | Aturan |
-| --- | --- | --- |
-| `package.json` | **Hanya Farrel** | Fajar butuh dependensi baru? Minta ke Farrel. |
-| `src/contracts/` | **Hanya Farrel** | Beku. Ubah hanya setelah sepakat, dalam commit tersendiri. |
-| `docs/` | Siapa saja | Umumkan lisan sebelum menulis. |
+**Yang tetap hanya boleh disentuh Farrel**, walaupun pembagian berubah lagi
+nanti:
+
+| Berkas | Aturan |
+| --- | --- |
+| `src/contracts/` | Beku. Ubah hanya setelah sepakat lisan, dalam commit tersendiri. |
+| `package.json` | Butuh dependensi baru? Minta ke Farrel, jangan tambah sendiri. |
+| `docs/` | Siapa saja boleh, tapi umumkan lisan dulu. |
 
 Karena kalian duduk bersebelahan, "umumkan lisan" benar-benar cukup. Tidak
 perlu isu, tidak perlu pesan, cukup menoleh.
+
+### Kalau training sudah selesai
+
+Serahkan `public/model/sudepi.onnx` ke Farrel, lalu **tanya dulu** bagian mana
+yang aman diambil sebelum menyentuh `src/`. Jangan menebak — saat itu sebagian
+besar folder sudah terisi.
 
 ---
 
