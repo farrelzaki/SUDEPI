@@ -24,3 +24,9 @@ Thumbs.db
 
 # Klip audio hasil render TETAP di-commit (kecil, ~415 KB) supaya tim tidak
 # perlu menjalankan ulang scripts/render_audio.py dan mendapat suara berbeda.
+
+# Model TIRUAN hasil model/buat_model_uji.py — jangan pernah masuk repo.
+# Ia tidak melihat apa pun dan selalu menyebut Rp50.000. Kalau ikut ter-commit,
+# ada risiko nyata seseorang mendemokannya tanpa sadar.
+# Regenerasi kapan saja: python model/buat_model_uji.py
+public/model/MODEL_TIRUAN
