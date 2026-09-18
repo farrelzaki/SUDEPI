@@ -45,7 +45,7 @@ Yang diperiksa langsung di perangkat, bukan disimpulkan dari kode:
 - Siklus penuh Siaga → Pindai → Kalkulator → Kasir → Kembalian → Selesai → Siaga
 - **Seluruh siklus itu berjalan dengan jaringan HP dimatikan total**
 
-Cara ini mahal, tetapi ia menemukan sembilan kesalahan yang **tidak satu pun**
+Cara ini mahal, tetapi ia menemukan sebelas kesalahan yang **tidak satu pun**
 tertangkap oleh 210 tes otomatis. Bagian berikutnya menjelaskannya.
 
 ## Klaim terbesar proposal, akhirnya diuji
@@ -78,7 +78,7 @@ dari jaringan**, bukan akurasi deteksi. Kemandirian itu tidak berubah oleh
 pergantian model — berkas ONNX dibaca dari dalam APK, bukan diunduh — tetapi
 pengujian mode pesawat tetap akan diulang dengan model asli.
 
-## Sembilan kesalahan yang hanya ditemukan dengan menjalankan
+## Sebelas kesalahan yang hanya ditemukan dengan menjalankan
 
 Ini bagian yang paling ingin kami sampaikan, karena ia menjelaskan mengapa
 verifikasi di perangkat tidak bisa digantikan tes.
@@ -98,6 +98,33 @@ bisa dipahami sama sekali — ia hanya mengetuk, dan tidak terjadi apa-apa.
 | 7 | Tingkat suara terlalu rendah | Tenggelam pada volume HP yang wajar | Uji dengar |
 | 8 | Label mengulang nominal yang sudah diucapkan | Mendengar angka sama dua kali, dari dua suara | Uji dengar |
 | 9 | Layar Selesai justru memulai transaksi baru | Label menjanjikan kembali ke siaga, kamera malah menyala lagi | Menelusuri di perangkat |
+| 10 | Peringatan abstain diulang tiap bingkai | Kalimat memotong dirinya sendiri; **saluran suara tersumbat** | Uji dengan uang terlipat |
+| 11 | Kamera hidup sekali saja per pembukaan aplikasi | Transaksi kedua mengarahkan uang ke alat yang **sudah tidak melihat** | Uji dua transaksi berturut-turut |
+
+Nomor 10 dan 11 baru muncul setelah model asli terpasang, karena keduanya
+menuntut transaksi sungguhan dari awal sampai akhir — bukan satu layar yang
+diperiksa sendiri-sendiri.
+
+**Nomor 10** hanya kentara pada uang TERLIPAT, sebab di situlah keyakinan
+bertahan lama tepat di bawah ambang alih-alih melintasinya. Bingkai datang
+sekitar sekali per 0,85 detik sementara kalimat peringatannya lebih panjang
+dari itu, jadi tiap bingkai memotong ucapan sebelumnya di tengah kata. Bagi
+orang awas ini menjengkelkan; bagi pengguna kami melumpuhkan, karena suara
+adalah satu-satunya saluran keluaran yang mereka punya dan saluran itu jadi
+tersumbat sampai kalimatnya tidak pernah utuh.
+
+**Nomor 11** adalah kegagalan senyap yang paling mahal di seluruh daftar ini.
+Layar kalkulator berada di cabang render berbeda dari pratinjau, sehingga React
+membuat ulang elemen video setiap kali pengguna melewatinya — sementara
+pemindai masih memegang elemen yang lama. Kamera tetap menyala di tingkat
+sistem dan tidak ada satu pun galat; gambarnya hanya masuk ke elemen yang sudah
+tidak ada di halaman. Bagi pengguna yang tidak bisa melihat layar, kamera mati
+tampak sama persis dengan kamera yang belum menemukan uang.
+
+Yang juga layak dicatat: dugaan pertama kami tentang nomor 11 keliru. Kami
+menduga penolakan `play()`, memasang pencatatan untuk membuktikannya, dan
+pencatatan itulah yang menunjukkan dugaan itu salah sekaligus mengarahkan ke
+sebab sebenarnya.
 
 Nomor 9 ditemukan lewat audit kecil: kami memeriksa frasa suara mana yang
 dideklarasikan tetapi tidak pernah diucapkan. Dua di antaranya ternyata bukan
@@ -200,18 +227,21 @@ Ditulis apa adanya.
 | --- | --- |
 | Bobot model hasil pelatihan | **Sudah terpasang** dan berjalan di perangkat |
 | Akurasi sesungguhnya | **Belum diukur.** Butuh uang sungguhan di depan kamera |
-| Urutan kelas terhadap uang asli | **Belum diverifikasi.** Lihat catatan di bawah |
+| Urutan kelas terhadap uang asli | **Terverifikasi** dengan uang fisik, 18 September 2026 |
 | Uji mode pesawat dengan model asli | Belum diulang |
 | Uji transaksi dengan layar tertutup telapak tangan | Belum |
 | Kalibrasi ambang dengan uang lecek | Belum |
 | Perintah suara (STT) | **Tidak diimplementasikan.** Sengaja, sesuai ADR-0005 |
 
-**Urutan kelas adalah satu-satunya hal yang tersisa dan berbahaya.** Pemeriksaan
-bentuk memastikan keluaran model berukuran benar, tetapi tidak bisa tahu apakah
-indeks ke-5 memang berarti Rp50.000. Kalau urutannya tertukar, SUDEPI menyebut
-nominal yang salah **dengan penuh keyakinan** — satu-satunya mode kegagalan
-yang tidak tertangkap kebijakan abstain. Karena itu ia diperiksa dengan uang
-fisik, satu per satu ketujuh pecahan, bukan dengan skrip.
+**Urutan kelas adalah risiko terbesar yang pernah tersisa, dan ia sudah
+ditutup.** Pemeriksaan bentuk memastikan keluaran model berukuran benar, tetapi
+tidak bisa tahu apakah indeks ke-5 memang berarti Rp50.000. Kalau urutannya
+tertukar, SUDEPI menyebut nominal yang salah **dengan penuh keyakinan** —
+satu-satunya mode kegagalan yang tidak tertangkap kebijakan abstain.
+
+Karena itu ia tidak diperiksa dengan skrip melainkan dengan uang fisik di depan
+kamera, dan setiap pecahan disebut benar. Uang yang TERLIPAT ikut diuji, dan
+justru dari situlah kesalahan nomor 10 di bawah ditemukan.
 
 Pipeline sudah divalidasi memakai model tiruan, sehingga risiko integrasi
 tinggal kecil. Yang tidak bisa dijamin sebelum model asli ada adalah akurasi —
