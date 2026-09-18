@@ -49,6 +49,7 @@ Satu-satunya folder yang dipegang berdua, jadi batasnya ditulis per berkas.
 | `buat_model_uji.py` | **Farrel** | Model tiruan untuk menguji pipeline sebelum model asli ada. |
 | `uji_model.py` | **Farrel** | Menjalankan model atas foto berlabel: membuktikan urutan kelas benar dan memberi data untuk kalibrasi ambang. |
 | `augmentasi.py` | **Farrel** | Menghasilkan varian kusut, terlipat, dan redup dari foto bersih. Mitigasi risiko nomor 1 Lampiran 8. |
+| `buat_model_patokan.py` | **Farrel** | YOLOv8n berbobot acak untuk MENGUKUR latensi sungguhan di HP sebelum model asli ada. |
 | `README.md` | **Farrel** | Rancangan pipeline. |
 | **Melatih model** (`latih.ipynb`, `runs/`, `*.pt`) | **Fajar** | Pelaksanaan training dan seluruh hasilnya. |
 | **Dataset** (`dataset/`) | **Fajar** | Unduhan, kurasi, dan pemotretan kelas yang kurang. |
