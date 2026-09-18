@@ -201,6 +201,10 @@ describe('BATAL sah dari fase mana pun kecuali SIAGA', () => {
     expect(reduksi(s, { jenis: 'BATAL' }).state).toEqual(STATE_AWAL);
   });
 
+  it('BATAL di SIAGA tidak menyimpan transaksi kosong', () => {
+    expect(reduksi(STATE_AWAL, { jenis: 'BATAL' }).efek).toHaveLength(0);
+  });
+
   it('di SIAGA tidak melakukan apa-apa, bukan error', () => {
     const { state, efek } = reduksi(STATE_AWAL, { jenis: 'BATAL' });
     expect(state).toEqual(STATE_AWAL);

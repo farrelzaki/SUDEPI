@@ -26,7 +26,15 @@ function idBaru(awalan: string): string {
 }
 
 export interface Repositori {
+  /**
+   * Id disuntikkan dari luar, bukan dibuat di sini.
+   *
+   * Sesi pemindaian Fase 1 ditulis SEBELUM transaksinya selesai, dan ia harus
+   * menunjuk induk yang sama. Kalau id dibuat saat menyimpan, relasi antara
+   * transaksi dan pemindaiannya putus, dan riwayatnya jadi tidak bisa ditelusuri.
+   */
   simpanTransaksi(
+    idTransaksi: string,
     state: StateTransaksi,
     status: StatusTransaksi,
     selesaiPadaMs: number,
@@ -69,9 +77,8 @@ export function buatRepositori(db: DbSudepi): Repositori {
   }
 
   return {
-    async simpanTransaksi(state, status, selesaiPadaMs, idModel) {
+    async simpanTransaksi(idTransaksi, state, status, selesaiPadaMs, idModel) {
       return aman(async () => {
-        const idTransaksi = idBaru('trx');
         await db.sesi_transaksi.put({
           idTransaksi,
           mulaiPadaMs: state.mulaiPadaMs,

@@ -273,13 +273,17 @@ describe('urutan efek perangkat', () => {
     expect(efek.filter((e) => e.jenis === 'SIMPAN_TRANSAKSI')).toHaveLength(1);
   });
 
-  it('transaksi yang dibatalkan TIDAK disimpan', () => {
+  it('transaksi yang dibatalkan TETAP disimpan', () => {
+    // Lampiran 7 mencantumkan "dibatalkan" sebagai status yang sah, dan
+    // angkanya justru yang dibutuhkan tahap Check pada Lampiran 11. Seberapa
+    // sering pengguna menyerah di tengah jalan adalah ukuran kegunaan yang
+    // lebih jujur daripada seberapa sering ia berhasil.
     const { efek } = jalankanAlur(
       { jenis: 'MULAI', padaMs: 1000 },
       { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', [50_000]) },
       { jenis: 'KONFIRMASI' },
       { jenis: 'BATAL' },
     );
-    expect(efek.filter((e) => e.jenis === 'SIMPAN_TRANSAKSI')).toHaveLength(0);
+    expect(efek.filter((e) => e.jenis === 'SIMPAN_TRANSAKSI')).toHaveLength(1);
   });
 });

@@ -15,6 +15,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PemindaiKamera, Platform } from '@/contracts';
 import { buatPengucap } from '@/audio/pengucap';
 import { buatMockPlatform, pilihPlatform } from '@/platform/mock';
+import { DbSudepi, siapkanDb } from '@/data/db';
+import { buatRepositori, type Repositori } from '@/data/repositori';
 import { buatPemindai } from '@/vision/pemindai';
 import { buatMockPemindai } from '@/vision/mockPemindai';
 import { LayarKasir } from './LayarKasir';
@@ -66,10 +68,34 @@ export function Aplikasi() {
     };
   }, []);
 
+  // Basis data dibuka di latar belakang. Aplikasi harus sudah bisa dipakai
+  // sebelum ia siap — riwayat transaksi bukan syarat untuk menghitung
+  // kembalian, dan menunggu IndexedDB terbuka hanya menunda pengguna.
+  const [repositori, setRepositori] = useState<Repositori | null>(null);
+  useEffect(() => {
+    const db = new DbSudepi();
+    let dibatalkan = false;
+    void db
+      .open()
+      .then(() => siapkanDb(db))
+      .then(() => {
+        if (!dibatalkan) setRepositori(buatRepositori(db));
+      })
+      .catch(() => {
+        // IndexedDB bisa saja diblokir, misalnya di mode penyamaran. Aplikasi
+        // tetap berjalan penuh, hanya tanpa riwayat.
+      });
+    return () => {
+      dibatalkan = true;
+      db.close();
+    };
+  }, []);
+
   const { state, hasilPindai, kirim, mulai } = useTransaksi({
     pemindai,
     pengucap,
     platform,
+    repositori,
   });
 
   const [nilaiKolom, setNilaiKolom] = useState(0);

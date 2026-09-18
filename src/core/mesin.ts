@@ -35,9 +35,17 @@ function diam(state: StateTransaksi): HasilReduksi {
   return { state, efek: [] };
 }
 
-/** Kembali ke Mode Siaga dan buang seluruh data transaksi. */
+/**
+ * Kembali ke Mode Siaga dan buang seluruh data transaksi.
+ *
+ * Transaksi yang dibatalkan TETAP disimpan. Lampiran 7 mencantumkan
+ * "dibatalkan lewat Escape-Hatch" sebagai status yang sah, dan angkanya justru
+ * yang dibutuhkan tahap Check pada Lampiran 11: seberapa sering pengguna
+ * menyerah di tengah jalan adalah ukuran kegunaan yang lebih jujur daripada
+ * seberapa sering ia berhasil.
+ */
 function batalkan(alasanUcap: boolean): HasilReduksi {
-  const efek: Efek[] = [{ jenis: 'HENTIKAN_PINDAI' }];
+  const efek: Efek[] = [{ jenis: 'HENTIKAN_PINDAI' }, { jenis: 'SIMPAN_TRANSAKSI' }];
   if (alasanUcap) {
     efek.push(
       { jenis: 'UCAP', ucapan: frasa('transaksi_dibatalkan') },

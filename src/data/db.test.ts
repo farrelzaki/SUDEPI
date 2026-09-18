@@ -48,8 +48,8 @@ describe('skema', () => {
   it('menyimpan naskah suara siap ucap, bukan angka mentah', async () => {
     // Supaya saat menelusuri riwayat kita melihat apa yang benar-benar
     // didengar pengguna.
-    const lima puluh = await db.denominasi.get(5);
-    expect(lima puluh?.naskahSuara).toBe('lima puluh ribu rupiah');
+    const limaPuluh = await db.denominasi.get(5);
+    expect(limaPuluh?.naskahSuara).toBe('lima puluh ribu rupiah');
   });
 
   it('bisa disiapkan berkali-kali tanpa menggandakan isi', async () => {
@@ -103,14 +103,15 @@ describe('repositori', () => {
   it('menyimpan transaksi beserta durasinya', async () => {
     const repo = buatRepositori(db);
     const id = await repo.simpanTransaksi(
+      'trx_uji',
       { ...STATE_AWAL, mulaiPadaMs: 1000, totalBelanja: 35_000, kembalianWajib: 15_000 },
       'selesai',
       13_500,
       'model_v1',
     );
 
-    expect(id).not.toBeNull();
-    const t = await db.sesi_transaksi.get(id ?? '');
+    expect(id).toBe('trx_uji');
+    const t = await db.sesi_transaksi.get('trx_uji');
     expect(t?.durasiMs).toBe(12_500);
     expect(t?.status).toBe('selesai');
     expect(t?.idModel).toBe('model_v1');
@@ -183,9 +184,9 @@ describe('repositori', () => {
     const repo = buatRepositori(db);
     const kini = new Date(2026, 8, 18, 10, 0).getTime();
 
-    await repo.simpanTransaksi({ ...STATE_AWAL, mulaiPadaMs: kini }, 'selesai', kini + 10_000, null);
-    await repo.simpanTransaksi({ ...STATE_AWAL, mulaiPadaMs: kini + 1 }, 'selesai', kini + 14_000, null);
-    await repo.simpanTransaksi({ ...STATE_AWAL, mulaiPadaMs: kini + 2 }, 'abstain', kini + 20_000, null);
+    await repo.simpanTransaksi('t1', { ...STATE_AWAL, mulaiPadaMs: kini }, 'selesai', kini + 10_000, null);
+    await repo.simpanTransaksi('t2', { ...STATE_AWAL, mulaiPadaMs: kini + 1 }, 'selesai', kini + 14_000, null);
+    await repo.simpanTransaksi('t3', { ...STATE_AWAL, mulaiPadaMs: kini + 2 }, 'abstain', kini + 20_000, null);
 
     await repo.perbaruiAgregat(kini);
 
@@ -207,7 +208,7 @@ describe('repositori', () => {
       repo.catatKejadian('abstain', 'apa pun', 1000),
     ).resolves.toBeUndefined();
     await expect(
-      repo.simpanTransaksi(STATE_AWAL, 'selesai', 1000, null),
+      repo.simpanTransaksi('t_gagal', STATE_AWAL, 'selesai', 1000, null),
     ).resolves.toBeNull();
   });
 });

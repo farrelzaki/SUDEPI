@@ -22,11 +22,19 @@ import {
   type StateTransaksi,
 } from '@/contracts';
 import { reduksi } from '@/core/mesin';
+import { buatPenyangga } from '@/data/penyangga';
+import type { Repositori } from '@/data/repositori';
 
 export interface OpsiTransaksi {
   readonly pemindai: PemindaiKamera;
   readonly pengucap: Pengucap;
   readonly platform: Platform;
+  /**
+   * Opsional. Tanpa ini transaksi tetap berjalan normal, hanya tidak
+   * meninggalkan riwayat — dan itu memang urutan prioritasnya: menghitung
+   * kembalian jauh lebih penting daripada mencatatnya.
+   */
+  readonly repositori?: Repositori | null;
 }
 
 export interface KendaliTransaksi {
@@ -41,9 +49,21 @@ export function useTransaksi({
   pemindai,
   pengucap,
   platform,
+  repositori = null,
 }: OpsiTransaksi): KendaliTransaksi {
   const [state, setState] = useState<StateTransaksi>(STATE_AWAL);
   const [hasilPindai, setHasilPindai] = useState<HasilPindai | null>(null);
+
+  // Riwayat dikumpulkan di memori selama memindai, lalu ditulis SEKALI saat
+  // fase berakhir. Menulis tiap bingkai berarti ratusan transaksi tulis per
+  // menit di utas yang sama dengan UI, dan pratinjau kamera akan tersendat
+  // tanpa satu pun petunjuk penyebabnya. Lihat data/penyangga.ts.
+  const penyangga = useRef(buatPenyangga());
+  const idTransaksi = useRef<string | null>(null);
+  const fasePindai = useRef<1 | 4 | null>(null);
+  const mulaiPindaiMs = useRef(0);
+  const stateRef = useRef<StateTransaksi>(STATE_AWAL);
+  stateRef.current = state;
 
   // Efek dijalankan lewat ref, bukan lewat dependensi useCallback. Kalau
   // `kirim` berubah identitasnya tiap render, langganan pemindai ikut
@@ -66,21 +86,55 @@ export function useTransaksi({
           break;
 
         case 'MULAI_PINDAI':
+          penyangga.current.kosongkan();
+          fasePindai.current = e.fase;
+          mulaiPindaiMs.current = Date.now();
+          // Id dibuat di awal transaksi, bukan saat menyimpan, supaya sesi
+          // pemindaian Fase 1 dan Fase 4 bisa menunjuk induk yang sama.
+          if (e.fase === 1) idTransaksi.current = `trx_${Date.now().toString(36)}`;
           void pemindai.mulai(e.fase);
           break;
 
-        case 'HENTIKAN_PINDAI':
+        case 'HENTIKAN_PINDAI': {
+          const fase = fasePindai.current;
+          const id = idTransaksi.current;
+          if (repositori && fase !== null && id !== null) {
+            void repositori.simpanPemindaian(
+              id,
+              fase,
+              mulaiPindaiMs.current,
+              Date.now(),
+              penyangga.current.ringkas(),
+            );
+          }
+          fasePindai.current = null;
           pemindai.berhenti();
           // Ucapan yang sedang berjalan ikut dihentikan. Membiarkannya
           // menyelesaikan kalimat tentang fase yang sudah ditinggalkan hanya
           // membingungkan.
           pengucap.hentikan();
           break;
+        }
 
-        case 'SIMPAN_TRANSAKSI':
-          // Persistensi Dexie menyusul di src/data/. Sengaja dibiarkan kosong
-          // daripada dipalsukan — transaksi tetap berjalan tanpa riwayat.
+        case 'SIMPAN_TRANSAKSI': {
+          const id = idTransaksi.current;
+          if (!repositori || id === null) break;
+          const s = stateRef.current;
+          // Status diturunkan dari state, bukan dikirim reducer: fase SELESAI
+          // berarti berhasil, selain itu berarti pengguna keluar di tengah.
+          const status =
+            s.fase === 'SELESAI'
+              ? 'selesai'
+              : s.alasanAbstain !== null
+                ? 'abstain'
+                : 'dibatalkan';
+          const kini = Date.now();
+          void repositori
+            .simpanTransaksi(id, s, status, kini, null)
+            .then(() => repositori.perbaruiAgregat(kini));
+          idTransaksi.current = null;
           break;
+        }
       }
     }
   };
@@ -104,6 +158,7 @@ export function useTransaksi({
   useEffect(() => {
     const lepas = pemindai.langgan((hasil) => {
       setHasilPindai(hasil);
+      penyangga.current.tambah(hasil);
       kirim({ jenis: 'HASIL_PINDAI', muatan: hasil });
     });
     return () => {
