@@ -47,6 +47,7 @@ Satu-satunya folder yang dipegang berdua, jadi batasnya ditulis per berkas.
 | `ekspor.py` | **Farrel** | Ekspor ONNX + kuantisasi + gerbang mutu mAP. Parameternya terikat ke ADR-0001 dan ADR-0002. |
 | `periksa_onnx.py` | **Farrel** | Memastikan bentuk keluaran model cocok dengan yang dibaca `src/vision/decode.ts`. |
 | `buat_model_uji.py` | **Farrel** | Model tiruan untuk menguji pipeline sebelum model asli ada. |
+| `uji_model.py` | **Farrel** | Menjalankan model atas foto berlabel: membuktikan urutan kelas benar dan memberi data untuk kalibrasi ambang. |
 | `README.md` | **Farrel** | Rancangan pipeline. |
 | **Melatih model** (`latih.ipynb`, `runs/`, `*.pt`) | **Fajar** | Pelaksanaan training dan seluruh hasilnya. |
 | **Dataset** (`dataset/`) | **Fajar** | Unduhan, kurasi, dan pemotretan kelas yang kurang. |
