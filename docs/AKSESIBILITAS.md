@@ -93,6 +93,27 @@ kalau saya ketuk dua kali.**
 Aturannya: kalau label tidak memberi tahu pengguna apa yang bisa ia lakukan
 selanjutnya, label itu belum selesai.
 
+**Jangan tulis kata "ketuk" di dalam label.** TalkBack sudah menambahkan
+sendiri "Tombol, ketuk dua kali untuk mengaktifkan" setelah membacakan
+deskripsi kita. Kalau kita ikut menulis "ketuk untuk lanjut", pengguna
+mendengar dua instruksi yang saling bertentangan — "ketuk" versus "ketuk dua
+kali" — dan yang lebih membingungkan, instruksi kita yang salah.
+
+Tulis **akibatnya**, bukan perintahnya:
+
+```html
+<!-- Buruk: bertabrakan dengan petunjuk TalkBack -->
+<button aria-label="Terdeteksi lima puluh ribu rupiah.
+                    Ketuk untuk lanjut ke kalkulator.">
+
+<!-- Baik: TalkBack yang menyediakan cara mengaktifkannya -->
+<button aria-label="Terdeteksi lima puluh ribu rupiah.
+                    Lanjut ke kalkulator.">
+```
+
+Terverifikasi langsung di Galaxy M32 dengan TalkBack menyala. Dijaga oleh tes
+di `src/ui/label.test.ts`.
+
 ## Dua sumber suara, dan cara menghindari tabrakan
 
 SUDEPI bersuara sendiri lewat audio sprite (ADR-0003). TalkBack juga bersuara.

@@ -17,13 +17,13 @@ export function labelUtama(
 ): string {
   switch (fase) {
     case 'SIAGA':
-      return 'SUDEPI siap. Ketuk untuk mulai memindai uang.';
+      return 'SUDEPI siap. Mulai memindai uang.';
 
     case 'PINDAI_BAYAR':
       if (hasil?.status === 'stabil') {
         return `Terdeteksi ${rupiahKeTeks(hasil.totalKertas)}${
           hasil.adaKoin ? ', ditambah koin' : ''
-        }. Ketuk untuk lanjut ke kalkulator.`;
+        }. Lanjut ke kalkulator.`;
       }
       if (hasil?.status === 'abstain') {
         return 'Belum yakin. Dekatkan uang atau cari tempat lebih terang, lalu tunggu.';
@@ -31,10 +31,10 @@ export function labelUtama(
       return 'Mencari uang. Arahkan kamera ke uang, jarak sekitar dua puluh sentimeter.';
 
     case 'KALKULATOR':
-      return 'Ketuk untuk mengunci nominal dan lanjut.';
+      return 'Kunci nominal dan lanjut.';
 
     case 'LAYAR_KASIR':
-      return 'Layar menghadap pedagang. Ketuk untuk lanjut memeriksa kembalian.';
+      return 'Layar menghadap pedagang. Lanjut memeriksa kembalian.';
 
     case 'PINDAI_KEMBALIAN':
       if (hasil?.status === 'stabil') {
@@ -51,7 +51,7 @@ export function labelUtama(
           state.nominalKoin > 0
             ? `, ditambah koin ${rupiahKeTeks(state.nominalKoin)}`
             : '';
-        return `Kembalian ${rupiahKeTeks(hasil.totalKertas)}${koin}. Ketuk untuk menyelesaikan transaksi.`;
+        return `Kembalian ${rupiahKeTeks(hasil.totalKertas)}${koin}. Selesaikan transaksi.`;
       }
       if (hasil?.status === 'abstain') {
         return 'Belum yakin dengan kembaliannya. Coba pindai lagi.';
@@ -59,6 +59,6 @@ export function labelUtama(
       return 'Arahkan kamera ke uang kembalian.';
 
     case 'SELESAI':
-      return 'Transaksi selesai. Ketuk untuk kembali ke mode siaga.';
+      return 'Transaksi selesai. Kembali ke mode siaga.';
   }
 }

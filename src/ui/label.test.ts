@@ -62,10 +62,10 @@ describe('label selalu memberi tahu apa yang bisa DILAKUKAN', () => {
 describe('label TIDAK menjanjikan yang akan ditolak', () => {
   it('mengundang ketukan hanya kalau hasilnya stabil', () => {
     const stabil = labelUtama('PINDAI_BAYAR', pindai('stabil', 50_000), state());
-    expect(stabil).toMatch(/ketuk untuk lanjut/i);
+    expect(stabil).toMatch(/lanjut ke kalkulator/i);
 
     const belum = labelUtama('PINDAI_BAYAR', pindai('belum-stabil'), state());
-    expect(belum).not.toMatch(/ketuk untuk lanjut/i);
+    expect(belum).not.toMatch(/lanjut ke kalkulator/i);
   });
 
   it('Fase 4: TIDAK mengundang ketukan kalau koin gagal diturunkan', () => {
@@ -77,7 +77,7 @@ describe('label TIDAK menjanjikan yang akan ditolak', () => {
       pindai('stabil', 5000),
       state({ kembalianWajib: 24_000, nominalKoin: null }),
     );
-    expect(teks).not.toMatch(/ketuk untuk menyelesaikan/i);
+    expect(teks).not.toMatch(/selesaikan transaksi/i);
     expect(teks).toMatch(/belum cocok/i);
     expect(teks).toMatch(/pindai lagi/i);
   });
@@ -88,7 +88,7 @@ describe('label TIDAK menjanjikan yang akan ditolak', () => {
       pindai('stabil', 5000),
       state({ kembalianWajib: 5000, nominalKoin: 0 }),
     );
-    expect(teks).toMatch(/ketuk untuk menyelesaikan/i);
+    expect(teks).toMatch(/selesaikan transaksi/i);
   });
 
   it('Fase 4: menyebutkan nilai koin kalau ada', () => {
@@ -107,6 +107,25 @@ describe('label TIDAK menjanjikan yang akan ditolak', () => {
       state({ kembalianWajib: 15_000, nominalKoin: 0 }),
     );
     expect(teks).not.toMatch(/koin/i);
+  });
+});
+
+describe('label tidak bertabrakan dengan petunjuk TalkBack', () => {
+  it('TIDAK memuat kata "ketuk"', () => {
+    // TalkBack sudah menambahkan "Tombol, ketuk dua kali untuk mengaktifkan".
+    // Menulis "ketuk untuk lanjut" membuat pengguna mendengar dua instruksi
+    // yang bertentangan. Terverifikasi di Galaxy M32.
+    const semua = [
+      labelUtama('SIAGA', null, state()),
+      labelUtama('PINDAI_BAYAR', pindai('stabil', 50_000), state()),
+      labelUtama('KALKULATOR', null, state()),
+      labelUtama('LAYAR_KASIR', null, state()),
+      labelUtama('PINDAI_KEMBALIAN', pindai('stabil', 5000), state({ nominalKoin: 0 })),
+      labelUtama('SELESAI', null, state()),
+    ];
+    for (const teks of semua) {
+      expect(teks.toLowerCase()).not.toContain('ketuk');
+    }
   });
 });
 
