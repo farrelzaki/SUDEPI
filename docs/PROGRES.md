@@ -72,11 +72,20 @@ jaringan di aplikasi ini, sehingga secara struktural tidak ada tempat untuk
 pergi. Konsekuensinya juga menjawab risiko nomor 7 Lampiran 8 — riwayat
 transaksi tidak mungkin bocor ke pihak ketiga, karena tidak ada pihak ketiga.
 
-Catatan kejujuran: pengujian luring ini dijalankan saat bobot asli belum
-tersedia, sehingga memakai model tiruan. Yang dibuktikan adalah **kemandirian
-dari jaringan**, bukan akurasi deteksi. Kemandirian itu tidak berubah oleh
-pergantian model — berkas ONNX dibaca dari dalam APK, bukan diunduh — tetapi
-pengujian mode pesawat tetap akan diulang dengan model asli.
+**Diulang dengan model asli, 18 September 2026.** WiFi dan data seluler
+dimatikan lewat `adb` sampai `ping` menjawab `Network is unreachable`, lalu
+transaksi dijalankan di perangkat. Transaksi penuh sampai "Transaksi selesai"
+berhasil.
+
+Yang dapat kami tunjukkan dari logcat secara langsung: pemuatan model,
+inferensi, deteksi nominal, dan seluruh keluaran suara berjalan tanpa jaringan,
+**tanpa satu pun percobaan koneksi dari proses aplikasi**. Bagian sisa alur
+disaksikan langsung oleh penguji, bukan dibaca dari log — kami menuliskannya
+apa adanya alih-alih mengklaim lebih.
+
+Catatan sebelumnya tetap berlaku: pengujian luring pertama memakai model
+tiruan karena bobot asli belum tersedia, dan yang dibuktikannya adalah
+kemandirian dari jaringan, bukan akurasi deteksi.
 
 ## Sebelas kesalahan yang hanya ditemukan dengan menjalankan
 
