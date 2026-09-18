@@ -219,6 +219,7 @@ terasa ada yang salah, bilang, jangan perbaiki sendiri.
 | `periksa_onnx.py` | Memastikan bentuk keluaran cocok dengan aplikasi |
 | `buat_model_uji.py` | Model tiruan untuk menguji pipeline sebelum modelmu ada |
 | `uji_model.py` | Menguji model atas foto berlabel + data untuk kalibrasi ambang |
+| `augmentasi.py` | Membuat varian kusut, terlipat, dan redup dari foto bersih |
 
 **Alur pemakaiannya:**
 
@@ -229,14 +230,21 @@ python model/petakan_dataset.py dataset/
 # 2. Kalau laporannya benar, baru terapkan. Label lama dicadangkan otomatis.
 python model/petakan_dataset.py dataset/ --terapkan
 
-# 3. WAJIB, sebelum menekan train.
+# 3. Perbanyak ragam kondisi uang. Lihat dulu, baru terapkan.
+python model/augmentasi.py dataset/
+python model/augmentasi.py dataset/ --terapkan
+
+# 4. WAJIB, sebelum menekan train.
 python model/periksa_kelas.py
 
-# 4. Sesudah training selesai — satu perintah untuk semuanya.
+# 5. Sesudah training selesai — satu perintah untuk semuanya.
 python model/ekspor.py runs/detect/train/weights/best.pt
+
+# 6. Buktikan urutan kelasnya benar dengan foto berlabel.
+python model/uji_model.py public/model/sudepi.onnx foto_uji/
 ```
 
-Langkah 4 mengurus seluruh sisanya: memeriksa urutan kelas sekali lagi,
+Langkah 5 mengurus seluruh sisanya: memeriksa urutan kelas sekali lagi,
 mengekspor dengan `imgsz=320` dan `nms=False` (parameternya dikunci di dalam
 skrip supaya tidak bisa salah ketik), mengukur mAP FP32 dan INT8, memilih yang
 terbaik, lalu memeriksa bentuk keluarannya. Hasilnya langsung mendarat di
@@ -271,6 +279,26 @@ Artinya begitu bobot aslimu masuk ke `public/model/sudepi.onnx`, ia seharusnya
 langsung bekerja. Yang belum bisa diketahui sama sekali sebelum modelmu ada
 hanyalah **akurasi sesungguhnya** — dan itu memang hanya bisa diukur dengan
 uang sungguhan di depan kamera.
+
+### Kenapa perlu augmentasi sendiri
+
+Ultralytics sudah menangani rotasi, perspektif, dan kecerahan lewat parameter
+training. Yang TIDAK ditanganinya adalah **kekusutan dan lipatan** — dan justru
+itulah kondisi yang kita klaim kuat di proposal, sekaligus keadaan uang yang
+sebenarnya beredar di pasar.
+
+Dataset Rupiah publik hampir seluruhnya berisi uang mulus di latar bersih.
+Melatih di atasnya lalu mendemokan dengan uang pasar adalah cara paling mudah
+untuk gagal di depan juri.
+
+`augmentasi.py` menghasilkan empat varian per foto: `kusut`, `lipat`, `redup`,
+dan `kusutredup` — jadi dataset menjadi sekitar lima kali lipat. Label disalin
+apa adanya, karena seluruh distorsinya dirancang halus dan berpusat sehingga
+kotak batas asli tetap berlaku.
+
+Ini simulasi, bukan pengganti uang lecek sungguhan. Ia menambah ragam, bukan
+menciptakan kebenaran baru. Kalau sempat memotret uang kusut asli, itu selalu
+lebih berharga daripada berapa pun varian buatan.
 
 ### Membuktikan urutan kelas benar, tanpa menebak
 
