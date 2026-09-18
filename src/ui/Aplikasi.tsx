@@ -198,12 +198,24 @@ export function Aplikasi() {
 
     try {
       const rekaman = await pengenal.rekam(REKAM_UCAPAN_MS);
+      detak.tik('usai');
+
       const hasil = dengarNominal(rekaman.contoh, pustaka);
       console.log(
         `[SUARA] potongan=${hasil.jumlahPotongan}`,
         `kata=[${hasil.kata.join(' ')}]`,
         `nominal=${hasil.nominal}`,
       );
+      // Jejak kalibrasi: peringkat penuh tiap potongan, termasuk yang ditolak.
+      // Ambang hanya boleh ditetapkan dari angka seperti ini, tidak dari
+      // tebakan — pelajaran yang sudah mahal kami bayar pada ambang penglihatan.
+      for (const r of hasil.rincian) {
+        console.log(
+          `[KATA] ${r.diterima ?? 'DITOLAK'}`,
+          `juara=${r.juara}:${r.jarak.toFixed(1)}`,
+          `kedua=${r.kedua ?? '-'}:${r.jarakKedua?.toFixed(1) ?? '-'}`,
+        );
+      }
 
       const nilai =
         hasil.nominal !== null && hasil.nominal <= NOMINAL_MAKS
@@ -211,7 +223,11 @@ export function Aplikasi() {
           : undefined;
 
       if (nilai === undefined) {
-        detak.tik('tolak');
+        // Dua kegagalan yang menuntut tindakan berbeda dari pengguna, jadi
+        // dibedakan bunyinya: tidak ada suara sama sekali berarti ia harus
+        // bicara lebih keras atau lebih dekat, sedangkan ada suara yang tidak
+        // dimengerti berarti ia harus mengulang dengan jeda antar kata.
+        detak.tik(hasil.jumlahPotongan === 0 ? 'siap' : 'tolak');
         void platform.getar('gagal');
         return;
       }

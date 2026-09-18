@@ -7,16 +7,20 @@
  * menuntut apa pun dari perangkat — tetapi ia harus tahu seperti apa bunyi
  * angka DI MULUT ORANG INI.
  *
- * Jadi pertukarannya jelas: satu menit sekali seumur pemakaian, ditukar dengan
- * fitur yang bekerja di ponsel mana pun, tanpa unduhan, tanpa jaringan, dan
- * tanpa bergantung pada apa yang kebetulan terpasang.
+ * Pertukarannya jelas dan layak: satu setengah menit sekali seumur pemakaian,
+ * ditukar dengan fitur yang bekerja di ponsel mana pun, tanpa unduhan, tanpa
+ * jaringan, dan tanpa bergantung pada apa yang kebetulan terpasang.
  *
- * ALURNYA BERJALAN SENDIRI. Satu ketukan di awal, lalu tujuh belas kata
- * berurutan tanpa perlu menekan apa pun lagi di antaranya. Aba-abanya
- * disampaikan lewat daerah `aria-live` yang dibacakan TalkBack — klip suara
- * kami sendiri tidak bisa dipakai, sebab ia hanya mengenal nominal utuh dan
- * tidak punya cara menyebut kata lepas seperti "puluh" tanpa angka di
- * depannya, yang justru akan ikut ditirukan pengguna.
+ * DUA PUTARAN, BUKAN SATU. Literatur pengenalan kata terpisah konsisten
+ * menunjukkan lebih banyak contoh per kata memberi perbaikan nyata. Putaran
+ * kedua juga menangkap variasi alami — orang tidak pernah mengucapkan kata yang
+ * sama persis dua kali, dan justru variasi itulah yang harus dikenali nanti.
+ *
+ * ALURNYA BERJALAN SENDIRI. Satu ketukan di awal, lalu seluruh daftar berjalan
+ * tanpa perlu menekan apa pun lagi. Aba-abanya lewat daerah `aria-live` yang
+ * dibacakan TalkBack — klip suara kami sendiri tidak bisa dipakai, sebab ia
+ * hanya mengenal nominal utuh dan tidak punya cara menyebut kata lepas seperti
+ * "puluh" tanpa angka di depannya, yang justru akan ikut ditirukan pengguna.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -38,6 +42,15 @@ const REKAM_MS = 1600;
  */
 const JEDA_ABA_ABA_MS = 1400;
 
+/** Berapa kali seluruh kosakata dilalui. */
+const PUTARAN = 2;
+
+/** Daftar aba-aba: seluruh kosakata, diulang. */
+const URUTAN = Array.from({ length: PUTARAN }, () => KOSAKATA).flat();
+
+/** Batas percobaan ulang satu kata sebelum dilewati. */
+const ULANG_MAKS = 3;
+
 export interface LatihSuaraProps {
   readonly pengenal: PengenalSuara;
   readonly detak: Detak;
@@ -55,68 +68,95 @@ export function LatihSuara({
 }: LatihSuaraProps) {
   const [indeks, setIndeks] = useState(0);
   const [tahap, setTahap] = useState<Tahap>('siap');
+  const [berjalan, setBerjalan] = useState(false);
   const [gagalBeruntun, setGagalBeruntun] = useState(0);
-  const terkumpul = useRef<Contoh[]>([]);
-  const berjalan = useRef(false);
 
-  const sekarang = KOSAKATA[indeks];
+  const terkumpul = useRef<Contoh[]>([]);
+  /**
+   * Penanda untuk perulangan yang sedang berjalan.
+   *
+   * Dipisahkan dari `berjalan` yang berupa state: state dibaca saat render,
+   * ref dibaca di dalam perulangan asinkron. Versi pertama hanya memakai ref,
+   * dan akibatnya tombol tidak pernah berganti dari "Mulai latihan" menjadi
+   * "Hentikan" — mengubah ref tidak memicu render ulang.
+   */
+  const hidup = useRef(false);
+
+  const sekarang = URUTAN[indeks];
+  const putaran = Math.floor(indeks / KOSAKATA.length) + 1;
 
   useEffect(() => {
     return () => {
-      berjalan.current = false;
+      hidup.current = false;
     };
   }, []);
 
-  async function rekamSatu(ke: number): Promise<void> {
-    const kata = KOSAKATA[ke];
+  async function rekamSatu(ke: number, percobaan: number): Promise<void> {
+    const kata = URUTAN[ke];
     if (!kata) {
+      hidup.current = false;
+      setBerjalan(false);
       setTahap('selesai');
       onSelesai(terkumpul.current);
       return;
     }
 
-    // Aba-aba disampaikan lewat daerah `aria-live` di bawah, yang dibacakan
-    // TalkBack. Klip suara kami sendiri tidak bisa dipakai di sini: ia hanya
-    // mengenal nominal utuh, sehingga tidak ada cara menyebut kata lepas
-    // seperti "puluh" atau "belas" tanpa angka di depannya — dan pengguna
-    // akan menirukan angka itu juga.
     setTahap('menyebut');
     await new Promise((lanjut) => setTimeout(lanjut, JEDA_ABA_ABA_MS));
-    if (!berjalan.current) return;
+    if (!hidup.current) return;
 
     setTahap('merekam');
     detak.tik('dengar');
 
     try {
       const rekaman = await pengenal.rekam(REKAM_MS);
+      if (!hidup.current) return;
+
       const ciri = ciriSatuKata(rekaman.contoh);
+      detak.tik(ciri ? 'cari' : 'tolak');
 
       if (!ciri) {
-        // Tidak ada ucapan yang terdengar. Contoh latih berisi keheningan akan
-        // meracuni seluruh pengenalan sesudahnya, jadi kata ini diulang.
-        detak.tik('tolak');
+        // Tidak ada ucapan yang cukup panjang terdengar. Contoh latih yang
+        // buruk meracuni seluruh pengenalan sesudahnya tanpa terlihat, jadi
+        // kata ini diulang alih-alih disimpan apa adanya.
         setGagalBeruntun((n) => n + 1);
-        if (berjalan.current) void rekamSatu(ke);
+        if (percobaan + 1 < ULANG_MAKS) {
+          void rekamSatu(ke, percobaan + 1);
+        } else {
+          // Sudah dicoba beberapa kali. Dilewati, bukan menahan seluruh alur —
+          // kata ini masih punya contoh dari putaran satunya.
+          setIndeks(ke + 1);
+          void rekamSatu(ke + 1, 0);
+        }
         return;
       }
 
       terkumpul.current.push({ kata: kata.kata, bingkai: ciri });
       setGagalBeruntun(0);
       setIndeks(ke + 1);
-      if (berjalan.current) void rekamSatu(ke + 1);
+      void rekamSatu(ke + 1, 0);
     } catch {
       detak.tik('tolak');
+      hidup.current = false;
+      setBerjalan(false);
       setTahap('siap');
-      berjalan.current = false;
     }
   }
 
   function mulai(): void {
-    if (berjalan.current) return;
-    berjalan.current = true;
+    if (hidup.current) return;
+    hidup.current = true;
     terkumpul.current = [];
+    setBerjalan(true);
     setIndeks(0);
-    void rekamSatu(0);
+    setGagalBeruntun(0);
+    void rekamSatu(0, 0);
+  }
+
+  function hentikan(): void {
+    hidup.current = false;
+    setBerjalan(false);
+    onBatal();
   }
 
   const selesai = tahap === 'selesai';
@@ -128,30 +168,25 @@ export function LatihSuara({
       subjudul={
         selesai
           ? 'Selesai. SUDEPI sekarang mengenali cara kamu menyebut angka.'
-          : 'SUDEPI akan menyebutkan satu angka, lalu kamu tirukan. Sekitar satu menit, sekali saja.'
+          : 'Tirukan setiap kata yang muncul. Sekitar satu setengah menit, sekali saja.'
       }
-      onKembali={onBatal}
+      onKembali={hentikan}
       petunjuk={
         tahap === 'merekam'
           ? 'Sebutkan sekarang'
           : tahap === 'menyebut'
-            ? 'Dengarkan…'
-            : undefined
+            ? 'Bersiap…'
+            : berjalan
+              ? undefined
+              : 'Ucapkan satu kata saja, jelas, lalu tunggu kata berikutnya'
       }
       aksi={
         selesai ? (
           <Tombol label="Selesai melatih suara, kembali ke awal" onAktif={onBatal}>
             Selesai
           </Tombol>
-        ) : berjalan.current ? (
-          <Tombol
-            label="Hentikan pelatihan suara"
-            ragam="hantu"
-            onAktif={() => {
-              berjalan.current = false;
-              onBatal();
-            }}
-          >
+        ) : berjalan ? (
+          <Tombol label="Hentikan pelatihan suara" ragam="hantu" onAktif={hentikan}>
             Hentikan
           </Tombol>
         ) : (
@@ -165,9 +200,9 @@ export function LatihSuara({
       <div role="status" aria-live="assertive" className="sr-only">
         {selesai
           ? 'Pelatihan suara selesai'
-          : tahap === 'siap'
-            ? ''
-            : `Ucapkan: ${sekarang?.kata ?? ''}`}
+          : berjalan
+            ? `Ucapkan: ${sekarang?.kata ?? ''}`
+            : ''}
       </div>
 
       <div className="flex h-full flex-col items-center justify-center gap-6 text-center">
@@ -182,32 +217,33 @@ export function LatihSuara({
           }}
           aria-hidden="true"
         >
-          <span className="nominal text-5xl">
+          <span className="nominal text-4xl">
             {selesai ? '✓' : (sekarang?.kata ?? '')}
           </span>
         </div>
 
-        {!selesai && (
-          <p className="text-xl font-bold" aria-hidden="true">
-            Ucapkan: <span className="text-[var(--color-primer)]">{sekarang?.kata}</span>
-          </p>
-        )}
+        {!selesai && berjalan && (
+          <>
+            <p className="text-xl font-bold" aria-hidden="true">
+              Ucapkan:{' '}
+              <span className="text-[var(--color-primer)]">{sekarang?.kata}</span>
+            </p>
 
-        {!selesai && (
-          <div aria-hidden="true">
-            <div className="eyebrow text-[var(--color-tinta-samar)]">
-              Kata ke
+            <div aria-hidden="true">
+              <div className="eyebrow text-[var(--color-tinta-samar)]">
+                Putaran {putaran} dari {PUTARAN}
+              </div>
+              <div className="nominal mt-1 text-3xl">
+                {Math.min(indeks + 1, URUTAN.length)} / {URUTAN.length}
+              </div>
             </div>
-            <div className="nominal mt-1 text-3xl">
-              {Math.min(indeks + 1, KOSAKATA.length)} / {KOSAKATA.length}
-            </div>
-          </div>
+          </>
         )}
 
         {gagalBeruntun >= 2 && !selesai && (
           <p className="max-w-[32ch] text-[0.9375rem] leading-snug text-[var(--color-ingat-tinta)]">
-            Belum terdengar. Coba dekatkan mulut ke ponsel dan ucapkan sedikit
-            lebih keras.
+            Belum terdengar. Dekatkan ponsel ke mulut dan ucapkan sedikit lebih
+            keras.
           </p>
         )}
       </div>

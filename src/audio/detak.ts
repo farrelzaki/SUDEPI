@@ -33,7 +33,9 @@ export type JenisDetak =
   /** Permintaan tidak dimengerti. Nadanya TURUN. */
   | 'tolak'
   /** Mulai mendengarkan ucapan. Nadanya naik, pendek. */
-  | 'dengar';
+  | 'dengar'
+  /** Jendela mendengarkan sudah tutup. Satu nada datar. */
+  | 'usai';
 
 export interface Detak {
   /** Satu bunyi pendek. Diabaikan diam-diam kalau sedang disenyapkan. */
@@ -71,6 +73,9 @@ const NADA: Record<JenisDetak, readonly number[]> = {
   // "tidak" — tanpa satu kata pun, dan tanpa menyumbat saluran suara.
   tolak: [523, 349],
   dengar: [587, 784],
+  // Satu nada datar. Tanpa penanda ini pengguna hanya menebak kapan ia boleh
+  // berhenti bicara, dan sebagian ucapannya terpotong di ujung rekaman.
+  usai: [587],
 };
 
 export function buatDetak(): Detak {

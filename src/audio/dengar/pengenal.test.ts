@@ -14,7 +14,15 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { hitungMfcc, LONCAT_BINGKAI, PANJANG_BINGKAI, LAJU } from './mfcc';
+import {
+  DIMENSI_CIRI,
+  hitungMfcc,
+  JUMLAH_KOEFISIEN,
+  LAJU,
+  LONCAT_BINGKAI,
+  PANJANG_BINGKAI,
+  tambahDelta,
+} from './mfcc';
 import { pisahkanKata } from './segmen';
 import { jarakDtw } from './dtw';
 import {
@@ -120,6 +128,53 @@ describe('hitungMfcc', () => {
   });
 });
 
+/* ------------------------------------------------------------------ delta */
+
+describe('tambahDelta', () => {
+  function deret(nilai: readonly number[][]): Float32Array[] {
+    return nilai.map((baris) => {
+      const b = new Float32Array(JUMLAH_KOEFISIEN);
+      baris.forEach((x, i) => {
+        b[i] = x;
+      });
+      return b;
+    });
+  }
+
+  it('menghasilkan ciri berdimensi 39', () => {
+    const hasil = tambahDelta(deret([[1], [1], [1], [1], [1]]));
+    expect(hasil[0]).toHaveLength(DIMENSI_CIRI);
+  });
+
+  it('bingkai yang TETAP tidak menghasilkan gerakan', () => {
+    // Kalau ini gagal, delta memasukkan gerakan palsu ke ucapan yang diam —
+    // dan jarak antar kata akan didominasi derau, bukan ciri.
+    const hasil = tambahDelta(deret([[5], [5], [5], [5], [5]]));
+    expect(hasil[2]?.[JUMLAH_KOEFISIEN]).toBeCloseTo(0, 6);
+  });
+
+  it('bingkai yang MENAIK menghasilkan gerakan positif', () => {
+    const hasil = tambahDelta(deret([[1], [2], [3], [4], [5]]));
+    expect(hasil[2]?.[JUMLAH_KOEFISIEN] ?? 0).toBeGreaterThan(0);
+  });
+
+  it('bingkai yang MENURUN menghasilkan gerakan negatif', () => {
+    const hasil = tambahDelta(deret([[5], [4], [3], [2], [1]]));
+    expect(hasil[2]?.[JUMLAH_KOEFISIEN] ?? 0).toBeLessThan(0);
+  });
+
+  it('tiga belas koefisien pertama tidak diubah', () => {
+    const asal = deret([[1, 2], [3, 4], [5, 6]]);
+    const hasil = tambahDelta(asal);
+    expect(hasil[1]?.[0]).toBeCloseTo(3, 6);
+    expect(hasil[1]?.[1]).toBeCloseTo(4, 6);
+  });
+
+  it('deret kosong tidak menghasilkan apa-apa', () => {
+    expect(tambahDelta([])).toHaveLength(0);
+  });
+});
+
 /* ----------------------------------------------------------------- segmen */
 
 describe('pisahkanKata', () => {
@@ -219,6 +274,38 @@ describe('cocokkanKata', () => {
   it('tanpa contoh apa pun, tidak pernah menebak', () => {
     const potongan = ciri(NADA.lima ?? [], 0.3);
     expect(cocokkanKata(potongan, [])).toBeNull();
+  });
+});
+
+describe('contoh latih yang cacat', () => {
+  it('rekaman sunyi tidak boleh menjadi contoh', () => {
+    // Contoh latih yang berisi keheningan meracuni seluruh pengenalan
+    // sesudahnya tanpa pernah terlihat: ia menarik setiap ucapan lain ke arah
+    // yang salah, dan tidak ada gejalanya selain akurasi yang buruk.
+    expect(ciriSatuKata(sunyi(1.5))).toBeNull();
+  });
+
+  it('dentum sesaat tidak boleh menjadi contoh', () => {
+    expect(ciriSatuKata(sambung(sunyi(0.4), bunyi([300], 0.04), sunyi(0.4)))).toBeNull();
+  });
+
+  it('ucapan yang wajar diterima', () => {
+    expect(ciriSatuKata(ucapan(NADA.lima ?? []))).not.toBeNull();
+  });
+});
+
+describe('beberapa contoh per kata', () => {
+  it('memakai contoh TERDEKAT, bukan yang pertama', () => {
+    // Dua contoh untuk kata yang sama, satu jauh dan satu dekat. Kata itu
+    // harus dinilai dari yang terdekat — kalau tidak, menambah contoh justru
+    // memperburuk pengenalan, dan seluruh gagasan melatih dua kali runtuh.
+    const pustaka: Contoh[] = [
+      { kata: 'lima', bingkai: ciri(NADA.dua ?? [], 0.3) },
+      { kata: 'lima', bingkai: ciri(NADA.lima ?? [], 0.3) },
+      { kata: 'ribu', bingkai: ciri(NADA.ribu ?? [], 0.3) },
+    ];
+    const potongan = ciri(NADA.lima ?? [], 0.34);
+    expect(cocokkanKata(potongan, pustaka)?.kata).toBe('lima');
   });
 });
 

@@ -46,7 +46,21 @@ export const JUMLAH_KOEFISIEN = 13;
 const FREKUENSI_RENDAH = 80;
 const FREKUENSI_TINGGI = 7600;
 
-/** Satu bingkai ciri. Panjangnya selalu `JUMLAH_KOEFISIEN`. */
+/**
+ * Dimensi satu bingkai ciri yang sudah lengkap: 13 MFCC + 13 delta + 13 delta-delta.
+ *
+ * MFCC saja hanya melihat bentuk spektrum PADA SATU SAAT. Yang membedakan kata
+ * justru sering perubahannya sepanjang waktu — "puluh" dan "tujuh" punya vokal
+ * yang mirip tetapi bergerak berbeda menuju dan meninggalkan vokal itu.
+ *
+ * Literatur pengenalan kata terpisah menyebut penambahan delta sebagai
+ * peningkatan terbesar yang bisa didapat tanpa mengganti pendekatan, dan itu
+ * cocok dengan apa yang kami butuhkan: bukan mesin yang lebih pintar,
+ * melainkan ciri yang lebih berbicara.
+ */
+export const DIMENSI_CIRI = JUMLAH_KOEFISIEN * 3;
+
+/** Satu bingkai ciri. Panjangnya `JUMLAH_KOEFISIEN` sebelum delta, `DIMENSI_CIRI` sesudahnya. */
 export type Bingkai = Float32Array;
 
 /* ------------------------------------------------------------------- mel */
@@ -249,6 +263,61 @@ export function hitungMfcc(contoh: Float32Array): HasilMfcc {
  * bisa dibandingkan dengan yang direkam di tempat lain, walaupun orangnya sama
  * dan katanya sama.
  */
+/**
+ * Menghitung turunan pertama sebuah deret bingkai, dengan regresi dua tetangga.
+ *
+ * Memakai regresi, bukan selisih sederhana antar bingkai bersebelahan: selisih
+ * sederhana memperbesar derau: satu bingkai yang sedikit meleset langsung
+ * muncul sebagai lonjakan. Regresi atas dua tetangga di kiri dan kanan
+ * meratakannya tanpa menghilangkan arah gerakannya.
+ *
+ * Tepi deret memakai bingkai terdekat yang ada, bukan nol. Menaruh nol di tepi
+ * akan menyatakan "tidak ada gerakan" pada awal dan akhir kata — padahal di
+ * situlah konsonan pembuka dan penutup berada, yang justru paling membedakan.
+ */
+function turunan(deret: readonly Bingkai[], dimensi: number): Bingkai[] {
+  const n = deret.length;
+  const keluar: Bingkai[] = [];
+  const ambil = (i: number): Bingkai =>
+    deret[Math.min(n - 1, Math.max(0, i))] ?? new Float32Array(dimensi);
+
+  for (let t = 0; t < n; t += 1) {
+    const d = new Float32Array(dimensi);
+    for (let k = 0; k < dimensi; k += 1) {
+      // Rumus baku: (x[t+1] - x[t-1] + 2*(x[t+2] - x[t-2])) / 10
+      const satu = (ambil(t + 1)[k] ?? 0) - (ambil(t - 1)[k] ?? 0);
+      const dua = (ambil(t + 2)[k] ?? 0) - (ambil(t - 2)[k] ?? 0);
+      d[k] = (satu + 2 * dua) / 10;
+    }
+    keluar.push(d);
+  }
+  return keluar;
+}
+
+/**
+ * Menyambung MFCC dengan turunan pertama dan keduanya menjadi ciri utuh.
+ *
+ * Dipanggil SETELAH `kurangiRerata`, dan hanya atas satu potongan kata.
+ * Urutannya penting: turunan atas ciri yang belum dinormalkan akan ikut memuat
+ * gerakan warna mikrofon, bukan gerakan ucapan.
+ */
+export function tambahDelta(bingkai: readonly Bingkai[]): Bingkai[] {
+  if (bingkai.length === 0) return [];
+
+  const delta = turunan(bingkai, JUMLAH_KOEFISIEN);
+  const deltaDelta = turunan(delta, JUMLAH_KOEFISIEN);
+
+  return bingkai.map((b, t) => {
+    const utuh = new Float32Array(DIMENSI_CIRI);
+    for (let k = 0; k < JUMLAH_KOEFISIEN; k += 1) {
+      utuh[k] = b[k] ?? 0;
+      utuh[JUMLAH_KOEFISIEN + k] = delta[t]?.[k] ?? 0;
+      utuh[JUMLAH_KOEFISIEN * 2 + k] = deltaDelta[t]?.[k] ?? 0;
+    }
+    return utuh;
+  });
+}
+
 export function kurangiRerata(bingkai: readonly Bingkai[]): Bingkai[] {
   if (bingkai.length === 0) return [];
 

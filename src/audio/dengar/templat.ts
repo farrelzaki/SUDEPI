@@ -16,10 +16,18 @@
  * pernah dikueri.
  */
 
-import { JUMLAH_KOEFISIEN, type Bingkai } from './mfcc';
+import { DIMENSI_CIRI, type Bingkai } from './mfcc';
 import type { Contoh } from './pengenal';
 
-const KUNCI = 'sudepi.suara.contoh.v1';
+/**
+ * Versi dinaikkan setiap kali BENTUK ciri berubah.
+ *
+ * Contoh lama yang dihitung dengan ciri berdimensi lain tidak bisa
+ * dibandingkan dengan ucapan baru — hasilnya bukan sekadar kurang akurat,
+ * melainkan acak. Menaikkan versi membuat contoh lama diabaikan diam-diam, dan
+ * layar pelatihan akan menawarkan dirinya lagi.
+ */
+const KUNCI = 'sudepi.suara.contoh.v2';
 
 /** Bentuk tersimpan: angka biasa, supaya bisa jadi JSON. */
 interface ContohTersimpan {
@@ -47,8 +55,8 @@ function dariTersimpan(c: ContohTersimpan): Contoh {
   return {
     kata: c.kata,
     bingkai: c.bingkai.map((baris) => {
-      const b = new Float32Array(JUMLAH_KOEFISIEN);
-      for (let i = 0; i < JUMLAH_KOEFISIEN; i += 1) b[i] = baris[i] ?? 0;
+      const b = new Float32Array(DIMENSI_CIRI);
+      for (let i = 0; i < DIMENSI_CIRI; i += 1) b[i] = baris[i] ?? 0;
       return b as Bingkai;
     }),
   };

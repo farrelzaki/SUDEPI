@@ -26,12 +26,12 @@
  *   pengenalan akan selalu condong memilih kata terpendek.
  */
 
-import { JUMLAH_KOEFISIEN, type Bingkai } from './mfcc';
+import { DIMENSI_CIRI, type Bingkai } from './mfcc';
 
 /** Jarak Euclidean antara dua vektor ciri. */
 function jarakBingkai(a: Bingkai, b: Bingkai): number {
   let jumlah = 0;
-  for (let i = 0; i < JUMLAH_KOEFISIEN; i += 1) {
+  for (let i = 0; i < DIMENSI_CIRI; i += 1) {
     const d = (a[i] ?? 0) - (b[i] ?? 0);
     jumlah += d * d;
   }
