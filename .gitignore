@@ -30,3 +30,4 @@ Thumbs.db
 # ada risiko nyata seseorang mendemokannya tanpa sadar.
 # Regenerasi kapan saja: python model/buat_model_uji.py
 public/model/MODEL_TIRUAN
+patokan_*.onnx

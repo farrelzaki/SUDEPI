@@ -66,6 +66,13 @@ async function init(p: Extract<PesanKeWorker, { jenis: 'init' }>): Promise<void>
     graphOptimizationLevel: 'all',
   });
 
+  // Dipertahankan di produksi. Kalau `utas` bernilai 1 padahal HP punya banyak
+  // inti, itu penjelasan langsung kenapa inferensinya lambat — lihat ADR-0009.
+  console.log(
+    `[PERF] utas=${ort.env.wasm.numThreads} ` +
+      `isolated=${globalThis.crossOriginIsolated} ` +
+      `inti=${navigator.hardwareConcurrency}`,
+  );
   kirim({ jenis: 'siap' });
 }
 

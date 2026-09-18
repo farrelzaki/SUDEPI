@@ -1,8 +1,24 @@
 # ADR-0001: Pakai ukuran masukan model 320, bukan 640
 
-- **Status:** Diterima
+- **Status:** Diterima, dengan amandemen 2026-09-18
 - **Tanggal:** 2026-09-18
 - **Rujukan exsum:** Bab II (target latensi < 250 ms), Bab III bagian 3.3
+
+## Amandemen 2026-09-18
+
+Perkiraan angka di dokumen ini **terbukti keliru**, dan cukup jauh.
+
+Di bawah disebutkan bahwa `imgsz=320` menurunkan inferensi satu utas ke
+"kisaran 100 sampai 150 ms". Pengukuran sungguhan di Samsung Galaxy M32 dengan
+YOLOv8n berbobot acak memberi **~700 ms** — sekitar lima kali lipat.
+
+Keputusan memakai 320 **tidak berubah**: menurunkan ke 256 atau 192 sudah diuji
+dan tetap tidak menembus target, sementara resolusi yang hilang merugikan
+akurasi. Yang berubah adalah angka yang bisa kami janjikan.
+
+Perkiraan itu tidak pernah diverifikasi saat ditulis, dan seharusnya ditandai
+sebagai perkiraan alih-alih dipakai sebagai landasan. Rincian pengukuran dan
+pilihan penanganannya ada di ADR-0009.
 
 ## Konteks
 
