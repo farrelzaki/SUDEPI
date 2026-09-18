@@ -10,9 +10,11 @@
  * ditulis di blok `@theme` ini.
  */
 @theme {
-  /* Merchant Display, exsum Bab III Fase 3: tinggi angka minimal 72 pt.
-     Pakai clamp supaya ikut mengisi layar HP besar, bukan ukuran tetap. */
-  --text-kasir: clamp(6rem, 22vw, 12rem);
+  /* Merchant Display, exsum Bab III Fase 3: tinggi angka minimal 72 pt (6rem).
+     Dibatasi oleh LEBAR sekaligus TINGGI. Versi pertama hanya memakai 22vw,
+     dan di layar lebar angka ketiga terpotong keluar layar — pedagang hanya
+     melihat dua dari tiga angka, termasuk kehilangan kembaliannya. */
+  --text-kasir: clamp(6rem, min(16vw, 13vh), 9rem);
 
   /* Pasangan kontras tinggi untuk layar pedagang. Rasio 7:1, melampaui syarat
      WCAG AA yang 4,5:1 — layar akan dibaca di bawah sinar matahari pasar. */

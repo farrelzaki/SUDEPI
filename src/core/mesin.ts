@@ -101,22 +101,46 @@ export function reduksi(
       switch (peristiwa.jenis) {
         case 'HASIL_PINDAI': {
           const hasil = peristiwa.muatan;
-          const dasar: StateTransaksi = { ...state, hasilPindaiTerakhir: hasil };
 
           if (hasil.status === 'stabil') {
+            // Hasil stabil baru selalu menggantikan yang lama — pengguna
+            // mungkin menambah atau mengganti lembaran.
             return {
-              state: { ...dasar, alasanAbstain: null },
+              state: { ...state, hasilPindaiTerakhir: hasil, alasanAbstain: null },
               efek: ucapkanHasilPindai(hasil),
             };
           }
+
+          // KUNCI HASIL STABIL. Begitu sebuah nominal diucapkan, ia menjadi
+          // tawaran yang berlaku sampai pengguna menanggapinya. Hasil tidak
+          // stabil berikutnya TIDAK boleh menghapusnya.
+          //
+          // Tanpa penguncian ini muncul kegagalan yang sangat merugikan:
+          // pengguna mendengar "terdeteksi seratus ribu, ketuk untuk lanjut",
+          // lalu memindahkan jempolnya untuk mengetuk. Dalam satu detik itu
+          // tangannya bergeser sedikit, bingkai berikutnya jadi tidak stabil,
+          // dan ketukannya DITOLAK DIAM-DIAM. Bagi orang yang tidak bisa
+          // melihat layar, tidak ada cara mengetahui apa yang terjadi — ia
+          // hanya mengetuk dan tidak terjadi apa-apa.
+          //
+          // Ditemukan saat menelusuri antarmuka sungguhnya, bukan lewat tes.
+          if (state.hasilPindaiTerakhir?.status === 'stabil') {
+            return diam(state);
+          }
+
           if (hasil.status === 'abstain') {
             return {
-              state: { ...dasar, alasanAbstain: 'keyakinan di bawah ambang' },
+              state: {
+                ...state,
+                hasilPindaiTerakhir: hasil,
+                alasanAbstain: 'keyakinan di bawah ambang',
+              },
               efek: [...EFEK_ABSTAIN],
             };
           }
+
           // 'belum-stabil' dan 'tidak-ada-objek': simpan, jangan bicara.
-          return { state: dasar, efek: [] };
+          return { state: { ...state, hasilPindaiTerakhir: hasil }, efek: [] };
         }
 
         case 'KONFIRMASI': {
@@ -206,6 +230,12 @@ export function reduksi(
           const dasar: StateTransaksi = { ...state, hasilPindaiTerakhir: hasil };
 
           if (hasil.status !== 'stabil') {
+            // Penguncian yang sama seperti di PINDAI_BAYAR: kembalian yang
+            // sudah diucapkan tidak boleh hilang sebelum pengguna sempat
+            // menanggapinya. Lihat catatan panjang di fase itu.
+            if (state.hasilPindaiTerakhir?.status === 'stabil') {
+              return diam(state);
+            }
             return hasil.status === 'abstain'
               ? {
                   state: { ...dasar, alasanAbstain: 'keyakinan di bawah ambang' },

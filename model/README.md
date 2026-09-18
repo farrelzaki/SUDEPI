@@ -149,3 +149,82 @@ Urutan prioritas kalau harus memotong:
 
 Sampaikan sejujurnya ke Farrel sampai mana yang sempat dikerjakan, supaya
 ambang keyakinan dikalibrasi sesuai kenyataan — bukan sesuai harapan.
+
+---
+
+## Catatan dari Farrel — 18 September 2026
+
+Ditulis di sini, bukan lewat chat, supaya agen AI-mu ikut membacanya.
+
+### Aplikasinya sudah selesai dan menunggu modelmu
+
+Seluruh alur Fase 1 sampai 4 sudah jadi, teruji 174 tes, dan sudah ditelusuri
+langsung di browser sampai layar SELESAI. APK juga sudah terbentuk.
+
+**Satu-satunya yang menghambat sekarang adalah bobot model.** Begitu ada, aku
+tinggal menaruhnya dan menjalankan.
+
+### Yang harus kamu serahkan
+
+Satu berkas di lokasi ini, persis:
+
+```
+public/model/sudepi.onnx
+```
+
+Spesifikasinya tidak boleh meleset:
+
+| Hal | Nilai | Kalau meleset |
+| --- | --- | --- |
+| Jumlah kelas | **8** | Bentuk keluaran berubah, decode gagal total |
+| `imgsz` | **320** | Latensi melewati anggaran, atau kotak salah posisi |
+| NMS | **`nms=False`** | Operator tidak didukung WASM, model gagal dimuat |
+| Bentuk keluaran | `[1, 12, 2100]` | Kalau berbeda, berarti salah satu di atas meleset |
+
+### Bahaya terbesar: urutan kelas
+
+`data.yaml` **wajib** persis seperti ini, dan urutannya menentukan segalanya:
+
+```yaml
+names:
+  0: rp1000
+  1: rp2000
+  2: rp5000
+  3: rp10000
+  4: rp20000
+  5: rp50000
+  6: rp100000
+  7: koin
+```
+
+Kalau bergeser satu saja, SUDEPI akan menyebut nominal yang salah **dengan
+penuh keyakinan**. Tidak ada satu pun dari 174 tes yang bisa menangkapnya —
+hanya uang sungguhan di depan kamera. Ini kegagalan paling berbahaya yang bisa
+terjadi pada produk ini.
+
+Periksa ulang berkas itu sebelum menekan train, lalu periksa sekali lagi
+sesudahnya.
+
+### Cara cepat memastikan modelmu benar
+
+Setelah ekspor, jalankan ini:
+
+```python
+import onnxruntime as ort
+s = ort.InferenceSession('sudepi.onnx')
+print(s.get_inputs()[0].shape)    # harus [1, 3, 320, 320]
+print(s.get_outputs()[0].shape)   # harus [1, 12, 2100]
+```
+
+Kalau kanalnya bukan 12, jumlah kelasmu bukan 8. Kalau jangkarnya bukan 2100,
+`imgsz`-mu bukan 320.
+
+### Kalau waktumu mepet
+
+Urutan prioritas sudah ditulis di bagian "Kalau waktunya mepet" di atas. Yang
+paling penting: **model apa pun yang jalan mengalahkan model sempurna yang
+belum selesai.** Serahkan yang ada lebih dulu, perbaiki belakangan — aku bisa
+langsung memasangnya dan kita tahu lebih awal kalau ada yang tidak cocok.
+
+Sampaikan sejujurnya sampai mana yang sempat dikerjakan, supaya ambang
+keyakinan dikalibrasi sesuai kenyataan, bukan sesuai harapan.

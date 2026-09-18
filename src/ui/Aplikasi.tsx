@@ -12,15 +12,15 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Fase, HasilPindai, PemindaiKamera, Platform } from '@/contracts';
-import { rupiahKeTeks } from '@/audio/angka';
+import type { PemindaiKamera, Platform } from '@/contracts';
 import { buatPengucap } from '@/audio/pengucap';
 import { buatMockPlatform, pilihPlatform } from '@/platform/mock';
 import { buatPemindai } from '@/vision/pemindai';
 import { buatMockPemindai } from '@/vision/mockPemindai';
 import { LayarKasir } from './LayarKasir';
 import { Pratinjau } from './Pratinjau';
-import { RodaTaktil } from './RodaTaktil';
+import { labelUtama } from './label';
+import { PanelKalkulator } from './PanelKalkulator';
 import { TombolBatal, TombolUtama } from './Tombol';
 import { useTransaksi } from './useTransaksi';
 
@@ -31,43 +31,6 @@ import { useTransaksi } from './useTransaksi';
  * dan tidak baru ketahuan di jam ke-21.
  */
 const PAKAI_MOCK = !import.meta.env.PROD;
-
-/** Label tombol utama: keadaan sekarang DAN akibat mengaktifkannya. */
-function labelUtama(fase: Fase, hasil: HasilPindai | null): string {
-  switch (fase) {
-    case 'SIAGA':
-      return 'SUDEPI siap. Ketuk untuk mulai memindai uang.';
-
-    case 'PINDAI_BAYAR':
-      if (hasil?.status === 'stabil') {
-        return `Terdeteksi ${rupiahKeTeks(hasil.totalKertas)}${
-          hasil.adaKoin ? ', ditambah koin' : ''
-        }. Ketuk untuk lanjut ke kalkulator.`;
-      }
-      if (hasil?.status === 'abstain') {
-        return 'Belum yakin. Dekatkan uang atau cari tempat lebih terang, lalu tunggu.';
-      }
-      return 'Mencari uang. Arahkan kamera ke uang, jarak sekitar dua puluh sentimeter.';
-
-    case 'KALKULATOR':
-      return 'Ketuk untuk mengunci nominal dan lanjut.';
-
-    case 'LAYAR_KASIR':
-      return 'Layar menghadap pedagang. Ketuk untuk lanjut memeriksa kembalian.';
-
-    case 'PINDAI_KEMBALIAN':
-      if (hasil?.status === 'stabil') {
-        return `Kembalian ${rupiahKeTeks(hasil.totalKertas)}. Ketuk untuk menyelesaikan transaksi.`;
-      }
-      if (hasil?.status === 'abstain') {
-        return 'Belum yakin dengan kembaliannya. Coba pindai lagi.';
-      }
-      return 'Arahkan kamera ke uang kembalian.';
-
-    case 'SELESAI':
-      return 'Transaksi selesai. Ketuk untuk kembali ke mode siaga.';
-  }
-}
 
 export function Aplikasi() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -135,7 +98,14 @@ export function Aplikasi() {
 
   return (
     <main className="flex h-dvh w-full flex-col overflow-hidden bg-black">
-      <TombolUtama label={labelUtama(state.fase, hasilPindai)} onAktif={tindakanUtama}>
+      {state.fase === 'KALKULATOR' ? (
+        <PanelKalkulator
+          nilai={nilaiKolom}
+          onUbah={setNilaiKolom}
+          onLanjut={tindakanUtama}
+        />
+      ) : (
+      <TombolUtama label={labelUtama(state.fase, hasilPindai, state)} onAktif={tindakanUtama}>
         {/*
           Pratinjau SELALU dirender, hanya disembunyikan saat tidak memindai.
           Kalau elemen video ikut dilepas antar fase, `videoRef` kosong saat
@@ -150,16 +120,6 @@ export function Aplikasi() {
           <div className="z-10 text-center">
             <div className="text-6xl font-bold tracking-tight text-white">SUDEPI</div>
             <div className="mt-2 text-xl text-white/60">Ketuk untuk mulai</div>
-          </div>
-        )}
-
-        {state.fase === 'KALKULATOR' && (
-          <div className="z-10 w-full">
-            <RodaTaktil
-              nilai={nilaiKolom}
-              onUbah={setNilaiKolom}
-              namaKolom="Total belanja"
-            />
           </div>
         )}
 
@@ -182,6 +142,7 @@ export function Aplikasi() {
           </div>
         )}
       </TombolUtama>
+      )}
 
       {/*
         Mode Siaga tidak punya tombol batal — tidak ada yang bisa dibatalkan

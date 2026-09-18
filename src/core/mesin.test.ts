@@ -294,3 +294,65 @@ describe('kemurnian reducer', () => {
     );
   });
 });
+
+describe('penguncian hasil stabil', () => {
+  // Ditemukan saat menelusuri antarmuka sungguhan: pengguna mendengar nominal
+  // diucapkan, lalu memindahkan jempolnya untuk mengetuk. Dalam satu detik itu
+  // tangannya bergeser, bingkai jadi tidak stabil, dan ketukannya ditolak
+  // DIAM-DIAM. Orang yang tidak bisa melihat layar tidak punya cara mengetahui
+  // apa yang terjadi.
+
+  it('hasil tidak stabil TIDAK menghapus hasil stabil yang sudah diucapkan', () => {
+    const s = jalankan(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('tidak-ada-objek') },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
+    );
+    expect(s.hasilPindaiTerakhir?.status).toBe('stabil');
+    expect(s.hasilPindaiTerakhir?.totalKertas).toBe(50_000);
+  });
+
+  it('ketukan tetap diterima setelah bingkai sempat goyah', () => {
+    const s = jalankan(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
+      { jenis: 'KONFIRMASI' },
+    );
+    expect(s.fase).toBe<Fase>('KALKULATOR');
+    expect(s.uangDibayar).toBe(50_000);
+  });
+
+  it('hasil stabil BARU tetap menggantikan yang lama', () => {
+    // Pengguna menambah selembar lagi. Nominalnya harus ikut naik.
+    const s = jalankan(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 70_000) },
+    );
+    expect(s.hasilPindaiTerakhir?.totalKertas).toBe(70_000);
+  });
+
+  it('ULANGI_PINDAI membuka kuncinya', () => {
+    const s = jalankan(
+      { jenis: 'MULAI', padaMs: 1000 },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 50_000) },
+      { jenis: 'ULANGI_PINDAI' },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('abstain') },
+    );
+    expect(s.hasilPindaiTerakhir?.status).toBe('abstain');
+  });
+
+  it('berlaku juga di Fase 4', () => {
+    const awal = sampaiPindaiKembalian();
+    const s = [
+      { jenis: 'HASIL_PINDAI', muatan: pindai('stabil', 15_000) },
+      { jenis: 'HASIL_PINDAI', muatan: pindai('belum-stabil') },
+      { jenis: 'KONFIRMASI' },
+    ].reduce<StateTransaksi>((x, p) => reduksi(x, p as Peristiwa).state, awal);
+    expect(s.fase).toBe<Fase>('SELESAI');
+  });
+});
