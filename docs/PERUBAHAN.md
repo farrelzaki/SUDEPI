@@ -52,6 +52,7 @@ bisa dihapus bukan riwayat.
 | [0009](perubahan/0009-latensi-inferensi-sebenarnya.md) | Latensi inferensi sebenarnya ~700 ms, bukan di bawah 250 ms | **DITUNDA** | **Mengubah angka latensi di Bab II** |
 | [0010](perubahan/0010-kalibrasi-ambang-keyakinan-070.md) | Kalibrasi ambang keyakinan menjadi 0,70 untuk multi-uang dan koin | Diterima + amandemen | **Mengubah angka ambang 0,85 di Bab II, Bab III, Lampiran 7** |
 | [0011](perubahan/0011-antarmuka-berlangkah-ala-android.md) | Antarmuka berlangkah ala Android menggantikan pola dua tombol | Diterima | Mewujudkan rancangan Lampiran 5 dengan bentuk yang lebih dikenal pengguna |
+| [0012](perubahan/0012-voting-per-objek.md) | Kesepakatan temporal dihitung per objek, bukan per himpunan | Diterima | Mewujudkan deteksi multi-lembar Bab III Fase 1 |
 
 ## Ringkasan bagi juri
 

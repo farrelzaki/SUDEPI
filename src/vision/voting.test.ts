@@ -126,6 +126,51 @@ describe('votingTemporal', () => {
     expect(hasil.status).toBe('belum-stabil');
   });
 
+  it('lembar kedua yang BERKEDIP tetap ikut diumumkan', () => {
+    // Inilah kasus yang melahirkan ADR-0012. Lembar yang paling jelas terbaca
+    // muncul di setiap bingkai; lembar kedua berkedip melintasi ambang. Dengan
+    // voting per-himpunan, jawaban yang menang adalah {A} — yaitu jawaban yang
+    // MENGHILANGKAN uang milik pengguna.
+    const hasil = votingTemporal([
+      bingkai([4]),
+      bingkai([4, 2]),
+      bingkai([4]),
+      bingkai([4, 2]),
+      bingkai([4, 2]),
+    ]);
+    expect(hasil.status).toBe('stabil');
+    expect(hasil.deteksi.map((d) => d.kodeKelas).sort()).toEqual([2, 4]);
+  });
+
+  it('lembar yang hanya sesekali terlihat TIDAK ikut diumumkan', () => {
+    // Batas dari keputusan di atas. Dua dari lima bingkai bukan kesepakatan,
+    // dan menyebut uang yang tidak ada jauh lebih berbahaya daripada diam.
+    const hasil = votingTemporal([
+      bingkai([4]),
+      bingkai([4, 2]),
+      bingkai([4]),
+      bingkai([4]),
+      bingkai([4, 2]),
+    ]);
+    expect(hasil.status).toBe('stabil');
+    expect(hasil.deteksi.map((d) => d.kodeKelas)).toEqual([4]);
+  });
+
+  it('dua lembar bernominal sama tidak menyusut jadi satu', () => {
+    // Kalau kesepakatan hanya dihitung "ada atau tidak ada", dua lembar lima
+    // ribu akan dilaporkan sebagai satu lembar — dan pengguna kehilangan uang
+    // tanpa pernah diberi tahu.
+    const hasil = votingTemporal([
+      bingkai([2, 2]),
+      bingkai([2]),
+      bingkai([2, 2]),
+      bingkai([2, 2]),
+      bingkai([2, 2]),
+    ]);
+    expect(hasil.status).toBe('stabil');
+    expect(hasil.deteksi.map((d) => d.kodeKelas)).toEqual([2, 2]);
+  });
+
   it('tumpukan tiga lembar dikenali sebagai satu jawaban utuh', () => {
     const hasil = votingTemporal([
       bingkai([6, 4, 2]),

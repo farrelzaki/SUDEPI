@@ -63,7 +63,7 @@ video ──► createImageBitmap(resize 320)
                     ▼
         Deteksi[] kembali ke utas utama
                     ▼
-        voting temporal: 3 dari 5 bingkai
+        voting temporal: 3 dari 5 bingkai, PER PECAHAN (ADR-0012)
                     ▼
                 HasilPindai  ──► core/ reducer ──► Efek[] ──► audio, haptik, dll
 ```
