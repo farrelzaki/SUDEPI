@@ -75,12 +75,11 @@ Checkpoint dan approval:
 
 Catatan:
 
-- Dataset racikan terpadu 8 kelas (Multi-lembar + Koin 416x416, 5.586 citra, 7.381 bbox, 199.7 MB) siap di `model/dataset_racikan_sudepi.zip`.
 - Dataset hibrida terpadu (Delta 46k + Multi-lembar 4.6k + Koin 8x, total 59.148 citra, 64.624 bbox seimbang) selesai dibuat di `model/dataset_hibrida_sudepi.zip` (1049 MB).
-- Notebook pelatihan `model/latih.ipynb` telah disiapkan untuk A100-80GB Colab Pro (`batch=64`, `mosaic=0.3`, `copy_paste=0.15`, `close_mosaic=15`, ~4 menit).
-- Model racikan sebelumnya (`sudepiv1.onnx`, 3.1 MB, INT8) aktif dipasang di `public/model/sudepi.onnx`.
-- Lolos `model/periksa_onnx.py` ([1, 3, 320, 320] -> [1, 12, 2100]).
-- Kode UI dan detak audio Farrel (commit `316f736`, `55f17e4`, `bc82621`) ditarik aman: 222 tes lulus, tsc bersih, build lolos.
+- Notebook pelatihan `model/latih.ipynb` telah disiapkan untuk A100-80GB Colab Pro (`batch=64`, `mosaic=0.3`, `copy_paste=0.15`, `close_mosaic=15`).
+- Model hibrida emas FP32 presisi tinggi (`sudepi.onnx`, 11.58 MB) RESMI TERPASANG di `public/model/sudepi.onnx`.
+- Lolos `model/periksa_onnx.py` ([1, 3, 320, 320] -> [1, 12, 2100], 8 kelas resmi).
+- Kode Farrel terbaru (pengenal suara luring MFCC+DTW, pemisahan alat baca uang ADR-0014, commit `7516af4`) disinkronkan: 301 tes lulus, tsc bersih, build lolos (2.54s).
 
 <!--
 Simpan hanya satu task yang sedang dikerjakan di bagian ini.
