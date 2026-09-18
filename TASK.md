@@ -30,7 +30,7 @@ Gunakan file ini untuk mencatat pekerjaan proyek. Satu task harus memiliki tujua
 
 ### [~] Menunggu bobot model dari Fajar
 
-- Status: [~] Terhambat menunggu dependensi
+- Status: [~] Model asli terpasang di public/model/sudepi.onnx, siap diuji fisik Farrel di perangkat
 - Fase: Verification
 - Mode: competition
 - Prioritas: Tinggi
@@ -42,13 +42,14 @@ Gunakan file ini untuk mencatat pekerjaan proyek. Satu task harus memiliki tujua
 
 Kriteria selesai:
 
-- [ ] `python model/periksa_onnx.py public/model/sudepi.onnx` lolos
+- [x] `python model/periksa_onnx.py public/model/sudepi.onnx` lolos (3.1 MB, [1, 3, 320, 320] -> [1, 12, 2100])
 - [ ] Ketujuh pecahan dikenali benar satu per satu dengan uang sungguhan
 - [ ] Latensi inferensi terukur di bawah 250 ms di Galaxy M32
 - [ ] Satu transaksi utuh berhasil dengan uang sungguhan
 - [ ] Seluruh alur berjalan dalam mode pesawat
 - [ ] Satu transaksi diselesaikan dengan layar tertutup telapak tangan
-- [ ] Model tiruan DIHAPUS dari perangkat dan dari `public/model/`
+- [x] Model tiruan DIHAPUS dari `public/model/` (sudah diganti model asli 3.1 MB)
+- [ ] Model tiruan dihapus dari perangkat Samsung Galaxy M32 (deploy ulang)
 
 Risiko dan asumsi:
 
@@ -73,6 +74,8 @@ Checkpoint dan approval:
 
 Catatan:
 
+- Dataset gabungan 8 kelas (Delta v9 + Koin, 44.376 citra, 320x320) siap di `model/dataset_delta_sudepi.zip`.
+- Notebook training `model/latih.ipynb` siap dan dioptimalkan untuk NVIDIA A100 (Google Colab Pro).
 - Model TIRUAN sedang terpasang di HP dan di `public/model/`. Hapus begitu model asli tiba.
 - Overlay metrik (latensi, fps, luma) masih tampil di pratinjau. Berguna untuk kalibrasi, dibuang sebelum penjurian sesuai `docs/DEMO.md`.
 

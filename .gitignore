@@ -21,7 +21,6 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
-
 # Klip audio hasil render TETAP di-commit (kecil, ~415 KB) supaya tim tidak
 # perlu menjalankan ulang scripts/render_audio.py dan mendapat suara berbeda.
 
@@ -31,3 +30,12 @@ Thumbs.db
 # Regenerasi kapan saja: python model/buat_model_uji.py
 public/model/MODEL_TIRUAN
 patokan_*.onnx
+
+# Training datasets & artifacts
+ImageTraining/
+model/dataset/
+model/*.zip
+model/runs/
+runs/
+model/*.onnx
+

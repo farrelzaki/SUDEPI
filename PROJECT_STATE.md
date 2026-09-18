@@ -74,12 +74,12 @@ haptik → Merchant Display → penurunan koin → penyimpanan riwayat.
 
 ## Langkah Berikutnya Yang Diusulkan
 
-1. **Fajar: `public/model/sudepi.onnx`.** Satu-satunya blocker nyata.
+1. **Fajar: `public/model/sudepi.onnx`.** **SELESAI.** Model asli (3.1 MB) sudah mendarat di `public/model/sudepi.onnx` dan lolos `model/periksa_onnx.py`.
 2. Setelah model asli ada, berurutan:
-   `model/periksa_onnx.py` → `model/uji_model.py` dengan foto berlabel →
+   Farrel deploy ke Galaxy M32 → `model/uji_model.py` dengan foto berlabel →
    kalibrasi ambang memakai sebaran skor yang dilaporkannya → uji layar
    tertutup telapak tangan → gladi bersih `docs/DEMO.md`.
-3. Hapus model tiruan dari `public/model/` dan dari HP.
+3. Hapus model tiruan dari HP (deploy ulang dengan `public/model/sudepi.onnx` asli).
 4. Buang overlay metrik dari pratinjau sebelum penjurian.
 
 ## ⚠ HUTANG YANG WAJIB DIANGKAT SEBELUM PENJURIAN
@@ -95,13 +95,11 @@ salah satunya harus dikerjakan sebelum juri membacanya.
 
 ## Blocker Dan Hal Yang Belum Diketahui
 
-- **Model sungguhan belum ada.** Pipeline sudah terbukti memakai model tiruan,
-  jadi begitu bobot asli masuk seharusnya langsung jalan. Yang belum bisa
-  diketahui sama sekali: akurasi sesungguhnya.
-- **MODEL TIRUAN SEDANG TERPASANG DI HP.** `public/model/sudepi.onnx` saat ini
-  adalah keluaran `model/buat_model_uji.py`. Ia TIDAK melihat apa pun dan
-  selalu menyebut Rp50.000 ditambah koin. **Jangan dipakai demo.** Hapus
-  berkasnya begitu model asli tersedia.
+- **Model sungguhan SUDAH TERSEDIA.** Bobot asli (3.1 MB) dari latihan Fajar di
+  A100 Colab telah dipasang di `public/model/sudepi.onnx` dan lolos
+  `model/periksa_onnx.py` [1, 12, 2100]. Menunggu Farrel deploy ke Galaxy M32.
+- **MODEL TIRUAN DI REPO SUDAH DIGANTI DENGAN ASLI.** Tinggal deploy ulang APK
+  agar model di perangkat diperbarui.
 - ~~Uji mode pesawat~~ **SUDAH DIJALANKAN DAN LULUS.** Siklus penuh Fase 1–4
   berjalan dengan WiFi dan data seluler dimatikan (`ping` menjawab
   *Network is unreachable*), tanpa satu pun percobaan akses jaringan di logcat.
