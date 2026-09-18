@@ -142,13 +142,13 @@ export interface KerangkaProps {
   /** 1..4, menghasilkan "01 / 04" dan batang kemajuan. Null menyembunyikannya. */
   readonly langkah: number | null;
   readonly judul: string;
-  readonly subjudul?: string;
-  readonly onKembali?: () => void;
+  readonly subjudul?: string | undefined;
+  readonly onKembali?: (() => void) | undefined;
   readonly children: ReactNode;
   /** Area aksi di bawah, biasanya satu atau dua tombol. */
   readonly aksi: ReactNode;
   /** Kalimat kecil di atas area aksi, seperti pada prototipe. */
-  readonly petunjuk?: string;
+  readonly petunjuk?: string | undefined;
   /** Layar pedagang dan layar selesai memakai ground gelap. */
   readonly gelap?: boolean;
   /** Isi menempel penuh tanpa bantalan — dipakai layar kamera. */

@@ -29,7 +29,11 @@ export type JenisDetak =
   /** Ada yang terlihat tetapi belum cukup diyakini. Nadanya naik. */
   | 'dekat'
   /** Sedang menyiapkan model, sebelum bingkai pertama tiba. */
-  | 'siap';
+  | 'siap'
+  /** Permintaan tidak dimengerti. Nadanya TURUN. */
+  | 'tolak'
+  /** Mulai mendengarkan ucapan. Nadanya naik, pendek. */
+  | 'dengar';
 
 export interface Detak {
   /** Satu bunyi pendek. Diabaikan diam-diam kalau sedang disenyapkan. */
@@ -62,6 +66,11 @@ const NADA: Record<JenisDetak, readonly number[]> = {
   dekat: [523, 659],
   // Denyut tunggal yang lebih dalam, khusus masa menyiapkan.
   siap: [330],
+  // Dua nada TURUN. Arah nada adalah isyarat yang bisa dipahami tanpa harus
+  // mengingat nada sebelumnya, jadi naik berarti "silakan" dan turun berarti
+  // "tidak" — tanpa satu kata pun, dan tanpa menyumbat saluran suara.
+  tolak: [523, 349],
+  dengar: [587, 784],
 };
 
 export function buatDetak(): Detak {

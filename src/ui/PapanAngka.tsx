@@ -38,6 +38,15 @@ export interface PapanAngkaProps {
   /** Muncul di label tombol, misalnya "total belanja". */
   readonly namaKolom: string;
   readonly pertanyaan: string;
+  /**
+   * Hanya diisi bila pengenalan suara LURING tersedia di perangkat ini.
+   *
+   * Kalau tidak, tombolnya tidak dirender sama sekali — bukan dinonaktifkan.
+   * Tombol mati yang ditemukan pengguna TalkBack hanya menimbulkan pertanyaan
+   * yang tidak bisa dijawab siapa pun. Lihat ADR-0013.
+   */
+  readonly onSuara?: (() => void) | undefined;
+  readonly mendengar?: boolean | undefined;
 }
 
 export function PapanAngka({
@@ -45,6 +54,8 @@ export function PapanAngka({
   onUbah,
   namaKolom,
   pertanyaan,
+  onSuara,
+  mendengar = false,
 }: PapanAngkaProps) {
   function tambahDigit(d: number): void {
     const teks = String(nilai === 0 ? '' : nilai) + String(d);
@@ -53,7 +64,7 @@ export function PapanAngka({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       {/* Kartu nilai. Biru pekat dan angka putih: inilah satu-satunya tempat
           warna berani dipakai di layar ini, sehingga papan angka di bawahnya
           bisa tetap tenang dan angkanya tidak bersaing dengan apa pun. */}
@@ -74,7 +85,34 @@ export function PapanAngka({
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-3 gap-2.5">
+      {onSuara && (
+        <button
+          type="button"
+          aria-label={
+            mendengar
+              ? 'Sedang mendengarkan. Sebutkan total belanja'
+              : `Sebutkan ${namaKolom} dengan suara`
+          }
+          onClick={onSuara}
+          disabled={mendengar}
+          className="flex min-h-12 shrink-0 items-center justify-center gap-3 rounded-[1.125rem] text-lg font-bold transition-colors"
+          style={{
+            backgroundColor: mendengar
+              ? 'var(--color-primer)'
+              : 'var(--color-primer-tipis)',
+            color: mendengar ? '#fff' : 'var(--color-primer)',
+          }}
+        >
+          <IkonMikrofon berdenyut={mendengar} />
+          {mendengar ? 'Mendengarkan…' : 'Sebutkan dengan suara'}
+        </button>
+      )}
+
+      {/* `grid-rows-4` ditulis tegas, dan setiap tuts boleh menyusut.
+          Tanpa keduanya, menambah tombol suara di atas membuat baris terakhir
+          terdorong keluar dan tombol HAPUS lenyap dari layar — bukan
+          dinonaktifkan, benar-benar tidak terlihat. */}
+      <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-4 gap-2.5">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (
           <Tuts key={d} label={NAMA_ANGKA[d] ?? String(d)} onTekan={() => tambahDigit(d)}>
             {d}
@@ -122,7 +160,7 @@ function Tuts({
       type="button"
       aria-label={label}
       onClick={onTekan}
-      className="flex min-h-[3.5rem] items-center justify-center rounded-[1.125rem] text-[1.875rem] font-bold transition-[transform,background-color] duration-75 active:scale-[0.96]"
+      className="flex min-h-12 items-center justify-center rounded-[1.125rem] text-[1.75rem] font-bold transition-[transform,background-color] duration-75 active:scale-[0.96]"
       style={{
         backgroundColor: utama
           ? 'var(--color-kartu)'
@@ -133,6 +171,33 @@ function Tuts({
     >
       {children}
     </button>
+  );
+}
+
+function IkonMikrofon({ berdenyut }: { readonly berdenyut: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className={`size-6 ${berdenyut ? 'animate-pulse' : ''}`}
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="9"
+        y="2.5"
+        width="6"
+        height="11"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

@@ -23,7 +23,7 @@ import {
 } from '@/contracts';
 import { reduksi } from '@/core/mesin';
 import { keTeks } from '@/audio/pengucap';
-import { buatDetak } from '@/audio/detak';
+import { buatDetak, type Detak } from '@/audio/detak';
 import { buatPenyangga } from '@/data/penyangga';
 import type { Repositori } from '@/data/repositori';
 
@@ -41,6 +41,11 @@ export interface OpsiTransaksi {
 
 export interface KendaliTransaksi {
   readonly state: StateTransaksi;
+  /**
+   * Nada kerja, dibagikan supaya seluruh aplikasi memakai SATU AudioContext.
+   * Membuat yang kedua berarti dua rantai audio yang bisa saling menindih.
+   */
+  readonly detak: Detak;
   readonly hasilPindai: HasilPindai | null;
   readonly kirim: (peristiwa: Peristiwa) => void;
   /** Jalan pintas MULAI yang menyuntikkan waktu, supaya reducer tetap murni. */
@@ -220,7 +225,7 @@ export function useTransaksi({
   }, [pemindai, pengucap, detak]);
 
   return useMemo(
-    () => ({ state, hasilPindai, kirim, mulai }),
-    [state, hasilPindai, kirim, mulai],
+    () => ({ state, hasilPindai, kirim, mulai, detak }),
+    [state, hasilPindai, kirim, mulai, detak],
   );
 }

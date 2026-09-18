@@ -20,6 +20,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PemindaiKamera, Platform } from '@/contracts';
 import { buatPengucap } from '@/audio/pengucap';
 import { buatMockPlatform, pilihPlatform } from '@/platform/mock';
+import {
+  buatPengenalSuara,
+  kodeGalat,
+  type PengenalSuara,
+} from '@/platform/pengenalSuara';
+import { NOMINAL_MAKS } from '@/audio/urai';
+import { dengarNominal, type Contoh } from '@/audio/dengar/pengenal';
+import { bacaContoh, tulisContoh } from '@/audio/dengar/templat';
+import { LatihSuara } from './LatihSuara';
 import { DbSudepi, siapkanDb } from '@/data/db';
 import { buatRepositori, type Repositori } from '@/data/repositori';
 import { buatPemindai } from '@/vision/pemindai';
@@ -38,6 +47,15 @@ import { useTransaksi } from './useTransaksi';
  * dan tidak baru ketahuan di jam ke-21.
  */
 const PAKAI_MOCK = !import.meta.env.PROD;
+
+/**
+ * Lama merekam satu ucapan nominal.
+ *
+ * "Seratus dua puluh lima ribu" adalah lima kata dan butuh sekitar dua detik
+ * diucapkan dengan jeda yang wajar. Tiga detik memberi ruang tanpa membuat
+ * pengguna merasa menunggu.
+ */
+const REKAM_UCAPAN_MS = 3000;
 
 export function Aplikasi() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -98,7 +116,30 @@ export function Aplikasi() {
     };
   }, []);
 
-  const { state, hasilPindai, kirim, mulai } = useTransaksi({
+  /**
+   * Pengenalan suara luring.
+   *
+   * Ketersediaannya diperiksa SEKALI saat aplikasi dibuka, dan hasilnya
+   * menentukan apakah tombol suara dirender sama sekali. Perangkat tanpa mesin
+   * luring tidak pernah melihat tombol itu — bukan melihatnya dalam keadaan
+   * mati. Lihat ADR-0013.
+   */
+  const pengenal = useMemo<PengenalSuara>(() => buatPengenalSuara(), []);
+  const [mendengar, setMendengar] = useState(false);
+  const [melatih, setMelatih] = useState(false);
+  /**
+   * Contoh suara pengguna. Kosong berarti fitur suara belum dilatih, dan
+   * tombolnya tidak ditawarkan sama sekali.
+   */
+  const [pustaka, setPustaka] = useState<readonly Contoh[]>([]);
+
+  useEffect(() => {
+    setPustaka(bacaContoh());
+  }, []);
+
+  const suaraTersedia = pustaka.length > 0;
+
+  const { state, hasilPindai, kirim, mulai, detak } = useTransaksi({
     pemindai,
     pengucap,
     platform,
@@ -128,6 +169,63 @@ export function Aplikasi() {
     kirim({ jenis: 'KONFIRMASI' });
   }
 
+  /**
+   * Mendengarkan nominal yang diucapkan.
+   *
+   * Tidak ada konfirmasi terpisah, dan itu disengaja: `SET_BELANJA` sudah
+   * MEMBACAKAN KEMBALI nominalnya lewat suara kami sendiri, dan pengguna baru
+   * melanjutkan setelah mendengarnya. Jadi pembacaan ulang itulah konfirmasinya
+   * — menambah satu langkah "benar atau salah" hanya akan memperpanjang alur
+   * tanpa menambah keamanan.
+   */
+  async function dengarkanNominal(): Promise<void> {
+    if (mendengar) return;
+
+    // Izin diminta pada ketukan pertama, bukan saat aplikasi dibuka. Dialog
+    // izin yang muncul tiba-tiba di layar pembuka membingungkan siapa pun, dan
+    // jauh lebih membingungkan bagi orang yang tidak bisa membacanya — di sini
+    // ia muncul tepat setelah pengguna sendiri meminta fitur suara.
+    const berizin = await pengenal.mintaIzin();
+    if (!berizin) {
+      detak.tik('tolak');
+      void platform.getar('gagal');
+      return;
+    }
+
+    setMendengar(true);
+    void platform.getar('ringan');
+    detak.tik('dengar');
+
+    try {
+      const rekaman = await pengenal.rekam(REKAM_UCAPAN_MS);
+      const hasil = dengarNominal(rekaman.contoh, pustaka);
+      console.log(
+        `[SUARA] potongan=${hasil.jumlahPotongan}`,
+        `kata=[${hasil.kata.join(' ')}]`,
+        `nominal=${hasil.nominal}`,
+      );
+
+      const nilai =
+        hasil.nominal !== null && hasil.nominal <= NOMINAL_MAKS
+          ? hasil.nominal
+          : undefined;
+
+      if (nilai === undefined) {
+        detak.tik('tolak');
+        void platform.getar('gagal');
+        return;
+      }
+
+      kirim({ jenis: 'SET_BELANJA', nilai });
+    } catch (galat) {
+      console.log('[SUARA] galat:', kodeGalat(galat));
+      detak.tik('tolak');
+      void platform.getar('gagal');
+    } finally {
+      setMendengar(false);
+    }
+  }
+
   const batal = (): void => kirim({ jenis: 'BATAL' });
   const tombolBatalGelap = (
     <Tombol
@@ -151,6 +249,20 @@ export function Aplikasi() {
       Batal dan kembali
     </Tombol>
   );
+
+  if (melatih) {
+    return (
+      <LatihSuara
+        pengenal={pengenal}
+        detak={detak}
+        onSelesai={(contoh) => {
+          tulisContoh(contoh);
+          setPustaka(contoh);
+        }}
+        onBatal={() => setMelatih(false)}
+      />
+    );
+  }
 
   return (
     <>
@@ -177,9 +289,22 @@ export function Aplikasi() {
             subjudul="Suara Deteksi Rupiah"
             petunjuk="Ketuk di mana saja untuk memulai"
             aksi={
-              <Tombol label={label} onAktif={tindakanUtama}>
-                Mulai transaksi
-              </Tombol>
+              <>
+                <Tombol label={label} onAktif={tindakanUtama}>
+                  Mulai transaksi
+                </Tombol>
+                <Tombol
+                  label={
+                    suaraTersedia
+                      ? 'Latih ulang suara untuk memasukkan nominal'
+                      : 'Latih suara agar nominal bisa disebutkan, sekitar satu menit'
+                  }
+                  ragam="hantu"
+                  onAktif={() => setMelatih(true)}
+                >
+                  {suaraTersedia ? 'Latih ulang suara' : 'Latih suara'}
+                </Tombol>
+              </>
             }
           >
             <LapisanKetuk onAktif={tindakanUtama} />
@@ -278,6 +403,8 @@ export function Aplikasi() {
               onUbah={(n) => kirim({ jenis: 'SET_BELANJA', nilai: n })}
               namaKolom="total belanja"
               pertanyaan="Berapa total belanjaan kamu?"
+              onSuara={suaraTersedia ? () => void dengarkanNominal() : undefined}
+              mendengar={mendengar}
             />
           </Kerangka>
         );
