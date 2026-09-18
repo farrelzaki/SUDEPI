@@ -139,7 +139,7 @@ def proses_zip(zip_path: Path):
 def main():
     t0 = time.time()
     input_dir = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("model/ImageTraining")
-    out_zip = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("model/dataset_racikan_sudepi.zip")
+    out_zip = Path(sys.argv[2]) if len(sys.argv) > 2 else Path("model/dataset_hibrida_sudepi.zip")
     
     # Periksa input_dir atau cari di Downloads jika kosong
     if not input_dir.exists():
@@ -160,20 +160,37 @@ def main():
         sys.exit(1)
         
     print("==========================================================")
-    print("🚀 SUDEPI Universal Dataset Merger — Koleksi Racikan Fajar")
+    print("🚀 SUDEPI Universal Dataset Merger — Edisi Hibrida Emas")
     print("==========================================================")
     print(f"Target Output: {out_zip}\n")
     
-    # Pre-scan total citra koin asli
+    # Pre-scan total citra koin asli dan deteksi apakah ada dataset besar (Delta)
     total_koin_asli = 0
+    total_kertas_asli = 0
+    has_large_dataset = False
+    
     for zp in zips:
-        if 'coin' in zp.name.lower() or 'koin' in zp.name.lower():
-            with zipfile.ZipFile(zp) as z_tmp:
-                total_koin_asli += len([f for f in z_tmp.namelist() if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp'))])
-                
-    faktor_koin = 1 if total_koin_asli >= 800 else max(1, 1000 // max(1, total_koin_asli))
-    print(f"📊 Citra Koin Asli Terdeteksi : {total_koin_asli}")
-    print(f"⚖️ Faktor Pengali Koin       : {faktor_koin}x (Dynamic Balancing)\n")
+        is_coin = 'coin' in zp.name.lower() or 'koin' in zp.name.lower()
+        with zipfile.ZipFile(zp) as z_tmp:
+            n_imgs = len([f for f in z_tmp.namelist() if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')) and 'readme' not in f.lower()])
+            if is_coin:
+                total_koin_asli += n_imgs
+            else:
+                total_kertas_asli += n_imgs
+                if n_imgs > 10000:
+                    has_large_dataset = True
+                    
+    # Jika ada dataset besar (Delta >10k citra), koin wajib di-oversample 8x agar mencapai ~15% total box
+    if has_large_dataset:
+        faktor_koin = 8
+    elif total_koin_asli >= 800:
+        faktor_koin = 1
+    else:
+        faktor_koin = max(1, 1000 // max(1, total_koin_asli))
+        
+    print(f"📊 Citra Kertas Asli Terdeteksi : {total_kertas_asli}")
+    print(f"📊 Citra Koin Asli Terdeteksi   : {total_koin_asli}")
+    print(f"⚖️ Faktor Pengali Koin         : {faktor_koin}x (Auto-Balancing {'Hibrida' if has_large_dataset else 'Dinamis'})\n")
 
     stats = {i: 0 for i in range(8)}
     split_stats = {'train': 0, 'valid': 0, 'test': 0}
@@ -208,10 +225,18 @@ def main():
                     lbl_name = next((c for c in lbl_candidates if c in namelist and 'readme' not in c.lower()), None)
                     
                     if not lbl_name:
-                        continue
-                        
+                        # Jika gambar background negatif (tanpa label), tetap proses dengan label kosong
+                        if 'negatif' in img_name.lower() or 'bg_' in img_name.lower():
+                            raw_lbl = ""
+                        else:
+                            continue
+                    else:
+                        try:
+                            raw_lbl = z_in.read(lbl_name).decode('utf-8', errors='ignore')
+                        except Exception:
+                            continue
+                            
                     try:
-                        raw_lbl = z_in.read(lbl_name).decode('utf-8', errors='ignore')
                         img_bytes = z_in.read(img_name)
                     except Exception:
                         continue
@@ -232,10 +257,12 @@ def main():
                             bbox_line = polygon_ke_bbox(parts)
                             if bbox_line:
                                 new_lines.append(bbox_line)
-                                stats[tgt_cls] += 1
+                                stats[tgt_cls] += faktor_kali
                                 
                     if not new_lines:
-                        continue
+                        # Jika background negatif, izinkan label kosong
+                        if not ('negatif' in img_name.lower() or 'bg_' in img_name.lower()):
+                            continue
                         
                     lbl_content = ''.join(new_lines).encode('utf-8')
                     ext = img_name.rsplit('.', 1)[1]
