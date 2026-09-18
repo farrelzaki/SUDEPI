@@ -218,6 +218,7 @@ terasa ada yang salah, bilang, jangan perbaiki sendiri.
 | `ekspor.py` | Ekspor ONNX + kuantisasi INT8 + gerbang mutu mAP, sekali jalan |
 | `periksa_onnx.py` | Memastikan bentuk keluaran cocok dengan aplikasi |
 | `buat_model_uji.py` | Model tiruan untuk menguji pipeline sebelum modelmu ada |
+| `uji_model.py` | Menguji model atas foto berlabel + data untuk kalibrasi ambang |
 
 **Alur pemakaiannya:**
 
@@ -270,6 +271,45 @@ Artinya begitu bobot aslimu masuk ke `public/model/sudepi.onnx`, ia seharusnya
 langsung bekerja. Yang belum bisa diketahui sama sekali sebelum modelmu ada
 hanyalah **akurasi sesungguhnya** — dan itu memang hanya bisa diukur dengan
 uang sungguhan di depan kamera.
+
+### Membuktikan urutan kelas benar, tanpa menebak
+
+`periksa_onnx.py` memastikan BENTUK keluaran benar, tetapi ia tidak bisa tahu
+apakah indeks 5 memang berarti Rp50.000. Selama ini itu hanya bisa diperiksa
+dengan mengarahkan kamera ke uang satu per satu.
+
+`uji_model.py` memekaniskannya. Siapkan beberapa foto dengan nama berpola:
+
+```
+foto_uji/
+  rp1000_01.jpg    rp20000_01.jpg    rp100000_01.jpg   koin_01.jpg
+  rp2000_01.jpg    rp50000_01.jpg    50000_lecek.jpg   50000_redup.jpg
+```
+
+Lalu:
+
+```bash
+python model/uji_model.py public/model/sudepi.onnx foto_uji/
+```
+
+Ia melaporkan tiga hal:
+
+**Salah sebut.** Ini yang paling berbahaya, dan skripnya keluar dengan kode 1
+kalau ada satu pun. Salah sebut jauh lebih buruk daripada tidak terdeteksi —
+pengguna tidak bisa memeriksa ulang jawaban kita.
+
+**Pola tertukar.** Kalau SELURUH `rp50000` terbaca `rp20000`, itu bukan masalah
+akurasi melainkan urutan kelas. Perbaiki `data.yaml`, jangan menambah data
+latih.
+
+**Sebaran skor keyakinan per kelas.** Ini yang dibutuhkan untuk menyetel ambang
+secara terukur alih-alih menebak. Kalau uang lecek konsisten di 0,78 sementara
+ambang kita 0,85, sistem akan abstain terus-menerus — lebih baik kita tahu dari
+angka daripada dari juri.
+
+Prapemrosesannya sengaja meniru `src/vision/worker.ts` persis (letterbox
+bantalan 114, RGB, dibagi 255, NCHW), sehingga hasilnya mewakili apa yang
+benar-benar terjadi di aplikasi.
 
 ### Cara cepat memastikan modelmu benar
 
