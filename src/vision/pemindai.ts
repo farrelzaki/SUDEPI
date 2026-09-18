@@ -25,14 +25,30 @@ import { buatMesinOnnx, type MesinOnnx } from './mesinOnnx';
 import { votingTemporal } from './voting';
 
 export interface OpsiPemindai {
-  readonly video: HTMLVideoElement;
+  /**
+   * RUJUKAN ke elemen video, bukan elemennya langsung.
+   *
+   * React melepas dan membuat ulang elemen `<video>` setiap kali cabang render
+   * di sekelilingnya berganti. Menyimpan elemennya di sini berarti pemindai
+   * memegang elemen YATIM begitu itu terjadi: `srcObject` terisi rapi, kamera
+   * menyala di tingkat sistem, tidak ada satu pun galat — tetapi gambarnya
+   * masuk ke elemen yang sudah tidak ada di halaman.
+   *
+   * Itu persis yang terjadi pada transaksi KEDUA: layar kalkulator menempati
+   * cabang render yang berbeda, sehingga melewatinya sekali saja sudah cukup
+   * untuk membuat kamera mati diam-diam sampai aplikasi dibuka ulang.
+   *
+   * Dengan rujukan, elemennya dicari SAAT DIPAKAI, sehingga selalu yang
+   * sedang benar-benar terpasang di halaman.
+   */
+  readonly videoRef: { readonly current: HTMLVideoElement | null };
   readonly mesin?: MesinOnnx;
   readonly targetFps?: number;
   readonly senterOtomatis?: boolean;
 }
 
 export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
-  const { video } = opsi;
+  const videoRef = opsi.videoRef;
   const mesin = opsi.mesin ?? buatMesinOnnx();
   /**
    * Jeda ISTIRAHAT antar bingkai, bukan periode timer.
@@ -116,7 +132,8 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
   }
 
   async function prosesBingkai(): Promise<void> {
-    if (!jalan || sibuk || video.readyState < 2) return;
+    const video = videoRef.current;
+    if (!jalan || sibuk || !video || video.readyState < 2) return;
     sibuk = true;
 
     try {
@@ -213,72 +230,113 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
     }, jedaMs);
   }
 
-  return {
-    async mulai(_fase: FasePindai) {
-      this.berhenti();
-      jendela = [];
-      beruntunRagu = 0;
-      waktuBingkaiTerakhir = 0;
+  /** Membereskan seluruh sumber daya. Aman dipanggil berulang. */
+  function hentikan(): void {
+    jalan = false;
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    lepasVisibilitas?.();
+    lepasVisibilitas = null;
+    lepasKunciLayar();
+    if (senterAktif) void setSenterInternal(false);
+    for (const jalur of aliran?.getTracks() ?? []) jalur.stop();
+    aliran = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+  }
 
-      aliran = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
-      video.srcObject = aliran;
-      await video.play();
+  /** Badan sebenarnya dari `mulai`, dipisah agar kegagalannya bisa dicatat. */
+  async function mulaiInternal(): Promise<void> {
+    hentikan();
+    jendela = [];
+    beruntunRagu = 0;
+    waktuBingkaiTerakhir = 0;
 
-      await mesin.siap();
-
-      jalan = true;
-      jadwalkan();
-      void ambilKunciLayar();
-
-      // Berhenti memindai saat aplikasi ditinggalkan.
-      //
-      // Tanpa ini, kamera dan inferensi terus berjalan di latar belakang:
-      // baterai terkuras dan HP memanas tanpa ada yang menyadarinya — dan
-      // pengguna yang tidak bisa melihat layar paling tidak mungkin menyadari.
-      const padaVisibilitas = (): void => {
-        if (document.hidden) {
-          jalan = false;
-          if (timer !== null) {
-            clearTimeout(timer);
-            timer = null;
-          }
-          if (senterAktif) void setSenterInternal(false);
-          lepasKunciLayar();
-        } else if (!jalan) {
-          jalan = true;
-          jadwalkan();
-          // Kunci layar HILANG SENDIRI saat aplikasi ditinggalkan, jadi ia
-          // harus diambil ulang, bukan sekadar dianggap masih dipegang.
-          void ambilKunciLayar();
-        }
-      };
-      document.addEventListener('visibilitychange', padaVisibilitas);
-      lepasVisibilitas = () => {
-        document.removeEventListener('visibilitychange', padaVisibilitas);
-      };
-    },
-
-    berhenti() {
-      jalan = false;
-      if (timer !== null) {
-        clearTimeout(timer);
-        timer = null;
-      }
-      lepasVisibilitas?.();
-      lepasVisibilitas = null;
-      lepasKunciLayar();
-      if (senterAktif) void setSenterInternal(false);
-      for (const jalur of aliran?.getTracks() ?? []) jalur.stop();
+    aliran = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    });
+    const video = videoRef.current;
+    if (!video) {
+      // Tidak ada elemen video yang terpasang. Alirannya dilepas kembali
+      // supaya lampu kamera tidak menyala tanpa ada yang menontonnya.
+      for (const jalur of aliran.getTracks()) jalur.stop();
       aliran = null;
-      video.srcObject = null;
+      throw new Error('Elemen video belum terpasang saat pemindaian dimulai');
+    }
+    video.srcObject = aliran;
+
+    // `play()` DITOLAK, bukan sekadar gagal, ketika pemutaran sebelumnya
+    // baru saja dibatalkan — dan itu persis yang terjadi pada pemindaian
+    // KEDUA, karena `berhenti()` mengosongkan `srcObject` beberapa milidetik
+    // sebelumnya. Penolakan itu bernama AbortError dan tidak berbahaya:
+    // videonya tetap berjalan.
+    //
+    // Sebelumnya penolakan tersebut melempar ke luar dan membatalkan sisa
+    // fungsi ini, sehingga `jalan` tidak pernah menjadi true dan bingkai
+    // tidak pernah dijadwalkan. Akibatnya kamera hidup sekali saja per
+    // pembukaan aplikasi: transaksi pertama berhasil, transaksi kedua
+    // menatap layar mati tanpa satu pun pesan galat.
+    try {
+      await video.play();
+    } catch (galat) {
+      console.warn('[KAMERA] play() ditolak, pemindaian tetap dilanjutkan', galat);
+    }
+
+    await mesin.siap();
+
+    jalan = true;
+    jadwalkan();
+    void ambilKunciLayar();
+
+    // Berhenti memindai saat aplikasi ditinggalkan.
+    //
+    // Tanpa ini, kamera dan inferensi terus berjalan di latar belakang:
+    // baterai terkuras dan HP memanas tanpa ada yang menyadarinya — dan
+    // pengguna yang tidak bisa melihat layar paling tidak mungkin menyadari.
+    const padaVisibilitas = (): void => {
+      if (document.hidden) {
+        jalan = false;
+        if (timer !== null) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        if (senterAktif) void setSenterInternal(false);
+        lepasKunciLayar();
+      } else if (!jalan) {
+        jalan = true;
+        jadwalkan();
+        // Kunci layar HILANG SENDIRI saat aplikasi ditinggalkan, jadi ia
+        // harus diambil ulang, bukan sekadar dianggap masih dipegang.
+        void ambilKunciLayar();
+      }
+    };
+    document.addEventListener('visibilitychange', padaVisibilitas);
+    lepasVisibilitas = () => {
+      document.removeEventListener('visibilitychange', padaVisibilitas);
+    };
+  }
+
+  return {
+    async mulai(fase: FasePindai) {
+      // Kegagalan memulai kamera TIDAK BOLEH senyap. Pemanggilnya memakai
+      // `void`, jadi apa pun yang dilempar dari sini lenyap tanpa jejak — dan
+      // bagi pengguna yang tidak bisa melihat layar, kamera mati terlihat
+      // sama persis dengan kamera yang belum menemukan uang.
+      try {
+        await mulaiInternal();
+      } catch (galat) {
+        console.error('[KAMERA] gagal memulai pemindaian fase', fase, galat);
+        throw galat;
+      }
     },
+
+    berhenti: hentikan,
 
     langgan(p) {
       pendengar.add(p);

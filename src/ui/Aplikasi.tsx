@@ -50,18 +50,20 @@ export function Aplikasi() {
   }, [pengucap]);
 
   // Selalu mulai dari mock, lalu ditukar ke pemindai sungguhan setelah
-  // komponen terpasang. `videoRef.current` masih null saat render pertama, dan
-  // membuat pemindai dengan elemen video yang belum ada akan gagal diam-diam —
-  // kamera tidak pernah menyala dan tidak ada pesan galat sama sekali.
+  // komponen terpasang.
+  //
+  // Pemindai menerima RUJUKAN video, bukan elemennya, sehingga ia selalu
+  // menulis ke elemen yang benar-benar terpasang saat itu. Versi sebelumnya
+  // menangkap elemennya sekali di sini, dan itu diam-diam mematikan kamera
+  // untuk selamanya begitu React membuat ulang elemennya. Lihat catatan di
+  // `OpsiPemindai.videoRef`.
   const [pemindai, setPemindai] = useState<PemindaiKamera>(() =>
     buatMockPemindai(),
   );
 
   useEffect(() => {
     if (PAKAI_MOCK) return;
-    const video = videoRef.current;
-    if (!video) return;
-    const asli = buatPemindai({ video });
+    const asli = buatPemindai({ videoRef });
     setPemindai(asli);
     return () => {
       asli.berhenti();
@@ -140,10 +142,15 @@ export function Aplikasi() {
       ) : (
       <TombolUtama label={labelUtama(state.fase, hasilPindai, state)} onAktif={tindakanUtama}>
         {/*
-          Pratinjau SELALU dirender, hanya disembunyikan saat tidak memindai.
-          Kalau elemen video ikut dilepas antar fase, `videoRef` kosong saat
-          pemindai sungguhan dibuat, dan kamera tidak pernah menyala tanpa satu
-          pun pesan galat.
+          Pratinjau tetap dirender di seluruh fase cabang ini, hanya
+          disembunyikan saat tidak memindai — melepas dan memasangnya kembali
+          tiap fase memaksa kamera menyala ulang tanpa alasan.
+
+          Perlu diingat cabang KALKULATOR di atas TIDAK memuat pratinjau, jadi
+          elemen video memang dibuat ulang setiap kali pengguna melewatinya.
+          Itu tidak apa-apa sekarang: pemindai memegang `videoRef`, bukan
+          elemennya. Dulu ia memegang elemennya, dan satu kali lewat kalkulator
+          sudah cukup untuk mematikan kamera sampai aplikasi dibuka ulang.
         */}
         <div className={memindai ? 'absolute inset-0' : 'absolute h-0 w-0 overflow-hidden opacity-0'}>
           <Pratinjau videoRef={videoRef} hasil={memindai ? hasilPindai : null} />
