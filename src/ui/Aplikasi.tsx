@@ -37,7 +37,7 @@ import {
   bacaMode,
   bolehDaring,
   tulisMode,
-  KUNCI_GEMINI,
+  KUNCI_DARING,
   type ModeSistem,
 } from '@/platform/mode';
 import { ambilBingkai, bacaUangDaring } from '@/vision/daring';
@@ -169,7 +169,7 @@ export function Aplikasi() {
 
   /**
    * Pindai uang:
-   * 1. Utamakan Gemini Flash jika daring aktif dan ada koneksi (sangat cepat & akurat).
+   * 1. Utamakan model deteksi daring jika daring aktif dan ada koneksi (sangat cepat & akurat).
    * 2. Jika offline / error jaringan / kuota habis / mode pesawat:
    *    Otomatis fallback ke model lokal ONNX (sudepi.onnx) di perangkat!
    */
@@ -177,7 +177,7 @@ export function Aplikasi() {
     const video = videoRef.current;
     if (!video) return null;
 
-    // 1. Coba lewat model daring (Gemini) jika daring aktif
+    // 1. Coba lewat model deteksi daring jika daring aktif
     if (daringAktif) {
       const gambar = ambilBingkai(video);
       if (gambar) {
@@ -231,9 +231,29 @@ export function Aplikasi() {
 
   const [hasilDaring, setHasilDaring] = useState<HasilPindai | null>(null);
   const [memindaiDaring, setMemindaiDaring] = useState(false);
+  const sudahPindaiKembalian = useRef(false);
 
   useEffect(() => {
     setHasilDaring(null);
+  }, [state.fase]);
+
+  useEffect(() => {
+    if (state.fase !== 'PINDAI_KEMBALIAN') {
+      sudahPindaiKembalian.current = false;
+      return undefined;
+    }
+
+    sudahPindaiKembalian.current = false;
+    const timerKembalian = setTimeout(() => {
+      if (!sudahPindaiKembalian.current) {
+        sudahPindaiKembalian.current = true;
+        void pindaiLewatInternet();
+      }
+    }, 1200);
+
+    return () => {
+      clearTimeout(timerKembalian);
+    };
   }, [state.fase]);
 
   async function pindaiLewatInternet(): Promise<HasilPindai | null> {
@@ -505,7 +525,7 @@ export function Aplikasi() {
                   Menyembunyikannya di menu pengaturan akan membuat sebagian
                   pengguna memakainya tanpa pernah sadar.
                 */}
-                {!KUNCI_GEMINI && (
+                {!KUNCI_DARING && (
                   <Tombol
                     label={
                       modeSistem === 'luring'

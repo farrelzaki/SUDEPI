@@ -62,6 +62,9 @@ export function LayarBaca({
   const [hasil, setHasil] = useState<HasilPindai | null>(null);
   const [bertanya, setBertanya] = useState(false);
   const statePembaca = useRef(PEMBACA_AWAL);
+  const sudahPindaiAwal = useRef(false);
+  const onDaringRef = useRef(onDaring);
+  onDaringRef.current = onDaring;
 
   /**
    * Menanggapi satu hasil pindai, dari mana pun asalnya.
@@ -91,18 +94,19 @@ export function LayarBaca({
     }
   }
 
-  async function tanyaInternet(): Promise<void> {
-    if (!onDaring || bertanya) return;
+  async function tanyaInternet(paksaUcap = false): Promise<void> {
+    const fn = onDaringRef.current;
+    if (!fn || bertanya) return;
     setBertanya(true);
     // Menunggu jaringan bisa memakan dua detik. Tanpa penanda, keheningan itu
     // tidak bisa dibedakan dari kerusakan — persoalan yang sama yang sudah
     // kami pecahkan untuk inferensi luring.
     detak.mulaiMenyiapkan();
     try {
-      const jawaban = await onDaring();
+      const jawaban = await fn();
       if (jawaban) {
-        if (jawaban.status === 'stabil') {
-          // Reset agar penahan pengulangan tidak meredam hasil yang sengaja dipicu tombol
+        if (paksaUcap && jawaban.status === 'stabil') {
+          // Hanya reset saat tombol manual ditekan agar pengguna bisa mendengar ulang jika diinginkan
           statePembaca.current = PEMBACA_AWAL;
         }
         tanggapi(jawaban);
@@ -129,7 +133,17 @@ export function LayarBaca({
       tanggapi(bingkai);
     });
 
+    // Pemindaian otomatis 1x saat pertama kali layar dibuka (setelah 1.2 detik kamera stabil)
+    sudahPindaiAwal.current = false;
+    const timerAwal = setTimeout(() => {
+      if (!sudahPindaiAwal.current && onDaringRef.current) {
+        sudahPindaiAwal.current = true;
+        void tanyaInternet(false);
+      }
+    }, 1200);
+
     return () => {
+      clearTimeout(timerAwal);
       lepas();
       detak.hentikanMenyiapkan();
       pemindai.berhenti();
@@ -155,7 +169,7 @@ export function LayarBaca({
               }
               ragam="primer"
               nonaktif={bertanya}
-              onAktif={() => void tanyaInternet()}
+              onAktif={() => void tanyaInternet(true)}
             >
               {bertanya ? 'Memindai…' : 'Pindai Uang'}
             </Tombol>

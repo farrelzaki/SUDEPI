@@ -57,24 +57,28 @@ const BATAS_MS = 12_000;
 
 const PERINTAH = `Kamu membantu orang tunanetra mengenali uang kertas Rupiah Indonesia.
 
-Lihat gambar ini dan laporkan uang yang terlihat.
+Lihat gambar ini dengan sangat teliti dan laporkan seluruh uang yang terlihat.
+
+Panduan warna resmi Rupiah Bank Indonesia:
+- 100000: Merah
+- 50000: Biru
+- 20000: Hijau
+- 10000: Ungu
+- 5000: Cokelat
+- 2000: Abu-abu
+- 1000: Kuning / Hijau Muda
 
 Aturan yang WAJIB dipatuhi:
 - Pecahan yang sah hanya: 1000, 2000, 5000, 10000, 20000, 50000, 100000.
 - "lembar" berisi satu angka untuk SETIAP lembar fisik yang terlihat.
-  Dua lembar dua puluh ribu ditulis [20000, 20000].
+  Contoh: dua lembar lima puluh ribu dan satu lembar sepuluh ribu ditulis [50000, 50000, 10000].
 - "koin" bernilai true bila ada uang logam terlihat, berapa pun nilainya.
-- Hitung SETIAP lembar fisik, walaupun sebagian tertutup lembar lain, asalkan
-  pecahannya masih bisa kamu kenali dari warna, ukuran, atau angka yang terlihat.
-- "yakin" bernilai TRUE bila kamu bisa mengenali pecahan setiap lembar yang
-  kamu laporkan. Foto yang sedikit miring, kurang tajam, atau terpotong di
-  pinggir TIDAK membuatmu harus menjawab tidak yakin.
-- "yakin" bernilai FALSE hanya bila kamu benar-benar tidak bisa memastikan
-  pecahannya, atau yang terlihat memang bukan uang Rupiah.
+- Deteksi uang bertumpuk / kipas (fanned out): Periksa apakah uang ditumpuk sebagian atau dijejerkan. Hitung SETIAP lembar fisik yang terlihat tepian, sudut, ornamen, atau lapisannya, walaupun tertutup lembar lain hingga 70%.
+- Anti-duplikasi: Setiap lembar fisik hanya dilaporkan tepat SATU KALI di larik "lembar". Jangan menduplikasi lembar fisik yang sama.
+- "yakin" bernilai TRUE bila kamu bisa mengenali pecahan setiap lembar yang kamu laporkan dari warna dominan, pola visual, atau angka nominalnya. Foto yang sedikit miring, bertumpuk sebagian, kurang tajam, atau terpotong di pinggir TIDAK membuatmu harus menjawab tidak yakin.
+- "yakin" bernilai FALSE hanya bila kamu benar-benar tidak bisa memastikan pecahannya sama sekali, atau yang terlihat memang bukan uang Rupiah.
 
-Menebak nominal yang salah membuat orang kehilangan uang sungguhan, jadi jangan
-menebak. Tetapi menjawab "tidak yakin" untuk uang yang sebenarnya terbaca juga
-merugikan — ia membuat orang mengulang-ulang tanpa pernah mendapat jawaban.`;
+Menebak nominal yang salah membuat orang kehilangan uang, jadi jangan menebak pecahan asing. Tetapi menjawab "tidak yakin" untuk uang yang sebenarnya terbaca dari warna dan cirinya juga merugikan — kenali dengan cermat dan berikan jawaban yang meyakinkan.`;
 
 /** Bentuk jawaban yang diminta. Dipaksakan lewat skema, bukan diharapkan. */
 const SKEMA = {
@@ -194,7 +198,7 @@ export function ambilBingkai(video: HTMLVideoElement): string | null {
   ctx.drawImage(video, 0, 0, kanvas.width, kanvas.height);
 
   // Hanya bagian base64-nya; awalan `data:image/jpeg;base64,` dibuang.
-  return kanvas.toDataURL('image/jpeg', 0.8).split(',')[1] ?? null;
+  return kanvas.toDataURL('image/jpeg', 0.88).split(',')[1] ?? null;
 }
 
 /* --------------------------------------------------------------- jaringan */
