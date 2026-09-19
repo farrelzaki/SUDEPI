@@ -1,7 +1,7 @@
 /**
  * Tes pengurai jawaban jalur daring.
  *
- * Seluruhnya tanpa jaringan. Yang diuji bukan apakah Gemini pandai membaca
+ * Seluruhnya tanpa jaringan. Yang diuji bukan apakah model daring pandai membaca
  * uang — itu hanya bisa dibuktikan dengan uang sungguhan di depan kamera.
  * Yang diuji adalah bahwa kami **tidak pernah mempercayai jawabannya secara
  * buta**.

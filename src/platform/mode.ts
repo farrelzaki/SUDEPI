@@ -52,8 +52,14 @@ export function tulisMode(mode: ModeSistem): void {
   }
 }
 
-/** Kunci API Gemini, disuntikkan saat build dari `.env.local`. */
-export const KUNCI_GEMINI = import.meta.env.VITE_KUNCI_GEMINI ?? '';
+/** Kunci API model deteksi daring, disuntikkan saat build dari `.env.local`. */
+export const KUNCI_DARING =
+  import.meta.env.VITE_KUNCI_DARING ??
+  import.meta.env.VITE_KUNCI_MODEL_ONLINE ??
+  import.meta.env.VITE_KUNCI_GEMINI ??
+  '';
+/** Alias untuk kompatibilitas internal. */
+export const KUNCI_GEMINI = KUNCI_DARING;
 
 /**
  * Apakah panggilan jaringan diizinkan saat ini.

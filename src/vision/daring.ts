@@ -27,17 +27,11 @@ import {
 import { KUNCI_GEMINI } from '@/platform/mode';
 
 /**
- * Rantai model, dicoba berurutan.
+ * Rantai model inferensi online, dicoba berurutan.
  *
- * KENAPA BERANTAI, dan ini pelajaran mahal yang didapat di perangkat: kuota
- * gratis Gemini dihitung **per model per hari**, dan untuk `gemini-3.6-flash`
- * angkanya hanya DUA PULUH permintaan sehari. Saat diuji, jatah itu habis
- * dalam beberapa menit dan seluruh fitur tampak rusak — padahal kodenya tidak
- * salah sedikit pun.
- *
- * Karena kuotanya per model, berpindah model berarti mendapat jatah baru.
- * Yang ringan didahulukan: ia lebih cepat, lebih murah kuotanya, dan untuk
- * membaca angka besar pada uang kertas, kemampuannya sudah lebih dari cukup.
+ * Rantai model disiapkan secara bertingkat agar jika kuota satu model tercapai,
+ * sistem langsung berpindah ke model online berikutnya secara otomatis tanpa jeda.
+ * Model yang lebih cepat dan efisien diprioritaskan lebih dulu.
  */
 const MODEL: readonly string[] = [
   'gemini-2.5-flash',
@@ -208,7 +202,7 @@ export function ambilBingkai(video: HTMLVideoElement): string | null {
 export class GalatDaring extends Error {}
 
 /**
- * Bertanya kepada Gemini berapa uang yang terlihat.
+ * Bertanya kepada model deteksi online berapa uang yang terlihat.
  *
  * Melempar `GalatDaring` bila jaringan gagal, kuota habis, atau jawabannya
  * tidak berbentuk. Pemanggil WAJIB menanganinya — kegagalan jaringan yang
@@ -223,7 +217,7 @@ export async function bacaUangDaring(jpegBase64: string): Promise<HasilPindai> {
   for (const model of MODEL) {
     try {
       const teks = await tanyaSatuModel(model, jpegBase64);
-      console.log(`[DARING] dijawab oleh ${model}`);
+      console.log('[DARING] inferensi model online selesai');
       return uraiJawaban(teks);
     } catch (galat) {
       galatTerakhir =
