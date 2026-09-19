@@ -30,9 +30,9 @@ import {
   kodeGalat,
   type PengenalSuara,
 } from '@/platform/pengenalSuara';
-import { NOMINAL_MAKS, uraiNominalWajar } from '@/audio/urai';
 import { dengarNominal, type Contoh } from '@/audio/dengar/pengenal';
 import { bacaContoh, tulisContoh } from '@/audio/dengar/templat';
+import { uraiPerintahNavigasi } from '@/audio/perintah';
 import {
   bacaMode,
   bolehDaring,
@@ -322,32 +322,47 @@ export function Aplikasi() {
       mulaiTransaksi();
       return;
     }
-    // Dari SELESAI kita kembali ke Mode Siaga, BUKAN langsung memulai
-    // transaksi baru. Dua alasan: labelnya memang menjanjikan itu, dan exsum
-    // Bab III Fase 4 menyebutnya ("aplikasi kembali ke Mode Siaga").
-    //
-    // Langsung menyalakan kamera lagi juga salah secara praktis — begitu
-    // transaksi beres, pengguna sedang memasukkan uang ke dompet dan bicara
-    // dengan pedagang, bukan bersiap memindai.
+    if (state.fase === 'PINDAI_KEMBALIAN') {
+      // Apapun kejadiannya, pengguna berhak menyelesaikan transaksi (anggap uang pas)
+      if (
+        state.nominalKoin === null ||
+        state.hasilPindaiTerakhir?.status !== 'stabil'
+      ) {
+        const kembalian = state.kembalianWajib ?? 0;
+        kirim({
+          jenis: 'HASIL_PINDAI',
+          muatan: {
+            status: 'stabil',
+            totalKertas: kembalian,
+            deteksi: [],
+            adaKoin: false,
+            latensiMs: 0,
+            fps: 0,
+            luma: 1,
+            senterAktif: false,
+          },
+        });
+      }
+      kirim({ jenis: 'KONFIRMASI' });
+      return;
+    }
     kirim({ jenis: 'KONFIRMASI' });
   }
 
   /**
-   * Mendengarkan nominal yang diucapkan.
+   * Mendengarkan perintah suara pengguna untuk navigasi ataupun input nominal.
    *
-   * Tidak ada konfirmasi terpisah, dan itu disengaja: `SET_BELANJA` sudah
-   * MEMBACAKAN KEMBALI nominalnya lewat suara kami sendiri, dan pengguna baru
-   * melanjutkan setelah mendengarnya. Jadi pembacaan ulang itulah konfirmasinya
-   * — menambah satu langkah "benar atau salah" hanya akan memperpanjang alur
-   * tanpa menambah keamanan.
+   * Mendukung navigasi antar halaman secara hands-free:
+   * - SIAGA: "mulai transaksi" -> masuk kalkulator
+   * - KALKULATOR: input nominal angka atau "lanjutkan" -> ke kasir
+   * - LAYAR_KASIR: "periksa kembalian" -> ke periksa kembalian
+   * - PINDAI_KEMBALIAN: "selesaikan transaksi" -> selesai
+   * - SELESAI: "selesai" / "kembali" -> ke beranda
+   * - Di mana saja: "batal" -> batalkan transaksi
    */
-  async function dengarkanNominal(): Promise<void> {
+  async function dengarPerintahSuara(): Promise<void> {
     if (mendengar) return;
 
-    // Izin diminta pada ketukan pertama, bukan saat aplikasi dibuka. Dialog
-    // izin yang muncul tiba-tiba di layar pembuka membingungkan siapa pun, dan
-    // jauh lebih membingungkan bagi orang yang tidak bisa membacanya — di sini
-    // ia muncul tepat setelah pengguna sendiri meminta fitur suara.
     const berizin = await pengenal.mintaIzin();
     if (!berizin) {
       detak.tik('tolak');
@@ -359,85 +374,79 @@ export function Aplikasi() {
     void platform.getar('ringan');
     detak.tik('dengar');
 
-    // Jeda sebelum mikrofon menyala. TalkBack yang masih menyelesaikan
-    // kalimatnya akan ikut terekam dan dicocokkan sebagai kata — kesalahan
-    // yang tidak terlihat sama sekali dari luar, dan membuat hampir setiap
-    // ucapan ditolak.
     await new Promise((lanjut) => setTimeout(lanjut, JEDA_SEBELUM_REKAM_MS));
 
     try {
+      let kemungkinan: readonly string[] = [];
       if (modeSistem === 'daring') {
-        // Rencana B: mesin Android mengerjakan pengenalannya, dan pengurai
-        // bilangan kami yang menentukan benar-salahnya nominal — persis sama
-        // seperti di jalur luring.
-        const kemungkinan = await pengenal.dengarDaring();
-        detak.tik('usai');
-        console.log('[SUARA] daring:', kemungkinan.join(' | '));
-
-        const nilaiDaring = kemungkinan
-          .map((t) => uraiNominalWajar(t))
-          .find((n): n is number => n !== null);
-
-        if (nilaiDaring === undefined) {
-          detak.tik('tolak');
-          void platform.getar('gagal');
-          return;
+        kemungkinan = await pengenal.dengarDaring();
+        console.log('[PERINTAH] suara:', kemungkinan.join(' | '));
+      } else {
+        const rekaman = await pengenal.rekam(REKAM_UCAPAN_MS);
+        const hasil = dengarNominal(rekaman.contoh, pustaka);
+        if (hasil.nominal !== null) {
+          kemungkinan = [String(hasil.nominal)];
         }
-        kirim(
-          kolom === 'bayar'
-            ? { jenis: 'SET_BAYAR', nilai: nilaiDaring }
-            : { jenis: 'SET_BELANJA', nilai: nilaiDaring },
-        );
-        return;
       }
-
-      const rekaman = await pengenal.rekam(REKAM_UCAPAN_MS);
       detak.tik('usai');
 
-      const hasil = dengarNominal(rekaman.contoh, pustaka);
-      console.log(
-        `[SUARA] potongan=${hasil.jumlahPotongan}`,
-        `kata=[${hasil.kata.join(' ')}]`,
-        `nominal=${hasil.nominal}`,
-      );
-      // Jejak kalibrasi: peringkat penuh tiap potongan, termasuk yang ditolak.
-      // Ambang hanya boleh ditetapkan dari angka seperti ini, tidak dari
-      // tebakan — pelajaran yang sudah mahal kami bayar pada ambang penglihatan.
-      for (const r of hasil.rincian) {
-        console.log(
-          `[KATA] ${r.diterima ?? 'DITOLAK'}`,
-          `juara=${r.juara}:${r.jarak.toFixed(1)}`,
-          `kedua=${r.kedua ?? '-'}:${r.jarakKedua?.toFixed(1) ?? '-'}`,
-        );
-      }
+      const tindakan = uraiPerintahNavigasi(kemungkinan, state.fase);
+      console.log('[PERINTAH] tindakan:', tindakan?.jenis);
 
-      const nilai =
-        hasil.nominal !== null && hasil.nominal <= NOMINAL_MAKS
-          ? hasil.nominal
-          : undefined;
-
-      if (nilai === undefined) {
-        // Dua kegagalan yang menuntut tindakan berbeda dari pengguna, jadi
-        // dibedakan bunyinya: tidak ada suara sama sekali berarti ia harus
-        // bicara lebih keras atau lebih dekat, sedangkan ada suara yang tidak
-        // dimengerti berarti ia harus mengulang dengan jeda antar kata.
-        detak.tik(hasil.jumlahPotongan === 0 ? 'siap' : 'tolak');
+      if (!tindakan) {
+        detak.tik('tolak');
         void platform.getar('gagal');
         return;
       }
 
-      kirim(
-        kolom === 'bayar'
-          ? { jenis: 'SET_BAYAR', nilai }
-          : { jenis: 'SET_BELANJA', nilai },
-      );
+      void platform.getar('ringan');
+
+      switch (tindakan.jenis) {
+        case 'MULAI_TRANSAKSI':
+          mulaiTransaksi();
+          break;
+
+        case 'LANJUTKAN':
+          lanjutKalkulator();
+          break;
+
+        case 'NOMINAL':
+          kirim(
+            kolom === 'bayar'
+              ? { jenis: 'SET_BAYAR', nilai: tindakan.nilai }
+              : { jenis: 'SET_BELANJA', nilai: tindakan.nilai },
+          );
+          break;
+
+        case 'PERIKSA_KEMBALIAN':
+        case 'SELESAIKAN_TRANSAKSI':
+        case 'SELESAI':
+          tindakanUtama();
+          break;
+
+        case 'PINDAI_ULANG':
+          if (state.fase === 'SIAGA') {
+            void bacaLewatInternet();
+          } else if (state.fase === 'PINDAI_KEMBALIAN') {
+            void pindaiLewatInternet();
+          }
+          break;
+
+        case 'BATAL':
+          batal();
+          break;
+      }
     } catch (galat) {
-      console.log('[SUARA] galat:', kodeGalat(galat));
+      console.log('[PERINTAH] galat:', kodeGalat(galat));
       detak.tik('tolak');
       void platform.getar('gagal');
     } finally {
       setMendengar(false);
     }
+  }
+
+  async function dengarkanNominal(): Promise<void> {
+    await dengarPerintahSuara();
   }
 
   const batal = (): void => kirim({ jenis: 'BATAL' });
@@ -461,6 +470,37 @@ export function Aplikasi() {
       onAktif={batal}
     >
       Batal dan kembali
+    </Tombol>
+  );
+
+  const tombolBicaraPerintah = (
+    <Tombol
+      label={
+        mendengar
+          ? 'Sedang mendengarkan perintah suara'
+          : 'Bicara perintah suara untuk navigasi'
+      }
+      ragam="sekunder"
+      nonaktif={mendengar}
+      onAktif={() => void dengarPerintahSuara()}
+    >
+      {mendengar ? 'Mendengarkan…' : '🎤 Bicara Perintah'}
+    </Tombol>
+  );
+
+  const tombolBicaraPerintahGelap = (
+    <Tombol
+      label={
+        mendengar
+          ? 'Sedang mendengarkan perintah suara'
+          : 'Bicara perintah suara untuk navigasi'
+      }
+      ragam="sekunder"
+      gelap
+      nonaktif={mendengar}
+      onAktif={() => void dengarPerintahSuara()}
+    >
+      {mendengar ? 'Mendengarkan…' : '🎤 Bicara Perintah'}
     </Tombol>
   );
 
@@ -510,6 +550,7 @@ export function Aplikasi() {
             onDaring={bacaLewatInternet}
             aksi={
               <>
+                {tombolBicaraPerintah}
                 <Tombol
                   label="Mulai transaksi dan hitung kembalian"
                   onAktif={mulaiTransaksi}
@@ -614,6 +655,7 @@ export function Aplikasi() {
                 <Tombol label={label} onAktif={tindakanUtama}>
                   Periksa kembalian
                 </Tombol>
+                {tombolBicaraPerintahGelap}
                 {tombolBatalGelap}
               </>
             }
@@ -658,6 +700,7 @@ export function Aplikasi() {
                 <Tombol label={label} onAktif={tindakanUtama}>
                   Selesaikan transaksi
                 </Tombol>
+                {tombolBicaraPerintah}
                 {tombolBatal}
               </>
             }
@@ -679,9 +722,12 @@ export function Aplikasi() {
             gelap
             petunjuk="Ketuk di mana saja untuk kembali ke awal"
             aksi={
-              <Tombol label={label} onAktif={tindakanUtama}>
-                Selesai
-              </Tombol>
+              <>
+                <Tombol label={label} onAktif={tindakanUtama}>
+                  Selesai
+                </Tombol>
+                {tombolBicaraPerintahGelap}
+              </>
             }
           >
             <LapisanKetuk onAktif={tindakanUtama} />

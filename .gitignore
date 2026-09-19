@@ -49,3 +49,5 @@ __pycache__/
 # lewat riwayat git, tempat ia akan hidup selamanya.
 .env.local
 .env*.local
+PENGUMPULAN_DRIVE/
+*.apk

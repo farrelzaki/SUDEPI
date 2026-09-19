@@ -6,13 +6,13 @@ Perbarui saat memulai sesi, melewati checkpoint, membuat keputusan penting, mene
 
 ## Metadata
 
-- Terakhir diperbarui: 2026-09-19 08:00 WIB
+- Terakhir diperbarui: 2026-09-19 08:42 WIB
 - Mode kerja: `competition`
 - Status sesi: Berjalan
-- Task aktif: Verifikasi Luring & Fallback ONNX Lokal pada Pemindai Kamera di Poco X6 Pro
+- Task aktif: Implementasi Auto-Scan Awal & Pencegahan Duplikasi Deteksi
 - Fase aktif: Verification / Handoff
-- Checkpoint terakhir: Fallback pemindaian luring ONNX sudepi.onnx saat internet mati berhasil diimplementasikan dan terverifikasi di Poco X6 Pro; alur mode pesawat 100% lulus
-- Konfirmasi pengguna terakhir: Persetujuan implementasi fallback luring kamera dan strategi penjurian hibrida siluman
+- Checkpoint terakhir: Auto-scan 1x saat buka LayarBaca & PINDAI_KEMBALIAN sukses terverifikasi di Poco X6 Pro; pencegahan duplikasi (anti-duplikasi & no-accumulation) terbukti; commit ff29fef dipush ke Origin/main
+- Konfirmasi pengguna terakhir: Persetujuan implementasi auto-scan awal dan strategi pencegahan duplikasi lembar uang
 
 ## Scope Yang Disetujui
 
