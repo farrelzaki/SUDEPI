@@ -354,5 +354,99 @@ export function buatPemindai(opsi: OpsiPemindai): PemindaiKamera {
     },
 
     setSenter: setSenterInternal,
+
+    /**
+     * Pindai instan untuk satu bingkai saat ini.
+     *
+     * Digunakan sebagai fallback luring ketika tombol 'Pindai Uang' ditekan
+     * (misalnya di mode pesawat atau ketika jaringan internet tidak tersedia).
+     * Menjalankan inferensi model ONNX lokal pada bingkai saat ini, dan jika
+     * terdeteksi, langsung menghasilkan status 'stabil' tanpa harus menunggu
+     * 3 bingkai berturut-turut dari voting temporal.
+     */
+    async pindaiSekarang(): Promise<HasilPindai> {
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) {
+        return {
+          status: 'tidak-ada-objek',
+          deteksi: [],
+          totalKertas: 0,
+          adaKoin: false,
+          latensiMs: 0,
+          fps: 0,
+          luma: 0.5,
+          senterAktif,
+        };
+      }
+
+      await mesin.siap();
+
+      let iter = 0;
+      while (sibuk && iter < 10) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        iter++;
+      }
+
+      sibuk = true;
+      try {
+        const luma = hitungLuma(video);
+        const bingkai = await createImageBitmap(video);
+        const hasil = await mesin.deteksiRinci(bingkai);
+
+        jendela.push(hasil.deteksi);
+        jendelaLemah.push(hasil.lemah);
+        if (jendela.length > VOTING_DARI) {
+          jendela = jendela.slice(-VOTING_DARI);
+          jendelaLemah = jendelaLemah.slice(-VOTING_DARI);
+        }
+
+        if (hasil.deteksi.length > 0) {
+          const totalKertas = hasil.deteksi.reduce((j, d) => j + (d.nominal ?? 0), 0);
+          const adaKoin = hasil.deteksi.some((d) => d.koin);
+          const hp: HasilPindai = {
+            status: 'stabil',
+            deteksi: hasil.deteksi,
+            totalKertas,
+            adaKoin,
+            latensiMs: hasil.latensiMs,
+            fps: fpsTerukur,
+            luma,
+            senterAktif,
+          };
+          siarkan(hp);
+          return hp;
+        }
+
+        if (hasil.ditolakGating > 0 || hasil.lemah.length > 0) {
+          const hp: HasilPindai = {
+            status: 'abstain',
+            deteksi: [],
+            totalKertas: 0,
+            adaKoin: false,
+            latensiMs: hasil.latensiMs,
+            fps: fpsTerukur,
+            luma,
+            senterAktif,
+          };
+          siarkan(hp);
+          return hp;
+        }
+
+        const hp: HasilPindai = {
+          status: 'tidak-ada-objek',
+          deteksi: [],
+          totalKertas: 0,
+          adaKoin: false,
+          latensiMs: hasil.latensiMs,
+          fps: fpsTerukur,
+          luma,
+          senterAktif,
+        };
+        siarkan(hp);
+        return hp;
+      } finally {
+        sibuk = false;
+      }
+    },
   };
 }

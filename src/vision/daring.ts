@@ -40,10 +40,9 @@ import { KUNCI_GEMINI } from '@/platform/mode';
  * membaca angka besar pada uang kertas, kemampuannya sudah lebih dari cukup.
  */
 const MODEL: readonly string[] = [
+  'gemini-2.5-flash',
   'gemini-3.1-flash-lite',
   'gemini-3.5-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-3.6-flash',
 ];
 
 const alamat = (model: string): string =>

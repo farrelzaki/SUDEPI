@@ -126,6 +126,19 @@ export function buatMockPemindai(opsi: OpsiMockPemindai = {}): PemindaiKamera {
     async setSenter(nyala: boolean) {
       senterAktif = nyala;
     },
+
+    async pindaiSekarang(): Promise<HasilPindai> {
+      return {
+        status: 'stabil',
+        deteksi: [buatDeteksi(5, 0)],
+        totalKertas: 50000,
+        adaKoin: false,
+        latensiMs: 120,
+        fps: 8,
+        luma: 0.6,
+        senterAktif,
+      };
+    },
   };
 }
 

@@ -75,6 +75,8 @@ export interface PemindaiKamera {
   /** Mengembalikan fungsi untuk berhenti berlangganan. */
   langgan(pendengar: (hasil: HasilPindai) => void): () => void;
   setSenter(nyala: boolean): Promise<void>;
+  /** Pindai instan satu bingkai (berguna untuk pemicu tombol manual/fallback luring). */
+  pindaiSekarang?(): Promise<HasilPindai>;
 }
 
 /* ---------------------------------------------------------------------------

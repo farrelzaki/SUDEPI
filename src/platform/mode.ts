@@ -35,6 +35,7 @@ const KUNCI = 'sudepi.mode.v1';
  * internet.
  */
 export function bacaMode(): ModeSistem {
+  if (KUNCI_GEMINI) return 'daring';
   try {
     return localStorage.getItem(KUNCI) === 'daring' ? 'daring' : 'luring';
   } catch {

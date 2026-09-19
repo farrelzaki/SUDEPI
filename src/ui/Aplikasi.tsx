@@ -37,6 +37,7 @@ import {
   bacaMode,
   bolehDaring,
   tulisMode,
+  KUNCI_GEMINI,
   type ModeSistem,
 } from '@/platform/mode';
 import { ambilBingkai, bacaUangDaring } from '@/vision/daring';
@@ -70,8 +71,8 @@ const PAKAI_MOCK = !import.meta.env.PROD;
  */
 const REKAM_UCAPAN_MS = 3000;
 
-/** Jeda agar TalkBack selesai bicara sebelum mikrofon menyala. */
-const JEDA_SEBELUM_REKAM_MS = 700;
+/** Jeda singkat agar transisi selesai sebelum mikrofon menyala. */
+const JEDA_SEBELUM_REKAM_MS = 100;
 
 export function Aplikasi() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -167,32 +168,45 @@ export function Aplikasi() {
   }
 
   /**
-   * Rencana B untuk membaca uang: satu bingkai dikirim ke internet.
-   *
-   * Mengembalikan `null` bila gagal — dan kegagalannya TERDENGAR, bukan
-   * didiamkan. Pengguna yang tidak bisa melihat layar tidak punya cara lain
-   * mengetahui bahwa permintaannya tidak sampai.
+   * Pindai uang:
+   * 1. Utamakan Gemini Flash jika daring aktif dan ada koneksi (sangat cepat & akurat).
+   * 2. Jika offline / error jaringan / kuota habis / mode pesawat:
+   *    Otomatis fallback ke model lokal ONNX (sudepi.onnx) di perangkat!
    */
   async function bacaLewatInternet(): Promise<HasilPindai | null> {
     const video = videoRef.current;
     if (!video) return null;
 
-    const gambar = ambilBingkai(video);
-    if (!gambar) {
-      detak.tik('tolak');
-      return null;
+    // 1. Coba lewat model daring (Gemini) jika daring aktif
+    if (daringAktif) {
+      const gambar = ambilBingkai(video);
+      if (gambar) {
+        try {
+          const hasil = await bacaUangDaring(gambar);
+          console.log(`[DARING] status=${hasil.status} total=${hasil.totalKertas}`);
+          if (hasil.status === 'stabil') {
+            return hasil;
+          }
+        } catch (galat) {
+          console.log('[DARING] gagal/offline, beralih ke model lokal:', String(galat));
+        }
+      }
     }
 
+    // 2. Fallback Luring: Gunakan model ONNX lokal sudepi.onnx yang terpasang di perangkat
     try {
-      const hasil = await bacaUangDaring(gambar);
-      console.log(`[DARING] status=${hasil.status} total=${hasil.totalKertas}`);
-      return hasil;
-    } catch (galat) {
-      console.log('[DARING] gagal:', String(galat));
-      detak.tik('tolak');
-      void platform.getar('gagal');
-      return null;
+      if (typeof pemindai.pindaiSekarang === 'function') {
+        const hasilLuring = await pemindai.pindaiSekarang();
+        console.log(`[LURING] status=${hasilLuring.status} total=${hasilLuring.totalKertas}`);
+        return hasilLuring;
+      }
+    } catch (galatLuring) {
+      console.log('[LURING] gagal:', String(galatLuring));
     }
+
+    detak.tik('tolak');
+    void platform.getar('gagal');
+    return null;
   }
   /**
    * Contoh suara pengguna. Kosong berarti fitur suara belum dilatih, dan
@@ -214,6 +228,43 @@ export function Aplikasi() {
     platform,
     repositori,
   });
+
+  const [hasilDaring, setHasilDaring] = useState<HasilPindai | null>(null);
+  const [memindaiDaring, setMemindaiDaring] = useState(false);
+
+  useEffect(() => {
+    setHasilDaring(null);
+  }, [state.fase]);
+
+  async function pindaiLewatInternet(): Promise<HasilPindai | null> {
+    if (memindaiDaring) return null;
+    setMemindaiDaring(true);
+    detak.mulaiMenyiapkan();
+    try {
+      const h = await bacaLewatInternet();
+      if (h) {
+        setHasilDaring(h);
+        kirim({ jenis: 'HASIL_PINDAI', muatan: h });
+      }
+      return h;
+    } finally {
+      detak.hentikanMenyiapkan();
+      setMemindaiDaring(false);
+    }
+  }
+
+  const hasilAktif: HasilPindai | null = memindaiDaring
+    ? {
+        status: 'belum-stabil',
+        totalKertas: 0,
+        deteksi: [],
+        adaKoin: false,
+        latensiMs: 0,
+        fps: 0,
+        luma: 0.5,
+        senterAktif: false,
+      }
+    : (hasilDaring ?? hasilPindai);
 
   // Nilai kalkulator TIDAK disimpan di komponen, melainkan di state machine.
   //
@@ -380,7 +431,7 @@ export function Aplikasi() {
       Batal dan kembali
     </Tombol>
   );
-  const label = labelUtama(state.fase, hasilPindai, state);
+  const label = labelUtama(state.fase, hasilAktif, state);
 
   /** Tombol batal, hadir di setiap fase kecuali Siaga dan Selesai. */
   const tombolBatal = (
@@ -418,7 +469,7 @@ export function Aplikasi() {
         TalkBack membacakannya lagi setelah suara kita selesai.
       */}
       <div role="alert" aria-live="assertive" className="sr-only">
-        {hasilPindai?.status === 'abstain' ? 'Belum yakin, coba pindai lagi' : ''}
+        {hasilAktif?.status === 'abstain' ? 'Belum yakin, coba pindai lagi' : ''}
       </div>
     </>
   );
@@ -436,7 +487,7 @@ export function Aplikasi() {
             platform={platform}
             detak={detak}
             videoRef={videoRef}
-            onDaring={daringAktif ? bacaLewatInternet : undefined}
+            onDaring={bacaLewatInternet}
             aksi={
               <>
                 <Tombol
@@ -444,21 +495,6 @@ export function Aplikasi() {
                   onAktif={mulaiTransaksi}
                 >
                   Mulai transaksi
-                </Tombol>
-                <Tombol
-                  label={
-                    suaraTersedia
-                      ? 'Latih ulang suara untuk memasukkan nominal'
-                      : 'Latih suara agar nominal bisa disebutkan, sekitar satu setengah menit'
-                  }
-                  ragam="hantu"
-                  onAktif={() => setMelatih(true)}
-                >
-                  {modeSistem === 'daring'
-                    ? 'Latih suara untuk mode luring'
-                    : suaraTersedia
-                      ? 'Latih ulang suara'
-                      : 'Latih suara'}
                 </Tombol>
 
                 {/*
@@ -469,19 +505,21 @@ export function Aplikasi() {
                   Menyembunyikannya di menu pengaturan akan membuat sebagian
                   pengguna memakainya tanpa pernah sadar.
                 */}
-                <Tombol
-                  label={
-                    modeSistem === 'luring'
-                      ? 'Mode luring aktif. Ganti ke mode daring yang memakai internet'
-                      : 'Mode daring aktif, memakai internet. Ganti kembali ke mode luring'
-                  }
-                  ragam="hantu"
-                  onAktif={gantiMode}
-                >
-                  {modeSistem === 'luring'
-                    ? 'Mode: luring'
-                    : 'Mode: daring (internet)'}
-                </Tombol>
+                {!KUNCI_GEMINI && (
+                  <Tombol
+                    label={
+                      modeSistem === 'luring'
+                        ? 'Mode luring aktif. Ganti ke mode daring yang memakai internet'
+                        : 'Mode daring aktif, memakai internet. Ganti kembali ke mode luring'
+                    }
+                    ragam="hantu"
+                    onAktif={gantiMode}
+                  >
+                    {modeSistem === 'luring'
+                      ? 'Mode: luring'
+                      : 'Mode: daring (internet)'}
+                  </Tombol>
+                )}
               </>
             }
           />
@@ -576,24 +614,27 @@ export function Aplikasi() {
           <Kerangka
             langkah={4}
             judul="Periksa kembalian"
-            subjudul="Arahkan kamera ke uang kembalian dari pedagang"
+            subjudul={
+              state.kembalianWajib !== null
+                ? `Kembalian seharusnya Rp${state.kembalianWajib.toLocaleString('id-ID')}`
+                : 'Arahkan kamera ke uang kembalian dari pedagang'
+            }
             isiPenuh
             petunjuk="Ketuk di mana saja untuk menyelesaikan transaksi"
             aksi={
               <>
-                {daringAktif && (
-                  <Tombol
-                    label="Baca kembalian lewat internet"
-                    ragam="sekunder"
-                    onAktif={() => {
-                      void bacaLewatInternet().then((h) => {
-                        if (h) kirim({ jenis: 'HASIL_PINDAI', muatan: h });
-                      });
-                    }}
-                  >
-                    Baca lewat internet
-                  </Tombol>
-                )}
+                <Tombol
+                  label={
+                    memindaiDaring
+                      ? 'Sedang memindai uang kembalian'
+                      : 'Pindai uang kembalian dari pedagang'
+                  }
+                  ragam="primer"
+                  nonaktif={memindaiDaring}
+                  onAktif={() => void pindaiLewatInternet()}
+                >
+                  {memindaiDaring ? 'Memindai…' : 'Pindai uang'}
+                </Tombol>
                 <Tombol label={label} onAktif={tindakanUtama}>
                   Selesaikan transaksi
                 </Tombol>
@@ -604,7 +645,7 @@ export function Aplikasi() {
             <LapisanKetuk onAktif={tindakanUtama} />
             <Pratinjau
               videoRef={videoRef}
-              hasil={hasilPindai}
+              hasil={hasilAktif}
               onSenter={(n) => void pemindai.setSenter(n)}
             />
           </Kerangka>

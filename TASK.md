@@ -46,8 +46,8 @@ Kriteria selesai:
 - [x] Ketujuh pecahan dikenali benar satu per satu dengan uang sungguhan (terverifikasi Farrel di M32, 18 Sept 2026)
 - [x] Kalibrasi ambang keyakinan (0.85 -> 0.70) untuk multi-lembar & presensi koin — ADR-0010
 - [ ] Latensi inferensi terukur di bawah 250 ms di Galaxy M32
-- [ ] Satu transaksi utuh berhasil dengan uang sungguhan
-- [ ] Seluruh alur berjalan dalam mode pesawat
+- [x] Satu transaksi utuh berhasil dengan uang sungguhan (terverifikasi Fajar di Poco X6 Pro: Rp50.000, input suara belanja/bayar, cek kembalian Rp10.000, 19 Sept 2026)
+- [x] Seluruh alur berjalan dalam mode pesawat (terverifikasi luring di Poco X6 Pro: input suara kalkulator luring Android, pemindaian kamera otomatis fallback ke sudepi.onnx saat data mati, 19 Sept 2026)
 - [ ] Satu transaksi diselesaikan dengan layar tertutup telapak tangan
 - [x] Model tiruan DIHAPUS dari `public/model/` (sudah diganti model asli 3.1 MB)
 - [x] Model tiruan dihapus dari perangkat Samsung Galaxy M32 (deploy ulang sukses)

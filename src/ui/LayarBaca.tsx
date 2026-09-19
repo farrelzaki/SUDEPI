@@ -100,7 +100,13 @@ export function LayarBaca({
     detak.mulaiMenyiapkan();
     try {
       const jawaban = await onDaring();
-      if (jawaban) tanggapi(jawaban);
+      if (jawaban) {
+        if (jawaban.status === 'stabil') {
+          // Reset agar penahan pengulangan tidak meredam hasil yang sengaja dipicu tombol
+          statePembaca.current = PEMBACA_AWAL;
+        }
+        tanggapi(jawaban);
+      }
     } finally {
       detak.hentikanMenyiapkan();
       setBertanya(false);
@@ -144,14 +150,14 @@ export function LayarBaca({
             <Tombol
               label={
                 bertanya
-                  ? 'Sedang bertanya lewat internet'
-                  : 'Baca uang lewat internet'
+                  ? 'Sedang memindai uang'
+                  : 'Pindai uang di depan kamera'
               }
-              ragam="sekunder"
+              ragam="primer"
               nonaktif={bertanya}
               onAktif={() => void tanyaInternet()}
             >
-              {bertanya ? 'Bertanya…' : 'Baca lewat internet'}
+              {bertanya ? 'Memindai…' : 'Pindai Uang'}
             </Tombol>
             {aksi}
           </>
