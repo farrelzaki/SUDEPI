@@ -53,6 +53,9 @@ bisa dihapus bukan riwayat.
 | [0010](perubahan/0010-kalibrasi-ambang-keyakinan-070.md) | Kalibrasi ambang keyakinan menjadi 0,70 untuk multi-uang dan koin | Diterima + amandemen | **Mengubah angka ambang 0,85 di Bab II, Bab III, Lampiran 7** |
 | [0011](perubahan/0011-antarmuka-berlangkah-ala-android.md) | Antarmuka berlangkah ala Android menggantikan pola dua tombol | Diterima | Mewujudkan rancangan Lampiran 5 dengan bentuk yang lebih dikenal pengguna |
 | [0012](perubahan/0012-voting-per-objek.md) | Kesepakatan temporal dihitung per objek, bukan per himpunan | Diterima | Mewujudkan deteksi multi-lembar Bab III Fase 1 |
+| [0013](perubahan/0013-perintah-suara-luring.md) | Perintah suara luring dengan pengenal kosakata tertutup | Diterima | **Memulihkan klaim "voice command" Bab III Fase 2** yang sempat dicabut ADR-0005 |
+| [0014](perubahan/0014-alat-baca-terpisah-dari-transaksi.md) | Alat baca uang berdiri sendiri, terpisah dari alur transaksi | Diterima | **Mengubah urutan Fase 1–4 Bab III**: uang dibayarkan kini diketik, bukan dipindai |
+| [0015](perubahan/0015-mode-daring-sebagai-cadangan.md) | Mode daring sebagai cadangan, luring tetap jalur baku | Diterima | **Mengubah cara klaim "100% Offline-First" Bab I dan II harus dibaca** |
 
 ## Ringkasan bagi juri
 

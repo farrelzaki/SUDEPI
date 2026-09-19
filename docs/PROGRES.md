@@ -240,7 +240,8 @@ Ditulis apa adanya.
 | Uji mode pesawat dengan model asli | Belum diulang |
 | Uji transaksi dengan layar tertutup telapak tangan | Belum |
 | Kalibrasi ambang dengan uang lecek | Belum |
-| Perintah suara (STT) | **Tidak diimplementasikan.** Sengaja, sesuai ADR-0005 |
+| Perintah suara (STT) | **Ada, luring**, dengan pengenal buatan sendiri. Perlu dilatih sekali per penutur; belum konsisten di lapangan (ADR-0013) |
+| Mode daring (cadangan) | **Ada, baku MATI.** Dinyalakan sendiri lewat saklar di beranda (ADR-0015) |
 
 **Urutan kelas adalah risiko terbesar yang pernah tersisa, dan ia sudah
 ditutup.** Pemeriksaan bentuk memastikan keluaran model berukuran benar, tetapi
